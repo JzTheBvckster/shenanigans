@@ -4,75 +4,152 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
 
-<BorderPane xmlns="http://javafx.com/javafx/17" 
-            xmlns:fx="http://javafx.com/fxml/1" 
-            fx:controller="com.example.shenanigans.features.employees.controller.EmployeeController"
-            styleClass="employee-root"
-            stylesheets="@../styles/employee.css">
-  <!-- Header -->
+<BorderPane styleClass="employee-root" stylesheets="@../styles/employee.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.shenanigans.features.employees.controller.EmployeeController">
+  <!-- Modern Header -->
   <top>
-    <VBox styleClass="header-section">
-      <HBox styleClass="header" alignment="CENTER_LEFT" spacing="15">
+    <VBox styleClass="header-container">
+      <HBox alignment="CENTER_LEFT" spacing="16" styleClass="header">
         <padding>
-          <Insets top="15" right="20" bottom="15" left="20"/>
+          <Insets bottom="16" left="24" right="24" top="16" />
         </padding>
-        <Button text="← Back" onAction="#handleBack" styleClass="back-button"/>
-        <Label text="Employee Management" styleClass="page-title"/>
-        <Region HBox.hgrow="ALWAYS"/>
-        <ProgressIndicator fx:id="loadingIndicator" visible="false" prefWidth="24" prefHeight="24"/>
-        <Label fx:id="statusLabel" text="" styleClass="status-label"/>
-      </HBox>
-      <!-- Stats Bar -->
-      <HBox styleClass="stats-bar" alignment="CENTER_LEFT" spacing="30">
-        <padding>
-          <Insets top="10" right="20" bottom="10" left="20"/>
-        </padding>
-        <VBox alignment="CENTER" spacing="2">
-          <Label fx:id="totalCountLabel" text="0" styleClass="stat-number"/>
-          <Label text="Total Employees" styleClass="stat-label"/>
+        <!-- Back Button -->
+        <Button onAction="#handleBack" styleClass="back-button" text="←" />
+        <!-- Page Title -->
+        <VBox spacing="2">
+          <Label styleClass="page-title" text="Employees" />
+          <Label styleClass="page-subtitle" text="Manage your team members" />
         </VBox>
-        <VBox alignment="CENTER" spacing="2">
-          <Label fx:id="activeCountLabel" text="0" styleClass="stat-number"/>
-          <Label text="Active" styleClass="stat-label"/>
-        </VBox>
-        <Region HBox.hgrow="ALWAYS"/>
-        <TextField fx:id="searchField" promptText="🔍 Search employees..." 
-                                   styleClass="search-field" prefWidth="250"/>
-        <Button fx:id="refreshButton" text="↻ Refresh" onAction="#loadEmployees" 
-                                styleClass="refresh-button"/>
-        <Button fx:id="addButton" text="+ Add Employee" onAction="#handleAddEmployee" 
-                                styleClass="add-button"/>
+        <Region HBox.hgrow="ALWAYS" />
+        <!-- Loading and Status -->
+        <HBox alignment="CENTER" spacing="12">
+          <ProgressIndicator fx:id="loadingIndicator" maxHeight="20" maxWidth="20" visible="false" />
+          <Label fx:id="statusLabel" styleClass="status-label" text="" />
+        </HBox>
       </HBox>
     </VBox>
   </top>
 
-  <!-- Employee Table -->
+  <!-- Main Content -->
   <center>
-    <VBox styleClass="table-container">
-      <padding>
-        <Insets top="20" right="20" bottom="20" left="20"/>
-      </padding>
-      <TableView fx:id="employeeTable" VBox.vgrow="ALWAYS" styleClass="employee-table">
-        <columns>
-          <TableColumn fx:id="nameColumn" text="Name" prefWidth="180"/>
-          <TableColumn fx:id="emailColumn" text="Email" prefWidth="200"/>
-          <TableColumn fx:id="departmentColumn" text="Department" prefWidth="150"/>
-          <TableColumn fx:id="positionColumn" text="Position" prefWidth="150"/>
-          <TableColumn fx:id="statusColumn" text="Status" prefWidth="100"/>
-        </columns>
-        <placeholder>
-          <Label text="No employees found. Click 'Add Employee' to create one." 
-                                     styleClass="empty-placeholder"/>
-        </placeholder>
-      </TableView>
-    </VBox>
+    <ScrollPane fitToHeight="true" fitToWidth="true" styleClass="content-scroll">
+      <VBox spacing="24" styleClass="content-area">
+        <padding>
+          <Insets bottom="24" left="24" right="24" top="24" />
+        </padding>
+        <!-- Stats Cards Row -->
+        <HBox spacing="20" styleClass="stats-row">
+          <!-- Total Employees Card -->
+          <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-blue" HBox.hgrow="ALWAYS">
+            <HBox spacing="12">
+              <StackPane styleClass="stat-icon-container stat-icon-blue">
+                <Label styleClass="stat-icon" text="👥" textFill="#6a67f8">
+                           <font>
+                              <Font size="1.0" />
+                           </font></Label>
+              </StackPane>
+              <VBox alignment="TOP_CENTER" spacing="2">
+                <Label fx:id="totalCountLabel" styleClass="stat-value" text="0" />
+                <Label styleClass="stat-label" text="Total Employees" />
+              </VBox>
+            </HBox>
+          </VBox>
+          <!-- Active Employees Card -->
+          <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-green" HBox.hgrow="ALWAYS">
+            <HBox alignment="CENTER_LEFT" spacing="12">
+              <StackPane styleClass="stat-icon-container stat-icon-green">
+                <Label styleClass="stat-icon" text="✓" textFill="#6a67f8">
+                           <font>
+                              <Font size="1.0" />
+                           </font></Label>
+              </StackPane>
+              <VBox alignment="TOP_CENTER" spacing="2">
+                <Label fx:id="activeCountLabel" styleClass="stat-value" text="0" />
+                <Label styleClass="stat-label" text="Active" />
+              </VBox>
+            </HBox>
+          </VBox>
+          <!-- On Leave Card -->
+          <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-orange" HBox.hgrow="ALWAYS">
+            <HBox alignment="CENTER_LEFT" spacing="12">
+              <StackPane styleClass="stat-icon-container stat-icon-orange">
+                <Label styleClass="stat-icon" text="🏖" textFill="#6a67f8">
+                           <font>
+                              <Font size="1.0" />
+                           </font></Label>
+              </StackPane>
+              <VBox alignment="TOP_CENTER" spacing="2">
+                <Label fx:id="onLeaveCountLabel" styleClass="stat-value" text="0" />
+                <Label styleClass="stat-label" text="On Leave" />
+              </VBox>
+            </HBox>
+          </VBox>
+          <!-- Departments Card -->
+          <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-purple" HBox.hgrow="ALWAYS">
+            <HBox alignment="CENTER_LEFT" spacing="12">
+              <StackPane styleClass="stat-icon-container stat-icon-purple">
+                <Label styleClass="stat-icon" text="🏢" textFill="#6a67f8">
+                           <font>
+                              <Font size="1.0" />
+                           </font></Label>
+              </StackPane>
+              <VBox alignment="TOP_CENTER" spacing="2">
+                <Label fx:id="departmentCountLabel" styleClass="stat-value" text="0" />
+                <Label styleClass="stat-label" text="Departments" />
+              </VBox>
+            </HBox>
+          </VBox>
+        </HBox>
+        <!-- Table Card -->
+        <VBox spacing="0" styleClass="table-card" VBox.vgrow="ALWAYS">
+          <!-- Table Header -->
+          <HBox alignment="CENTER_LEFT" spacing="16" styleClass="table-header">
+            <padding>
+              <Insets bottom="20" left="24" right="24" top="20" />
+            </padding>
+            <Label styleClass="table-title" text="Employee Directory" />
+            <Region HBox.hgrow="ALWAYS" />
+            <!-- Search -->
+            <HBox alignment="CENTER_LEFT" spacing="8" styleClass="search-container">
+              <Label styleClass="search-icon" text="🔍" />
+              <TextField fx:id="searchField" prefWidth="280" promptText="Search by name, email, department..." styleClass="search-field" />
+            </HBox>
+            <!-- Actions -->
+            <Button fx:id="refreshButton" onAction="#loadEmployees" styleClass="icon-button refresh-button" text="↻" />
+            <Button fx:id="addButton" onAction="#handleAddEmployee" styleClass="primary-button" text="+ Add Employee" />
+          </HBox>
+          <Separator opacity="0.24" styleClass="table-separator" />
+          <!-- Employee Table -->
+          <TableView fx:id="employeeTable" styleClass="employee-table" VBox.vgrow="ALWAYS">
+            <columns>
+              <TableColumn fx:id="nameColumn" prefWidth="220" text="Employee" />
+              <TableColumn fx:id="emailColumn" prefWidth="220" text="Email" />
+              <TableColumn fx:id="departmentColumn" prefWidth="150" text="Department" />
+              <TableColumn fx:id="positionColumn" prefWidth="150" text="Position" />
+              <TableColumn fx:id="statusColumn" prefWidth="120" text="Status" />
+            </columns>
+            <placeholder>
+              <VBox alignment="CENTER" spacing="16" styleClass="empty-state">
+                <Label styleClass="empty-icon" text="👥" />
+                <Label styleClass="empty-title" text="No employees found" />
+                <Label styleClass="empty-subtitle" text="Add your first team member to get started" />
+                <Button onAction="#handleAddEmployee" styleClass="primary-button" text="+ Add Employee" />
+              </VBox>
+            </placeholder>
+          </TableView>
+        </VBox>
+      </VBox>
+    </ScrollPane>
   </center>
 </BorderPane>

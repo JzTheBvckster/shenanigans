@@ -70,6 +70,12 @@ public class EmployeeController {
     @FXML
     private Label activeCountLabel;
 
+    @FXML
+    private Label onLeaveCountLabel;
+
+    @FXML
+    private Label departmentCountLabel;
+
     private Employee selectedEmployee;
 
     /**
@@ -104,22 +110,31 @@ public class EmployeeController {
         statusColumn.setCellValueFactory(
                 cellData -> new SimpleStringProperty(formatStatus(cellData.getValue().getStatus())));
 
-        // Style status column
+        // Style status column with modern badges
         statusColumn.setCellFactory(column -> new TableCell<>() {
+            private final Label statusBadge = new Label();
+
+            {
+                statusBadge.setMinWidth(80);
+                statusBadge.setAlignment(javafx.geometry.Pos.CENTER);
+            }
+
             @Override
             protected void updateItem(String status, boolean empty) {
                 super.updateItem(status, empty);
                 if (empty || status == null) {
+                    setGraphic(null);
                     setText(null);
-                    setStyle("");
                 } else {
-                    setText(status);
+                    statusBadge.setText(status);
                     switch (status) {
-                        case "Active" -> setStyle("-fx-text-fill: #27ae60; -fx-font-weight: bold;");
-                        case "On Leave" -> setStyle("-fx-text-fill: #f39c12; -fx-font-weight: bold;");
-                        case "Terminated" -> setStyle("-fx-text-fill: #e74c3c; -fx-font-weight: bold;");
-                        default -> setStyle("");
+                        case "Active" -> statusBadge.getStyleClass().setAll("status-active");
+                        case "On Leave" -> statusBadge.getStyleClass().setAll("status-on-leave");
+                        case "Terminated" -> statusBadge.getStyleClass().setAll("status-inactive");
+                        default -> statusBadge.getStyleClass().clear();
                     }
+                    setGraphic(statusBadge);
+                    setText(null);
                 }
             }
         });
@@ -449,7 +464,9 @@ public class EmployeeController {
     private void showStatus(String message, boolean isError) {
         if (statusLabel != null) {
             statusLabel.setText(message);
-            statusLabel.setStyle(isError ? "-fx-text-fill: #e74c3c;" : "-fx-text-fill: #27ae60;");
+            statusLabel.setStyle(isError
+                    ? "-fx-text-fill: #fee2e2; -fx-background-color: rgba(239, 68, 68, 0.3);"
+                    : "-fx-text-fill: rgba(255, 255, 255, 0.9); -fx-background-color: rgba(255, 255, 255, 0.15);");
         }
     }
 
@@ -460,6 +477,20 @@ public class EmployeeController {
         if (activeCountLabel != null) {
             long activeCount = employees.stream().filter(Employee::isActive).count();
             activeCountLabel.setText(String.valueOf(activeCount));
+        }
+        if (onLeaveCountLabel != null) {
+            long onLeaveCount = employees.stream()
+                    .filter(e -> "ON_LEAVE".equals(e.getStatus()))
+                    .count();
+            onLeaveCountLabel.setText(String.valueOf(onLeaveCount));
+        }
+        if (departmentCountLabel != null) {
+            long deptCount = employees.stream()
+                    .map(Employee::getDepartment)
+                    .filter(d -> d != null && !d.isEmpty())
+                    .distinct()
+                    .count();
+            departmentCountLabel.setText(String.valueOf(deptCount));
         }
     }
 
