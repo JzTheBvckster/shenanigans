@@ -12,38 +12,34 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.Circle?>
 
-<BorderPane xmlns="http://javafx.com/javafx/17" 
-            xmlns:fx="http://javafx.com/fxml/1" 
-            fx:controller="com.example.shenanigans.features.dashboard.controller.DashboardController"
-            styleClass="dashboard-root"
-            stylesheets="@../styles/dashboard.css">
+<BorderPane styleClass="dashboard-root" stylesheets="@../styles/dashboard.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.shenanigans.features.dashboard.controller.DashboardController">
   <!-- Modern Header -->
   <top>
     <VBox styleClass="header-container">
-      <HBox styleClass="header" alignment="CENTER_LEFT" spacing="16">
+      <HBox alignment="CENTER_LEFT" spacing="16" styleClass="header">
         <padding>
-          <Insets top="16" right="24" bottom="16" left="24"/>
+          <Insets bottom="16" left="24" right="24" top="16" />
         </padding>
         <!-- Logo/Brand -->
         <HBox alignment="CENTER_LEFT" spacing="12">
           <StackPane styleClass="logo-container">
-            <Circle radius="18" styleClass="logo-circle"/>
-            <Label text="S" styleClass="logo-letter"/>
+            <Circle radius="18" styleClass="logo-circle" />
+            <Label styleClass="logo-letter" text="S" />
           </StackPane>
-          <Label text="Shenanigans" styleClass="app-title"/>
+          <Label styleClass="app-title" text="Shenanigans" />
         </HBox>
-        <Region HBox.hgrow="ALWAYS"/>
+        <Region HBox.hgrow="ALWAYS" />
         <!-- User Info -->
         <HBox alignment="CENTER_RIGHT" spacing="16">
           <VBox alignment="CENTER_RIGHT" spacing="2">
-            <Label fx:id="welcomeLabel" text="Welcome!" styleClass="welcome-text"/>
-            <Label fx:id="emailLabel" text="" styleClass="email-text"/>
+            <Label fx:id="welcomeLabel" styleClass="welcome-text" text="Welcome!" />
+            <Label fx:id="emailLabel" styleClass="email-text" text="" />
           </VBox>
           <StackPane styleClass="avatar-container">
-            <Circle radius="20" styleClass="avatar-circle"/>
-            <Label text="U" styleClass="avatar-letter"/>
+            <Circle radius="20" styleClass="avatar-circle" />
+            <Label styleClass="avatar-letter" text="U" />
           </StackPane>
-          <Button fx:id="logoutButton" text="Sign Out" onAction="#handleLogout" styleClass="logout-button"/>
+          <Button fx:id="logoutButton" onAction="#handleLogout" styleClass="logout-button" text="Sign Out" />
         </HBox>
       </HBox>
     </VBox>
@@ -51,45 +47,41 @@
 
   <!-- Modern Sidebar -->
   <left>
-    <VBox fx:id="menuContainer" styleClass="sidebar" spacing="8" prefWidth="260">
+    <VBox fx:id="menuContainer" prefWidth="260" spacing="8" styleClass="sidebar">
       <padding>
-        <Insets top="24" right="16" bottom="24" left="16"/>
+        <Insets bottom="24" left="16" right="16" top="24" />
       </padding>
       <!-- Role Badge -->
       <HBox alignment="CENTER">
-        <Label fx:id="roleLabel" text="" styleClass="role-badge"/>
+        <Label fx:id="roleLabel" styleClass="role-badge" text="" />
       </HBox>
-      <Region prefHeight="16"/>
+      <Region prefHeight="16" />
       <!-- Navigation Section -->
-      <Label text="NAVIGATION" styleClass="menu-header"/>
+      <Label styleClass="menu-header" text="NAVIGATION" />
       <VBox spacing="4" styleClass="menu-section">
-        <Button fx:id="employeesButton" text="Employees" onAction="#handleEmployees" 
-                                                        styleClass="menu-button" maxWidth="Infinity" graphicTextGap="12">
+        <Button fx:id="employeesButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleEmployees" styleClass="menu-button" text="Employees">
           <graphic>
-            <Label text="👥" styleClass="menu-icon"/>
+            <Label styleClass="menu-icon" text="👥" />
           </graphic>
         </Button>
-        <Button fx:id="projectsButton" text="Projects" onAction="#handleProjects" 
-                                                        styleClass="menu-button" maxWidth="Infinity" graphicTextGap="12">
+        <Button fx:id="projectsButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleProjects" styleClass="menu-button" text="Projects">
           <graphic>
-            <Label text="📋" styleClass="menu-icon"/>
+            <Label styleClass="menu-icon" text="📋" />
           </graphic>
         </Button>
-        <Button fx:id="financeButton" text="Finance" onAction="#handleFinance" 
-                                                        styleClass="menu-button" maxWidth="Infinity" graphicTextGap="12">
+        <Button fx:id="financeButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleFinance" styleClass="menu-button" text="Finance">
           <graphic>
-            <Label text="💰" styleClass="menu-icon"/>
+            <Label styleClass="menu-icon" text="💰" />
           </graphic>
         </Button>
       </VBox>
-      <Region VBox.vgrow="ALWAYS"/>
+      <Region VBox.vgrow="ALWAYS" />
       <!-- Bottom Section -->
-      <Separator styleClass="menu-separator"/>
+      <Separator styleClass="menu-separator" />
       <VBox spacing="4">
-        <Button fx:id="settingsButton" text="Settings" onAction="#handleSettings" 
-                                                        styleClass="menu-button menu-button-secondary" maxWidth="Infinity" graphicTextGap="12">
+        <Button fx:id="settingsButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleSettings" styleClass="menu-button menu-button-secondary" text="Settings">
           <graphic>
-            <Label text="⚙️" styleClass="menu-icon"/>
+            <Label styleClass="menu-icon" text="⚙️" />
           </graphic>
         </Button>
       </VBox>
@@ -98,117 +90,117 @@
 
   <!-- Main Content Area -->
   <center>
-    <ScrollPane styleClass="content-scroll" fitToWidth="true" fitToHeight="true">
-      <VBox styleClass="content-area" spacing="24" alignment="TOP_LEFT">
+    <ScrollPane fitToHeight="true" fitToWidth="true" styleClass="content-scroll">
+      <VBox alignment="TOP_LEFT" spacing="24" styleClass="content-area">
         <padding>
-          <Insets top="32" right="32" bottom="32" left="32"/>
+          <Insets bottom="32" left="32" right="32" top="32" />
         </padding>
         <!-- Page Header -->
         <VBox spacing="8">
-          <Label text="Dashboard" styleClass="page-title"/>
-          <Label text="Welcome back! Here's an overview of your workspace." styleClass="page-subtitle"/>
+          <Label styleClass="page-title" text="Dashboard" />
+          <Label styleClass="page-subtitle" text="Welcome back! Here's an overview of your workspace." />
         </VBox>
         <!-- Quick Stats Cards -->
         <HBox spacing="20" styleClass="stats-container">
           <!-- Projects Card -->
-          <VBox styleClass="stat-card stat-card-primary" alignment="TOP_LEFT" spacing="12" HBox.hgrow="ALWAYS">
+          <VBox alignment="CENTER" spacing="12" styleClass="stat-card stat-card-primary" HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT" spacing="12">
               <StackPane styleClass="stat-icon-container stat-icon-blue">
-                <Label text="📋" styleClass="stat-icon"/>
+                <Label styleClass="stat-icon" text="📋" />
               </StackPane>
-              <Label text="Active Projects" styleClass="stat-label"/>
+              <Label styleClass="stat-label" text="Active Projects" />
             </HBox>
-            <Label text="0" styleClass="stat-number"/>
-            <HBox styleClass="stat-trend" spacing="6" alignment="CENTER_LEFT">
-              <Label text="▲" styleClass="trend-icon trend-up"/>
-              <Label text="+12 from last month" styleClass="trend-text"/>
+            <Label prefHeight="57.0" prefWidth="8.0" styleClass="stat-number" text="0" />
+            <HBox alignment="CENTER_LEFT" spacing="6" styleClass="stat-trend">
+              <Label styleClass="trend-icon trend-up" text="▲" />
+              <Label styleClass="trend-text" text="+12 from last month" />
             </HBox>
           </VBox>
           <!-- Employees Card -->
-          <VBox styleClass="stat-card stat-card-success" alignment="TOP_LEFT" spacing="12" HBox.hgrow="ALWAYS">
+          <VBox alignment="CENTER" spacing="12" styleClass="stat-card stat-card-success" HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT" spacing="12">
               <StackPane styleClass="stat-icon-container stat-icon-green">
-                <Label text="👥" styleClass="stat-icon"/>
+                <Label styleClass="stat-icon" text="👥" />
               </StackPane>
-              <Label text="Team Members" styleClass="stat-label"/>
+              <Label styleClass="stat-label" text="Team Members" />
             </HBox>
-            <Label text="0" styleClass="stat-number"/>
-            <HBox styleClass="stat-trend" spacing="6" alignment="CENTER_LEFT">
-              <Label text="▲" styleClass="trend-icon trend-up"/>
-              <Label text="+3 new this month" styleClass="trend-text"/>
+            <Label styleClass="stat-number" text="0" />
+            <HBox alignment="CENTER_LEFT" spacing="6" styleClass="stat-trend">
+              <Label styleClass="trend-icon trend-up" text="▲" />
+              <Label styleClass="trend-text" text="+3 new this month" />
             </HBox>
           </VBox>
           <!-- Tasks Card -->
-          <VBox styleClass="stat-card stat-card-warning" alignment="TOP_LEFT" spacing="12" HBox.hgrow="ALWAYS">
+          <VBox alignment="CENTER" spacing="12" styleClass="stat-card stat-card-warning" HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT" spacing="12">
               <StackPane styleClass="stat-icon-container stat-icon-orange">
-                <Label text="📝" styleClass="stat-icon"/>
+                <Label styleClass="stat-icon" text="📝" />
               </StackPane>
-              <Label text="Pending Tasks" styleClass="stat-label"/>
+              <Label styleClass="stat-label" text="Pending Tasks" />
             </HBox>
-            <Label text="0" styleClass="stat-number"/>
-            <HBox styleClass="stat-trend" spacing="6" alignment="CENTER_LEFT">
-              <Label text="▼" styleClass="trend-icon trend-down"/>
-              <Label text="-5 from last week" styleClass="trend-text"/>
+            <Label styleClass="stat-number" text="0" />
+            <HBox alignment="CENTER_LEFT" spacing="6" styleClass="stat-trend">
+              <Label styleClass="trend-icon trend-down" text="▼" />
+              <Label styleClass="trend-text" text="-5 from last week" />
             </HBox>
           </VBox>
           <!-- Revenue Card -->
-          <VBox styleClass="stat-card stat-card-info" alignment="TOP_LEFT" spacing="12" HBox.hgrow="ALWAYS">
+          <VBox alignment="CENTER" spacing="12" styleClass="stat-card stat-card-info" HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT" spacing="12">
               <StackPane styleClass="stat-icon-container stat-icon-purple">
-                <Label text="💵" styleClass="stat-icon"/>
+                <Label styleClass="stat-icon" text="💵" />
               </StackPane>
-              <Label text="Revenue" styleClass="stat-label"/>
+              <Label styleClass="stat-label" text="Revenue" />
             </HBox>
-            <Label text="0" styleClass="stat-number"/>
-            <HBox styleClass="stat-trend" spacing="6" alignment="CENTER_LEFT">
-              <Label text="▲" styleClass="trend-icon trend-up"/>
-              <Label text="+8 from last month" styleClass="trend-text"/>
+            <Label styleClass="stat-number" text="0" />
+            <HBox alignment="CENTER_LEFT" spacing="6" styleClass="stat-trend">
+              <Label styleClass="trend-icon trend-up" text="▲" />
+              <Label styleClass="trend-text" text="+8 from last month" />
             </HBox>
           </VBox>
         </HBox>
         <!-- Two Column Layout -->
         <HBox spacing="24" VBox.vgrow="ALWAYS">
           <!-- Recent Activity Section -->
-          <VBox styleClass="card activity-section" spacing="16" HBox.hgrow="ALWAYS">
+          <VBox spacing="16" styleClass="card activity-section" HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT" spacing="12">
-              <Label text="Recent Activity" styleClass="section-title"/>
-              <Region HBox.hgrow="ALWAYS"/>
-              <Button text="View All" styleClass="link-button"/>
+              <Label styleClass="section-title" text="Recent Activity" />
+              <Region HBox.hgrow="ALWAYS" />
+              <Button styleClass="link-button" text="View All" />
             </HBox>
             <VBox spacing="12" styleClass="activity-list">
               <!-- Activity Items -->
-              <HBox styleClass="activity-item" spacing="12" alignment="CENTER_LEFT">
-                <StackPane styleClass="activity-dot activity-dot-blue"/>
+              <HBox alignment="CENTER_LEFT" spacing="12" styleClass="activity-item">
+                <StackPane styleClass="activity-dot activity-dot-blue" />
                 <VBox spacing="2" HBox.hgrow="ALWAYS">
-                  <Label text="New project created" styleClass="activity-title"/>
-                  <Label text="2 hours ago" styleClass="activity-time"/>
+                  <Label styleClass="activity-title" text="New project created" />
+                  <Label styleClass="activity-time" text="2 hours ago" />
                 </VBox>
               </HBox>
-              <HBox styleClass="activity-item" spacing="12" alignment="CENTER_LEFT">
-                <StackPane styleClass="activity-dot activity-dot-green"/>
+              <HBox alignment="CENTER_LEFT" spacing="12" styleClass="activity-item">
+                <StackPane styleClass="activity-dot activity-dot-green" />
                 <VBox spacing="2" HBox.hgrow="ALWAYS">
-                  <Label text="Employee onboarded" styleClass="activity-title"/>
-                  <Label text="5 hours ago" styleClass="activity-time"/>
+                  <Label styleClass="activity-title" text="Employee onboarded" />
+                  <Label styleClass="activity-time" text="5 hours ago" />
                 </VBox>
               </HBox>
-              <HBox styleClass="activity-item" spacing="12" alignment="CENTER_LEFT">
-                <StackPane styleClass="activity-dot activity-dot-orange"/>
+              <HBox alignment="CENTER_LEFT" spacing="12" styleClass="activity-item">
+                <StackPane styleClass="activity-dot activity-dot-orange" />
                 <VBox spacing="2" HBox.hgrow="ALWAYS">
-                  <Label text="Invoice generated" styleClass="activity-title"/>
-                  <Label text="1 day ago" styleClass="activity-time"/>
+                  <Label styleClass="activity-title" text="Invoice generated" />
+                  <Label styleClass="activity-time" text="1 day ago" />
                 </VBox>
               </HBox>
-              <Label text="No more recent activity" styleClass="empty-state"/>
+              <Label styleClass="empty-state" text="No more recent activity" />
             </VBox>
           </VBox>
           <!-- Quick Actions Section -->
-          <VBox styleClass="card quick-actions" spacing="16" prefWidth="300">
-            <Label text="Quick Actions" styleClass="section-title"/>
+          <VBox prefWidth="300" spacing="16" styleClass="card quick-actions">
+            <Label styleClass="section-title" text="Quick Actions" />
             <VBox spacing="10">
-              <Button text="+ Add New Employee" styleClass="action-button action-primary" maxWidth="Infinity"/>
-              <Button text="+ Create Project" styleClass="action-button action-secondary" maxWidth="Infinity"/>
-              <Button text="+ Generate Report" styleClass="action-button action-tertiary" maxWidth="Infinity"/>
+              <Button maxWidth="Infinity" styleClass="action-button action-primary" text="+ Add New Employee" />
+              <Button maxWidth="Infinity" styleClass="action-button action-secondary" text="+ Create Project" />
+              <Button maxWidth="Infinity" styleClass="action-button action-tertiary" text="+ Generate Report" />
             </VBox>
           </VBox>
         </HBox>
