@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Hyperlink?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane styleClass="auth-container" stylesheets="@../styles/auth.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.shenanigans.features.auth.controller.RegisterController">
+  <center>
+    <ScrollPane fitToHeight="true" fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background: transparent;">
+      <StackPane style="-fx-background-color: transparent;">
+        <VBox alignment="CENTER" maxWidth="450" spacing="25">
+          <padding>
+            <Insets bottom="50" left="40" right="40" top="50"/>
+          </padding>
+          <!-- App Branding -->
+          <VBox alignment="CENTER" spacing="8">
+            <Label styleClass="app-title" text="Shenanigans"/>
+            <Label styleClass="app-subtitle" text="Enterprise Management System"/>
+          </VBox>
+          <Region prefHeight="10"/>
+          <!-- Register Form Card -->
+          <VBox fx:id="registerPane" spacing="16" styleClass="auth-form">
+            <VBox alignment="CENTER" spacing="5">
+              <Label styleClass="form-title" text="Create Account"/>
+              <Label styleClass="form-description" text="Join the team and start managing projects"/>
+            </VBox>
+            <Region prefHeight="5"/>
+            <VBox spacing="6">
+              <Label styleClass="field-label" text="FULL NAME"/>
+              <TextField fx:id="displayNameField" promptText="John Doe" styleClass="auth-field"/>
+            </VBox>
+            <VBox spacing="6">
+              <Label styleClass="field-label" text="EMAIL ADDRESS"/>
+              <TextField fx:id="registerEmailField" promptText="you@example.com" styleClass="auth-field"/>
+            </VBox>
+            <HBox spacing="15">
+              <VBox spacing="6" HBox.hgrow="ALWAYS">
+                <Label styleClass="field-label" text="PASSWORD"/>
+                <PasswordField fx:id="registerPasswordField" promptText="Min. 6 characters" styleClass="auth-field"/>
+              </VBox>
+              <VBox spacing="6" HBox.hgrow="ALWAYS">
+                <Label styleClass="field-label" text="CONFIRM PASSWORD"/>
+                <PasswordField fx:id="confirmPasswordField" promptText="Re-enter password" styleClass="auth-field"/>
+              </VBox>
+            </HBox>
+            <VBox spacing="6">
+              <Label styleClass="field-label" text="SELECT ROLE"/>
+              <ComboBox fx:id="roleComboBox" maxWidth="Infinity" promptText="Choose your role" styleClass="auth-field"/>
+            </VBox>
+            <Region prefHeight="5"/>
+            <Button fx:id="registerButton" maxWidth="Infinity" onAction="#handleRegister" styleClass="primary-button" text="Create Account"/>
+            <!-- Loading Indicator -->
+            <HBox alignment="CENTER">
+              <ProgressIndicator fx:id="loadingIndicator" maxHeight="24" maxWidth="24" visible="false"/>
+            </HBox>
+            <!-- Status Label -->
+            <Label fx:id="statusLabel" styleClass="status-label" wrapText="true"/>
+            <HBox alignment="CENTER" spacing="5">
+              <Label styleClass="link-text" text="Already have an account?"/>
+              <Hyperlink fx:id="backToLoginLink" onAction="#navigateToLogin" text="Sign in"/>
+            </HBox>
+          </VBox>
+        </VBox>
+      </StackPane>
+    </ScrollPane>
+  </center>
+</BorderPane>

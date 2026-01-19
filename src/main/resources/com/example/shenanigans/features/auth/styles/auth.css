@@ -1,10 +1,10 @@
 /* 
- * Auth Feature Styles
+ * Auth Feature Styles - Modern Design
  */
 
-/* ===== Container ===== */
+/* ===== Container with Gradient Background ===== */
 .auth-container {
-    -fx-background-color: #FAFAFA;
+    -fx-background-color: linear-gradient(to bottom right, #667eea, #764ba2);
 }
 
 /* ===== ScrollPane ===== */
@@ -22,169 +22,240 @@
 
 /* ===== Typography ===== */
 .app-title {
-    -fx-font-size: 32px;
+    -fx-font-size: 42px;
     -fx-font-weight: bold;
-    -fx-text-fill: #1976D2;
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 8, 0, 0, 2);
 }
 
 .app-subtitle {
-    -fx-font-size: 14px;
-    -fx-text-fill: #757575;
+    -fx-font-size: 15px;
+    -fx-text-fill: rgba(255, 255, 255, 0.85);
+    -fx-font-weight: normal;
 }
 
 .form-title {
-    -fx-font-size: 24px;
+    -fx-font-size: 26px;
     -fx-font-weight: bold;
-    -fx-text-fill: #212121;
+    -fx-text-fill: #1a1a2e;
 }
 
 .form-description {
     -fx-font-size: 13px;
-    -fx-text-fill: #757575;
+    -fx-text-fill: #6b7280;
     -fx-wrap-text: true;
+    -fx-line-spacing: 2px;
 }
 
 .field-label {
-    -fx-font-size: 13px;
+    -fx-font-size: 12px;
     -fx-font-weight: bold;
-    -fx-text-fill: #757575;
+    -fx-text-fill: #4b5563;
+    -fx-padding: 0 0 2px 2px;
 }
 
-/* ===== Form Container ===== */
+/* ===== Glassmorphism Form Container ===== */
 .auth-form {
-    -fx-background-color: #FFFFFF;
-    -fx-background-radius: 12px;
-    -fx-padding: 30px;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 10, 0, 0, 2);
+    -fx-background-color: rgba(255, 255, 255, 0.95);
+    -fx-background-radius: 20px;
+    -fx-padding: 35px 40px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 30, 0, 0, 10);
 }
 
-/* ===== Input Fields ===== */
+/* ===== Modern Input Fields ===== */
 .auth-field {
-    -fx-background-color: #FFFFFF;
-    -fx-border-color: #E0E0E0;
-    -fx-border-width: 1px;
-    -fx-border-radius: 6px;
-    -fx-background-radius: 6px;
-    -fx-padding: 12px 15px;
+    -fx-background-color: #f3f4f6;
+    -fx-border-color: transparent;
+    -fx-border-width: 2px;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+    -fx-padding: 14px 18px;
     -fx-font-size: 14px;
-    -fx-text-fill: #212121;
-    -fx-prompt-text-fill: #757575;
+    -fx-text-fill: #1f2937;
+    -fx-prompt-text-fill: #9ca3af;
 }
 
 .auth-field:focused {
-    -fx-border-color: #1976D2;
+    -fx-background-color: #ffffff;
+    -fx-border-color: #667eea;
     -fx-border-width: 2px;
+    -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.25), 8, 0, 0, 0);
 }
 
 .auth-field:hover {
-    -fx-border-color: #42A5F5;
-}
-
-/* ===== Buttons ===== */
-.primary-button {
-    -fx-background-color: #1976D2;
-    -fx-text-fill: white;
-    -fx-font-size: 14px;
-    -fx-font-weight: bold;
-    -fx-padding: 12px 24px;
-    -fx-background-radius: 6px;
-    -fx-cursor: hand;
-}
-
-.primary-button:hover {
-    -fx-background-color: #1565C0;
-}
-
-.primary-button:pressed {
-    -fx-background-color: #0D47A1;
-}
-
-.primary-button:disabled {
-    -fx-background-color: #BDBDBD;
-    -fx-text-fill: #757575;
-}
-
-.secondary-button {
-    -fx-background-color: transparent;
-    -fx-border-color: #1976D2;
-    -fx-border-width: 1px;
-    -fx-border-radius: 6px;
-    -fx-text-fill: #1976D2;
-    -fx-font-size: 14px;
-    -fx-padding: 12px 24px;
-    -fx-cursor: hand;
-}
-
-.secondary-button:hover {
-    -fx-background-color: rgba(25, 118, 210, 0.1);
-}
-
-/* ===== Hyperlinks ===== */
-.hyperlink {
-    -fx-text-fill: #1976D2;
-    -fx-font-size: 13px;
+    -fx-background-color: #e5e7eb;
     -fx-border-color: transparent;
 }
 
+/* ===== Gradient Primary Button ===== */
+.primary-button {
+    -fx-background-color: linear-gradient(to right, #667eea, #764ba2);
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-padding: 14px 28px;
+    -fx-background-radius: 10px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.4), 12, 0, 0, 4);
+}
+
+.primary-button:hover {
+    -fx-background-color: linear-gradient(to right, #5a67d8, #6b46c1);
+    -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.6), 16, 0, 0, 6);
+}
+
+.primary-button:pressed {
+    -fx-background-color: linear-gradient(to right, #4c51bf, #553c9a);
+    -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.3), 8, 0, 0, 2);
+}
+
+.primary-button:disabled {
+    -fx-background-color: #d1d5db;
+    -fx-text-fill: #9ca3af;
+    -fx-effect: none;
+}
+
+/* ===== Secondary/Outline Button ===== */
+.secondary-button {
+    -fx-background-color: transparent;
+    -fx-border-color: #667eea;
+    -fx-border-width: 2px;
+    -fx-border-radius: 10px;
+    -fx-text-fill: #667eea;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 12px 24px;
+    -fx-cursor: hand;
+    -fx-background-radius: 10px;
+}
+
+.secondary-button:hover {
+    -fx-background-color: rgba(102, 126, 234, 0.1);
+    -fx-border-color: #5a67d8;
+    -fx-text-fill: #5a67d8;
+}
+
+/* ===== Modern Hyperlinks ===== */
+.hyperlink {
+    -fx-text-fill: #667eea;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-border-color: transparent;
+    -fx-underline: false;
+}
+
 .hyperlink:hover {
-    -fx-text-fill: #1565C0;
+    -fx-text-fill: #5a67d8;
     -fx-underline: true;
 }
 
 .hyperlink:visited {
-    -fx-text-fill: #1976D2;
+    -fx-text-fill: #667eea;
 }
 
 /* ===== Status Labels ===== */
 .status-label {
     -fx-font-size: 13px;
-    -fx-padding: 10px 15px;
-    -fx-background-radius: 6px;
+    -fx-padding: 12px 16px;
+    -fx-background-radius: 10px;
+    -fx-font-weight: normal;
 }
 
 .status-error {
-    -fx-text-fill: #D32F2F;
-    -fx-background-color: rgba(211, 47, 47, 0.1);
+    -fx-text-fill: #dc2626;
+    -fx-background-color: rgba(220, 38, 38, 0.1);
+    -fx-border-color: rgba(220, 38, 38, 0.2);
+    -fx-border-width: 1px;
+    -fx-border-radius: 10px;
 }
 
 .status-success {
-    -fx-text-fill: #388E3C;
-    -fx-background-color: rgba(56, 142, 60, 0.1);
+    -fx-text-fill: #059669;
+    -fx-background-color: rgba(5, 150, 105, 0.1);
+    -fx-border-color: rgba(5, 150, 105, 0.2);
+    -fx-border-width: 1px;
+    -fx-border-radius: 10px;
 }
 
 /* ===== Progress Indicator ===== */
 .progress-indicator {
-    -fx-progress-color: #1976D2;
+    -fx-progress-color: #667eea;
 }
 
-/* ===== ComboBox ===== */
+/* ===== Modern ComboBox ===== */
 .combo-box {
-    -fx-background-color: #FFFFFF;
-    -fx-border-color: #E0E0E0;
-    -fx-border-width: 1px;
-    -fx-border-radius: 6px;
-    -fx-background-radius: 6px;
-    -fx-padding: 8px 12px;
+    -fx-background-color: #f3f4f6;
+    -fx-border-color: transparent;
+    -fx-border-width: 2px;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+    -fx-padding: 10px 14px;
 }
 
 .combo-box:focused {
-    -fx-border-color: #1976D2;
+    -fx-background-color: #ffffff;
+    -fx-border-color: #667eea;
+    -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.25), 8, 0, 0, 0);
+}
+
+.combo-box:hover {
+    -fx-background-color: #e5e7eb;
 }
 
 .combo-box .list-cell {
-    -fx-text-fill: #212121;
+    -fx-text-fill: #1f2937;
     -fx-font-size: 14px;
+    -fx-padding: 8px 12px;
 }
 
 .combo-box-popup .list-view {
-    -fx-background-color: #FFFFFF;
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 10px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.15), 15, 0, 0, 5);
+}
+
+.combo-box-popup .list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 10px 14px;
 }
 
 .combo-box-popup .list-cell:hover {
-    -fx-background-color: rgba(25, 118, 210, 0.1);
+    -fx-background-color: rgba(102, 126, 234, 0.1);
 }
 
 .combo-box-popup .list-cell:selected {
-    -fx-background-color: #42A5F5;
+    -fx-background-color: linear-gradient(to right, #667eea, #764ba2);
     -fx-text-fill: white;
+}
+
+/* ===== Link Text ===== */
+.link-text {
+    -fx-font-size: 13px;
+    -fx-text-fill: #6b7280;
+}
+
+/* ===== Divider ===== */
+.divider-line {
+    -fx-background-color: #e5e7eb;
+    -fx-pref-height: 1px;
+    -fx-max-height: 1px;
+}
+
+.divider-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: #9ca3af;
+    -fx-padding: 0 15px;
+}
+
+/* ===== Icon Styling ===== */
+.field-icon {
+    -fx-text-fill: #9ca3af;
+    -fx-font-size: 16px;
+}
+
+/* ===== Welcome Text ===== */
+.welcome-text {
+    -fx-font-size: 14px;
+    -fx-text-fill: rgba(255, 255, 255, 0.9);
+    -fx-font-weight: normal;
 }

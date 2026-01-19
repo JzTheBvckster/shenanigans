@@ -38,24 +38,6 @@ public class AuthController {
     @FXML
     private Hyperlink createAccountLink;
 
-    // FXML Components - Register
-    @FXML
-    private VBox registerPane;
-    @FXML
-    private TextField registerEmailField;
-    @FXML
-    private PasswordField registerPasswordField;
-    @FXML
-    private PasswordField confirmPasswordField;
-    @FXML
-    private TextField displayNameField;
-    @FXML
-    private ComboBox<String> roleComboBox;
-    @FXML
-    private Button registerButton;
-    @FXML
-    private Hyperlink backToLoginLink;
-
     // FXML Components - Forgot Password
     @FXML
     private VBox forgotPasswordPane;
@@ -77,12 +59,6 @@ public class AuthController {
      */
     @FXML
     public void initialize() {
-        // Setup role combo box
-        if (roleComboBox != null) {
-            roleComboBox.getItems().addAll("Project Manager", "Managing Director");
-            roleComboBox.setValue("Project Manager");
-        }
-
         // Show login pane by default
         showLoginPane();
 
@@ -136,66 +112,6 @@ public class AuthController {
         }));
 
         new Thread(loginTask).start();
-    }
-
-    /**
-     * Handles register button click.
-     */
-    @FXML
-    private void handleRegister() {
-        String email = registerEmailField.getText().trim();
-        String password = registerPasswordField.getText();
-        String confirmPassword = confirmPasswordField.getText();
-        String displayName = displayNameField.getText().trim();
-        String selectedRole = roleComboBox.getValue();
-
-        // Validate inputs
-        if (email.isEmpty() || password.isEmpty() || displayName.isEmpty()) {
-            showStatus("Please fill in all fields", true);
-            return;
-        }
-
-        if (!isValidEmail(email)) {
-            showStatus("Please enter a valid email address", true);
-            return;
-        }
-
-        if (password.length() < 6) {
-            showStatus("Password must be at least 6 characters", true);
-            return;
-        }
-
-        if (!password.equals(confirmPassword)) {
-            showStatus("Passwords do not match", true);
-            return;
-        }
-
-        // Convert display role to system role
-        String role = "Project Manager".equals(selectedRole) ? "PROJECT_MANAGER" : "MANAGING_DIRECTOR";
-
-        setLoading(true);
-        showStatus("Creating account...", false);
-
-        Task<User> signUpTask = authService.signUp(email, password, displayName, role);
-
-        signUpTask.setOnSucceeded(event -> Platform.runLater(() -> {
-            setLoading(false);
-            User user = signUpTask.getValue();
-            LOGGER.info("User registered: " + user.getEmail());
-
-            // Auto-login after successful registration
-            onLoginSuccess(user);
-        }));
-
-        signUpTask.setOnFailed(event -> Platform.runLater(() -> {
-            setLoading(false);
-            Throwable error = signUpTask.getException();
-            String message = error.getMessage() != null ? error.getMessage() : "Registration failed";
-            showStatus(message, true);
-            LOGGER.log(Level.SEVERE, "Registration failed", error);
-        }));
-
-        new Thread(signUpTask).start();
     }
 
     /**
@@ -278,10 +194,6 @@ public class AuthController {
             loginPane.setVisible(true);
         if (loginPane != null)
             loginPane.setManaged(true);
-        if (registerPane != null)
-            registerPane.setVisible(false);
-        if (registerPane != null)
-            registerPane.setManaged(false);
         if (forgotPasswordPane != null)
             forgotPasswordPane.setVisible(false);
         if (forgotPasswordPane != null)
@@ -290,23 +202,16 @@ public class AuthController {
     }
 
     /**
-     * Shows the registration pane and hides others.
+     * Navigates to the registration page.
      */
     @FXML
     private void showRegisterPane() {
-        if (loginPane != null)
-            loginPane.setVisible(false);
-        if (loginPane != null)
-            loginPane.setManaged(false);
-        if (registerPane != null)
-            registerPane.setVisible(true);
-        if (registerPane != null)
-            registerPane.setManaged(true);
-        if (forgotPasswordPane != null)
-            forgotPasswordPane.setVisible(false);
-        if (forgotPasswordPane != null)
-            forgotPasswordPane.setManaged(false);
-        clearStatus();
+        try {
+            com.example.shenanigans.App.setRoot("features/auth/view/register_view");
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to navigate to registration", e);
+            showStatus("Failed to load registration page", true);
+        }
     }
 
     /**
@@ -318,10 +223,6 @@ public class AuthController {
             loginPane.setVisible(false);
         if (loginPane != null)
             loginPane.setManaged(false);
-        if (registerPane != null)
-            registerPane.setVisible(false);
-        if (registerPane != null)
-            registerPane.setManaged(false);
         if (forgotPasswordPane != null)
             forgotPasswordPane.setVisible(true);
         if (forgotPasswordPane != null)
@@ -353,21 +254,8 @@ public class AuthController {
         }
         if (loginButton != null)
             loginButton.setDisable(loading);
-        if (registerButton != null)
-            registerButton.setDisable(loading);
         if (resetPasswordButton != null)
             resetPasswordButton.setDisable(loading);
-    }
-
-    private void clearRegistrationFields() {
-        if (registerEmailField != null)
-            registerEmailField.clear();
-        if (registerPasswordField != null)
-            registerPasswordField.clear();
-        if (confirmPasswordField != null)
-            confirmPasswordField.clear();
-        if (displayNameField != null)
-            displayNameField.clear();
     }
 
     private boolean isValidEmail(String email) {
