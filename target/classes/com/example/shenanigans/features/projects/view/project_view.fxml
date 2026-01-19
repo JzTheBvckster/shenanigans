@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17" 
+            xmlns:fx="http://javafx.com/fxml/1" 
+            fx:controller="com.example.shenanigans.features.projects.controller.ProjectController"
+            styleClass="project-root"
+            stylesheets="@../styles/project.css">
+  <!-- Modern Header -->
+  <top>
+    <VBox styleClass="header-container">
+      <HBox styleClass="header" alignment="CENTER_LEFT" spacing="16">
+        <padding>
+          <Insets top="16" right="24" bottom="16" left="24"/>
+        </padding>
+        <!-- Back Button -->
+        <Button text="←" onAction="#handleBack" styleClass="back-button"/>
+        <!-- Page Title -->
+        <VBox spacing="2">
+          <Label text="Projects" styleClass="page-title"/>
+          <Label text="Manage and track your projects" styleClass="page-subtitle"/>
+        </VBox>
+        <Region HBox.hgrow="ALWAYS"/>
+        <!-- Loading and Status -->
+        <HBox alignment="CENTER" spacing="12">
+          <ProgressIndicator fx:id="loadingIndicator" visible="false" maxWidth="20" maxHeight="20"/>
+          <Label fx:id="statusLabel" text="" styleClass="status-label"/>
+        </HBox>
+      </HBox>
+    </VBox>
+  </top>
+
+  <!-- Main Content -->
+  <center>
+    <ScrollPane fitToWidth="true" fitToHeight="true" styleClass="content-scroll">
+      <VBox spacing="24" styleClass="content-area">
+        <padding>
+          <Insets top="24" right="24" bottom="24" left="24"/>
+        </padding>
+        <!-- Stats Cards Row -->
+        <HBox spacing="20" styleClass="stats-row">
+          <!-- Total Projects Card -->
+          <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-blue" HBox.hgrow="ALWAYS">
+            <HBox alignment="CENTER_LEFT" spacing="12">
+              <StackPane styleClass="stat-icon-container stat-icon-blue">
+                <Label styleClass="stat-icon" text="📁"/>
+              </StackPane>
+              <VBox spacing="2">
+                <Label fx:id="totalCountLabel" styleClass="stat-value" text="0"/>
+                <Label styleClass="stat-label" text="Total Projects"/>
+              </VBox>
+            </HBox>
+          </VBox>
+          <!-- Active Projects Card -->
+          <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-green" HBox.hgrow="ALWAYS">
+            <HBox alignment="CENTER_LEFT" spacing="12">
+              <StackPane styleClass="stat-icon-container stat-icon-green">
+                <Label styleClass="stat-icon" text="▶"/>
+              </StackPane>
+              <VBox spacing="2">
+                <Label fx:id="activeCountLabel" styleClass="stat-value" text="0"/>
+                <Label styleClass="stat-label" text="In Progress"/>
+              </VBox>
+            </HBox>
+          </VBox>
+          <!-- Completed Card -->
+          <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-purple" HBox.hgrow="ALWAYS">
+            <HBox alignment="CENTER_LEFT" spacing="12">
+              <StackPane styleClass="stat-icon-container stat-icon-purple">
+                <Label styleClass="stat-icon" text="✓"/>
+              </StackPane>
+              <VBox spacing="2">
+                <Label fx:id="completedCountLabel" styleClass="stat-value" text="0"/>
+                <Label styleClass="stat-label" text="Completed"/>
+              </VBox>
+            </HBox>
+          </VBox>
+          <!-- Overdue Card -->
+          <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-red" HBox.hgrow="ALWAYS">
+            <HBox alignment="CENTER_LEFT" spacing="12">
+              <StackPane styleClass="stat-icon-container stat-icon-red">
+                <Label styleClass="stat-icon" text="⚠"/>
+              </StackPane>
+              <VBox spacing="2">
+                <Label fx:id="overdueCountLabel" styleClass="stat-value" text="0"/>
+                <Label styleClass="stat-label" text="Overdue"/>
+              </VBox>
+            </HBox>
+          </VBox>
+        </HBox>
+        <!-- Table Card -->
+        <VBox spacing="0" styleClass="table-card" VBox.vgrow="ALWAYS">
+          <!-- Table Header -->
+          <HBox alignment="CENTER_LEFT" spacing="16" styleClass="table-header">
+            <padding>
+              <Insets top="20" right="24" bottom="20" left="24"/>
+            </padding>
+            <Label text="Project Directory" styleClass="table-title"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <!-- Search -->
+            <HBox alignment="CENTER_LEFT" spacing="8" styleClass="search-container">
+              <Label text="🔍" styleClass="search-icon"/>
+              <TextField fx:id="searchField" promptText="Search projects..." styleClass="search-field" prefWidth="280"/>
+            </HBox>
+            <!-- Actions -->
+            <Button fx:id="refreshButton" text="↻" onAction="#loadProjects" styleClass="icon-button refresh-button"/>
+            <Button fx:id="addButton" text="+ New Project" onAction="#handleAddProject" styleClass="primary-button"/>
+          </HBox>
+          <Separator styleClass="table-separator"/>
+          <!-- Project Table -->
+          <TableView fx:id="projectTable" VBox.vgrow="ALWAYS" styleClass="project-table">
+            <columns>
+              <TableColumn fx:id="nameColumn" text="Project Name" prefWidth="200"/>
+              <TableColumn fx:id="managerColumn" text="Manager" prefWidth="150"/>
+              <TableColumn fx:id="statusColumn" text="Status" prefWidth="120"/>
+              <TableColumn fx:id="priorityColumn" text="Priority" prefWidth="100"/>
+              <TableColumn fx:id="progressColumn" text="Progress" prefWidth="150"/>
+              <TableColumn fx:id="deadlineColumn" text="Deadline" prefWidth="120"/>
+            </columns>
+            <placeholder>
+              <VBox alignment="CENTER" spacing="16" styleClass="empty-state">
+                <Label styleClass="empty-icon" text="📁"/>
+                <Label styleClass="empty-title" text="No projects found"/>
+                <Label styleClass="empty-subtitle" text="Create your first project to get started"/>
+                <Button text="+ New Project" onAction="#handleAddProject" styleClass="primary-button"/>
+              </VBox>
+            </placeholder>
+          </TableView>
+        </VBox>
+      </VBox>
+    </ScrollPane>
+  </center>
+</BorderPane>

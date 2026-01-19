@@ -101,7 +101,7 @@ public class DashboardController {
         if (!checkAuth())
             return;
         LOGGER.info("Navigating to Projects");
-        // TODO: Implement navigation
+        navigateTo("features/projects/view/project_view");
     }
 
     /**
