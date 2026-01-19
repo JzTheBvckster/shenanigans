@@ -1,0 +1,142 @@
+/* Dashboard Styles */
+
+.dashboard-root {
+    -fx-background-color: #f5f7fa;
+}
+
+/* Header */
+.header {
+    -fx-background-color: #2c3e50;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 10, 0, 0, 2);
+}
+
+.app-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.welcome-text {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.email-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: #bdc3c7;
+}
+
+.logout-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #e74c3c;
+    -fx-border-color: #e74c3c;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-padding: 8 16;
+    -fx-cursor: hand;
+}
+
+.logout-button:hover {
+    -fx-background-color: #e74c3c;
+    -fx-text-fill: white;
+}
+
+/* Sidebar */
+.sidebar {
+    -fx-background-color: white;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 0 1 0 0;
+}
+
+.role-badge {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+    -fx-padding: 8 16;
+    -fx-background-radius: 20;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+}
+
+.menu-header {
+    -fx-font-size: 11px;
+    -fx-text-fill: #95a5a6;
+    -fx-font-weight: bold;
+    -fx-padding: 15 5 5 5;
+}
+
+.menu-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #2c3e50;
+    -fx-font-size: 14px;
+    -fx-padding: 12 15;
+    -fx-alignment: CENTER_LEFT;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+}
+
+.menu-button:hover {
+    -fx-background-color: #ecf0f1;
+}
+
+.menu-button:focused {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+}
+
+/* Content Area */
+.content-area {
+    -fx-background-color: #f5f7fa;
+}
+
+.page-title {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+/* Stat Cards */
+.stat-card {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-padding: 20;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 10, 0, 0, 2);
+}
+
+.stat-number {
+    -fx-font-size: 36px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3498db;
+}
+
+.stat-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #7f8c8d;
+}
+
+/* Activity Section */
+.activity-section {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-padding: 20;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 10, 0, 0, 2);
+    -fx-pref-width: 500;
+}
+
+.section-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+.empty-state {
+    -fx-font-size: 14px;
+    -fx-text-fill: #95a5a6;
+    -fx-padding: 20 0;
+}
+
+/* Separator */
+.separator {
+    -fx-background-color: #ecf0f1;
+}

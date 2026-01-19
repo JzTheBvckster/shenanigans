@@ -1,0 +1,190 @@
+/* 
+ * Auth Feature Styles
+ */
+
+/* ===== Container ===== */
+.auth-container {
+    -fx-background-color: #FAFAFA;
+}
+
+/* ===== ScrollPane ===== */
+.scroll-pane {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane>.viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane .content {
+    -fx-alignment: center;
+}
+
+/* ===== Typography ===== */
+.app-title {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1976D2;
+}
+
+.app-subtitle {
+    -fx-font-size: 14px;
+    -fx-text-fill: #757575;
+}
+
+.form-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #212121;
+}
+
+.form-description {
+    -fx-font-size: 13px;
+    -fx-text-fill: #757575;
+    -fx-wrap-text: true;
+}
+
+.field-label {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #757575;
+}
+
+/* ===== Form Container ===== */
+.auth-form {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 12px;
+    -fx-padding: 30px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 10, 0, 0, 2);
+}
+
+/* ===== Input Fields ===== */
+.auth-field {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #E0E0E0;
+    -fx-border-width: 1px;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 12px 15px;
+    -fx-font-size: 14px;
+    -fx-text-fill: #212121;
+    -fx-prompt-text-fill: #757575;
+}
+
+.auth-field:focused {
+    -fx-border-color: #1976D2;
+    -fx-border-width: 2px;
+}
+
+.auth-field:hover {
+    -fx-border-color: #42A5F5;
+}
+
+/* ===== Buttons ===== */
+.primary-button {
+    -fx-background-color: #1976D2;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 12px 24px;
+    -fx-background-radius: 6px;
+    -fx-cursor: hand;
+}
+
+.primary-button:hover {
+    -fx-background-color: #1565C0;
+}
+
+.primary-button:pressed {
+    -fx-background-color: #0D47A1;
+}
+
+.primary-button:disabled {
+    -fx-background-color: #BDBDBD;
+    -fx-text-fill: #757575;
+}
+
+.secondary-button {
+    -fx-background-color: transparent;
+    -fx-border-color: #1976D2;
+    -fx-border-width: 1px;
+    -fx-border-radius: 6px;
+    -fx-text-fill: #1976D2;
+    -fx-font-size: 14px;
+    -fx-padding: 12px 24px;
+    -fx-cursor: hand;
+}
+
+.secondary-button:hover {
+    -fx-background-color: rgba(25, 118, 210, 0.1);
+}
+
+/* ===== Hyperlinks ===== */
+.hyperlink {
+    -fx-text-fill: #1976D2;
+    -fx-font-size: 13px;
+    -fx-border-color: transparent;
+}
+
+.hyperlink:hover {
+    -fx-text-fill: #1565C0;
+    -fx-underline: true;
+}
+
+.hyperlink:visited {
+    -fx-text-fill: #1976D2;
+}
+
+/* ===== Status Labels ===== */
+.status-label {
+    -fx-font-size: 13px;
+    -fx-padding: 10px 15px;
+    -fx-background-radius: 6px;
+}
+
+.status-error {
+    -fx-text-fill: #D32F2F;
+    -fx-background-color: rgba(211, 47, 47, 0.1);
+}
+
+.status-success {
+    -fx-text-fill: #388E3C;
+    -fx-background-color: rgba(56, 142, 60, 0.1);
+}
+
+/* ===== Progress Indicator ===== */
+.progress-indicator {
+    -fx-progress-color: #1976D2;
+}
+
+/* ===== ComboBox ===== */
+.combo-box {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #E0E0E0;
+    -fx-border-width: 1px;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 8px 12px;
+}
+
+.combo-box:focused {
+    -fx-border-color: #1976D2;
+}
+
+.combo-box .list-cell {
+    -fx-text-fill: #212121;
+    -fx-font-size: 14px;
+}
+
+.combo-box-popup .list-view {
+    -fx-background-color: #FFFFFF;
+}
+
+.combo-box-popup .list-cell:hover {
+    -fx-background-color: rgba(25, 118, 210, 0.1);
+}
+
+.combo-box-popup .list-cell:selected {
+    -fx-background-color: #42A5F5;
+    -fx-text-fill: white;
+}
