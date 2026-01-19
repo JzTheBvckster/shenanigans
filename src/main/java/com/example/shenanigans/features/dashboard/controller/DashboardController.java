@@ -169,6 +169,12 @@ public class DashboardController {
      * Configures menu visibility based on user role.
      */
     private void configureMenuForRole(User user) {
+        // Redirect employees to their own dashboard
+        if (user.isEmployee()) {
+            Platform.runLater(() -> navigateTo("features/employee_dashboard/view/employee_dashboard_view"));
+            return;
+        }
+
         if (user.isManagingDirector()) {
             // Managing Directors have access to all features
             financeButton.setVisible(true);
@@ -189,6 +195,7 @@ public class DashboardController {
         return switch (role) {
             case "MANAGING_DIRECTOR" -> "Managing Director";
             case "PROJECT_MANAGER" -> "Project Manager";
+            case "EMPLOYEE" -> "Employee";
             default -> role;
         };
     }

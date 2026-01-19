@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
+
+<BorderPane styleClass="dashboard-root" stylesheets="@../styles/employee_dashboard.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.shenanigans.features.employee_dashboard.controller.EmployeeDashboardController">
+  <!-- Header -->
+  <top>
+    <VBox styleClass="header-container">
+      <HBox alignment="CENTER_LEFT" spacing="16" styleClass="header">
+        <padding>
+          <Insets bottom="16" left="24" right="24" top="16"/>
+        </padding>
+        <!-- Logo/Brand -->
+        <HBox alignment="CENTER_LEFT" spacing="12">
+          <StackPane styleClass="logo-container">
+            <Circle radius="18" styleClass="logo-circle"/>
+            <Label styleClass="logo-letter" text="S"/>
+          </StackPane>
+          <VBox spacing="2">
+            <Label styleClass="app-title" text="Shenanigans"/>
+            <Label styleClass="app-subtitle" text="Employee Portal"/>
+          </VBox>
+        </HBox>
+        <Region HBox.hgrow="ALWAYS"/>
+        <!-- User Info -->
+        <HBox alignment="CENTER_RIGHT" spacing="16">
+          <VBox alignment="CENTER_RIGHT" spacing="2">
+            <Label fx:id="welcomeLabel" styleClass="welcome-text" text="Welcome!"/>
+            <Label fx:id="emailLabel" styleClass="email-text" text=""/>
+          </VBox>
+          <StackPane styleClass="avatar-container">
+            <Circle radius="20" styleClass="avatar-circle"/>
+            <Label fx:id="avatarLabel" styleClass="avatar-letter" text="E"/>
+          </StackPane>
+          <Button fx:id="logoutButton" onAction="#handleLogout" styleClass="logout-button" text="Sign Out"/>
+        </HBox>
+      </HBox>
+    </VBox>
+  </top>
+
+  <!-- Sidebar -->
+  <left>
+    <VBox fx:id="menuContainer" prefWidth="260" spacing="8" styleClass="sidebar">
+      <padding>
+        <Insets bottom="24" left="16" right="16" top="24"/>
+      </padding>
+      <!-- Role Badge -->
+      <HBox alignment="CENTER">
+        <Label fx:id="roleLabel" styleClass="role-badge employee-badge" text="Employee"/>
+      </HBox>
+      <Region prefHeight="16"/>
+      <!-- Navigation Section -->
+      <Label styleClass="menu-header" text="MY WORKSPACE"/>
+      <VBox spacing="4" styleClass="menu-section">
+        <Button fx:id="myTasksButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleMyTasks" styleClass="menu-button menu-button-active" text="My Tasks">
+          <graphic>
+            <Label styleClass="menu-icon" text="✓"/>
+          </graphic>
+        </Button>
+        <Button fx:id="myProjectsButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleMyProjects" styleClass="menu-button" text="My Projects">
+          <graphic>
+            <Label styleClass="menu-icon" text="📁"/>
+          </graphic>
+        </Button>
+        <Button fx:id="timeSheetButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleTimeSheet" styleClass="menu-button" text="Time Sheet">
+          <graphic>
+            <Label styleClass="menu-icon" text="🕐"/>
+          </graphic>
+        </Button>
+        <Button fx:id="requestsButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleRequests" styleClass="menu-button" text="Leave Requests">
+          <graphic>
+            <Label styleClass="menu-icon" text="📅"/>
+          </graphic>
+        </Button>
+      </VBox>
+      <Region prefHeight="16"/>
+      <Label styleClass="menu-header" text="RESOURCES"/>
+      <VBox spacing="4" styleClass="menu-section">
+        <Button fx:id="documentsButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleDocuments" styleClass="menu-button" text="Documents">
+          <graphic>
+            <Label styleClass="menu-icon" text="📄"/>
+          </graphic>
+        </Button>
+        <Button fx:id="teamButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleTeam" styleClass="menu-button" text="My Team">
+          <graphic>
+            <Label styleClass="menu-icon" text="👥"/>
+          </graphic>
+        </Button>
+      </VBox>
+      <Region VBox.vgrow="ALWAYS"/>
+      <!-- Bottom Section -->
+      <Separator styleClass="menu-separator"/>
+      <VBox spacing="4">
+        <Button fx:id="profileButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleProfile" styleClass="menu-button menu-button-secondary" text="My Profile">
+          <graphic>
+            <Label styleClass="menu-icon" text="👤"/>
+          </graphic>
+        </Button>
+      </VBox>
+    </VBox>
+  </left>
+
+  <!-- Main Content Area -->
+  <center>
+    <ScrollPane fitToHeight="true" fitToWidth="true" styleClass="content-scroll">
+      <VBox alignment="TOP_LEFT" spacing="24" styleClass="content-area">
+        <padding>
+          <Insets bottom="32" left="32" right="32" top="32"/>
+        </padding>
+        <!-- Page Header -->
+        <VBox spacing="8">
+          <Label styleClass="page-title" text="My Dashboard"/>
+          <Label styleClass="page-subtitle" text="Track your tasks, projects, and time"/>
+        </VBox>
+        <!-- Quick Stats Cards -->
+        <HBox spacing="20" styleClass="stats-row">
+          <!-- Tasks Due Today -->
+          <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-blue" HBox.hgrow="ALWAYS">
+            <Label styleClass="stat-icon" text="📋"/>
+            <Label fx:id="tasksDueTodayLabel" styleClass="stat-value" text="3"/>
+            <Label styleClass="stat-label" text="Tasks Due Today"/>
+          </VBox>
+          <!-- Hours This Week -->
+          <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-green" HBox.hgrow="ALWAYS">
+            <Label styleClass="stat-icon" text="⏱️"/>
+            <Label fx:id="hoursThisWeekLabel" styleClass="stat-value" text="32h"/>
+            <Label styleClass="stat-label" text="Hours This Week"/>
+          </VBox>
+          <!-- Active Projects -->
+          <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-purple" HBox.hgrow="ALWAYS">
+            <Label styleClass="stat-icon" text="📁"/>
+            <Label fx:id="activeProjectsLabel" styleClass="stat-value" text="2"/>
+            <Label styleClass="stat-label" text="Active Projects"/>
+          </VBox>
+          <!-- Leave Balance -->
+          <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-orange" HBox.hgrow="ALWAYS">
+            <Label styleClass="stat-icon" text="🏖️"/>
+            <Label fx:id="leaveBalanceLabel" styleClass="stat-value" text="12"/>
+            <Label styleClass="stat-label" text="Leave Days Left"/>
+          </VBox>
+        </HBox>
+        <!-- Content Grid -->
+        <HBox spacing="24">
+          <!-- My Tasks Section -->
+          <VBox spacing="16" styleClass="content-card" HBox.hgrow="ALWAYS">
+            <HBox alignment="CENTER_LEFT" spacing="12">
+              <Label styleClass="card-title" text="📋 My Tasks"/>
+              <Region HBox.hgrow="ALWAYS"/>
+              <Button onAction="#handleMyTasks" styleClass="card-action-button" text="View All"/>
+            </HBox>
+            <Separator/>
+            <VBox fx:id="tasksContainer" spacing="12">
+              <!-- Task items will be populated dynamically -->
+              <HBox alignment="CENTER_LEFT" spacing="12" styleClass="task-item">
+                <Label styleClass="task-priority priority-high" text="●"/>
+                <VBox spacing="2" HBox.hgrow="ALWAYS">
+                  <Label styleClass="task-name" text="Complete project documentation"/>
+                  <Label styleClass="task-project" text="Project Alpha • Due Today"/>
+                </VBox>
+              </HBox>
+              <HBox alignment="CENTER_LEFT" spacing="12" styleClass="task-item">
+                <Label styleClass="task-priority priority-medium" text="●"/>
+                <VBox spacing="2" HBox.hgrow="ALWAYS">
+                  <Label styleClass="task-name" text="Review code changes"/>
+                  <Label styleClass="task-project" text="Project Beta • Due Tomorrow"/>
+                </VBox>
+              </HBox>
+              <HBox alignment="CENTER_LEFT" spacing="12" styleClass="task-item">
+                <Label styleClass="task-priority priority-low" text="●"/>
+                <VBox spacing="2" HBox.hgrow="ALWAYS">
+                  <Label styleClass="task-name" text="Update weekly report"/>
+                  <Label styleClass="task-project" text="General • Due in 3 days"/>
+                </VBox>
+              </HBox>
+            </VBox>
+          </VBox>
+          <!-- Recent Activity Section -->
+          <VBox spacing="16" styleClass="content-card" HBox.hgrow="ALWAYS">
+            <HBox alignment="CENTER_LEFT" spacing="12">
+              <Label styleClass="card-title" text="🕐 Recent Activity"/>
+              <Region HBox.hgrow="ALWAYS"/>
+            </HBox>
+            <Separator/>
+            <VBox fx:id="activityContainer" spacing="12">
+              <!-- Activity items will be populated dynamically -->
+              <HBox alignment="CENTER_LEFT" spacing="12" styleClass="activity-item">
+                <Label styleClass="activity-icon" text="✓"/>
+                <VBox spacing="2" HBox.hgrow="ALWAYS">
+                  <Label styleClass="activity-text" text="Completed task: Update API endpoints"/>
+                  <Label styleClass="activity-time" text="2 hours ago"/>
+                </VBox>
+              </HBox>
+              <HBox alignment="CENTER_LEFT" spacing="12" styleClass="activity-item">
+                <Label styleClass="activity-icon" text="📝"/>
+                <VBox spacing="2" HBox.hgrow="ALWAYS">
+                  <Label styleClass="activity-text" text="Submitted time sheet for this week"/>
+                  <Label styleClass="activity-time" text="Yesterday"/>
+                </VBox>
+              </HBox>
+              <HBox alignment="CENTER_LEFT" spacing="12" styleClass="activity-item">
+                <Label styleClass="activity-icon" text="💬"/>
+                <VBox spacing="2" HBox.hgrow="ALWAYS">
+                  <Label styleClass="activity-text" text="Commented on Project Alpha"/>
+                  <Label styleClass="activity-time" text="2 days ago"/>
+                </VBox>
+              </HBox>
+            </VBox>
+          </VBox>
+        </HBox>
+        <!-- Announcements Section -->
+        <VBox spacing="16" styleClass="content-card announcements-card">
+          <HBox alignment="CENTER_LEFT" spacing="12">
+            <Label styleClass="card-title" text="📢 Company Announcements"/>
+            <Region HBox.hgrow="ALWAYS"/>
+          </HBox>
+          <Separator/>
+          <VBox spacing="12">
+            <HBox alignment="CENTER_LEFT" spacing="12" styleClass="announcement-item">
+              <Label styleClass="announcement-badge new-badge" text="NEW"/>
+              <VBox spacing="2" HBox.hgrow="ALWAYS">
+                <Label styleClass="announcement-title" text="Holiday Schedule 2026"/>
+                <Label styleClass="announcement-text" text="Please review the updated holiday schedule for the upcoming year." wrapText="true"/>
+              </VBox>
+              <Label styleClass="announcement-date" text="Jan 15"/>
+            </HBox>
+          </VBox>
+        </VBox>
+      </VBox>
+    </ScrollPane>
+  </center>
+</BorderPane>

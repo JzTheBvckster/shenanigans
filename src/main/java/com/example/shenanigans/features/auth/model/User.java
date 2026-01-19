@@ -86,6 +86,13 @@ public class User {
         return "PROJECT_MANAGER".equals(role);
     }
 
+    /**
+     * @return true if user has Employee role
+     */
+    public boolean isEmployee() {
+        return "EMPLOYEE".equals(role);
+    }
+
     @Override
     public String toString() {
         return "User{" +

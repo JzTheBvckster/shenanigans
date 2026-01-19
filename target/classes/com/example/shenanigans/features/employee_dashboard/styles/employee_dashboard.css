@@ -1,0 +1,384 @@
+/* ============================================
+   Employee Dashboard Styles
+   Clean, Professional Employee Portal Design
+   ============================================ */
+
+/* === Root === */
+.dashboard-root {
+    -fx-background-color: linear-gradient(to bottom right, #f0fdf4, #ecfdf5);
+}
+
+/* === Header Styles === */
+.header-container {
+    -fx-background-color: linear-gradient(to right, #065f46, #047857);
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.15), 20, 0, 0, 4);
+}
+
+.header {
+    -fx-background-color: transparent;
+}
+
+/* Logo */
+.logo-container {
+    -fx-alignment: center;
+}
+
+.logo-circle {
+    -fx-fill: linear-gradient(to bottom right, #34d399, #10b981);
+}
+
+.logo-letter {
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.app-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.app-subtitle {
+    -fx-font-size: 11px;
+    -fx-text-fill: #a7f3d0;
+    -fx-font-weight: 600;
+}
+
+/* User Info */
+.welcome-text {
+    -fx-font-size: 14px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #f0fdf4;
+}
+
+.email-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: #a7f3d0;
+}
+
+/* Avatar */
+.avatar-container {
+    -fx-alignment: center;
+}
+
+.avatar-circle {
+    -fx-fill: linear-gradient(to bottom right, #fbbf24, #f59e0b);
+}
+
+.avatar-letter {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+/* Logout Button */
+.logout-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #fca5a5;
+    -fx-border-color: #fca5a5;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 10 20;
+    -fx-cursor: hand;
+    -fx-font-weight: 600;
+    -fx-font-size: 13px;
+}
+
+.logout-button:hover {
+    -fx-background-color: #fca5a5;
+    -fx-text-fill: #065f46;
+    -fx-border-color: #fca5a5;
+}
+
+/* === Sidebar Styles === */
+.sidebar {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d1fae5;
+    -fx-border-width: 0 1 0 0;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.05), 10, 0, 2, 0);
+}
+
+/* Role Badge */
+.role-badge {
+    -fx-background-color: linear-gradient(to right, #10b981, #059669);
+    -fx-text-fill: white;
+    -fx-padding: 8 20;
+    -fx-background-radius: 20;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.employee-badge {
+    -fx-background-color: linear-gradient(to right, #10b981, #059669);
+}
+
+/* Menu Header */
+.menu-header {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #9ca3af;
+    -fx-padding: 16 8 8 8;
+}
+
+/* Menu Buttons */
+.menu-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #374151;
+    -fx-font-size: 14px;
+    -fx-font-weight: 500;
+    -fx-padding: 12 16;
+    -fx-background-radius: 10;
+    -fx-alignment: CENTER_LEFT;
+    -fx-cursor: hand;
+}
+
+.menu-button:hover {
+    -fx-background-color: #ecfdf5;
+    -fx-text-fill: #065f46;
+}
+
+.menu-button-active {
+    -fx-background-color: linear-gradient(to right, #d1fae5, #a7f3d0);
+    -fx-text-fill: #065f46;
+    -fx-font-weight: 600;
+}
+
+.menu-button-secondary {
+    -fx-text-fill: #6b7280;
+}
+
+.menu-button-secondary:hover {
+    -fx-background-color: #f3f4f6;
+    -fx-text-fill: #374151;
+}
+
+.menu-icon {
+    -fx-font-size: 16px;
+}
+
+.menu-separator {
+    -fx-background-color: #e5e7eb;
+    -fx-padding: 8 0;
+}
+
+/* === Content Area === */
+.content-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.content-scroll>.viewport {
+    -fx-background-color: transparent;
+}
+
+.content-area {
+    -fx-background-color: transparent;
+}
+
+/* Page Title */
+.page-title {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #065f46;
+}
+
+.page-subtitle {
+    -fx-font-size: 14px;
+    -fx-text-fill: #6b7280;
+}
+
+/* === Stats Cards === */
+.stats-row {
+    -fx-padding: 0;
+}
+
+.stat-card {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 16;
+    -fx-padding: 20;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 15, 0, 0, 4);
+    -fx-min-width: 180;
+}
+
+.stat-card-blue {
+    -fx-border-color: #3b82f6;
+    -fx-border-width: 0 0 0 4;
+    -fx-border-radius: 16;
+}
+
+.stat-card-green {
+    -fx-border-color: #10b981;
+    -fx-border-width: 0 0 0 4;
+    -fx-border-radius: 16;
+}
+
+.stat-card-purple {
+    -fx-border-color: #8b5cf6;
+    -fx-border-width: 0 0 0 4;
+    -fx-border-radius: 16;
+}
+
+.stat-card-orange {
+    -fx-border-color: #f59e0b;
+    -fx-border-width: 0 0 0 4;
+    -fx-border-radius: 16;
+}
+
+.stat-icon {
+    -fx-font-size: 24px;
+}
+
+.stat-value {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1f2937;
+}
+
+.stat-label {
+    -fx-font-size: 13px;
+    -fx-text-fill: #6b7280;
+}
+
+/* === Content Cards === */
+.content-card {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 16;
+    -fx-padding: 24;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 15, 0, 0, 4);
+}
+
+.card-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1f2937;
+}
+
+.card-action-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #10b981;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-cursor: hand;
+    -fx-padding: 6 12;
+    -fx-background-radius: 6;
+}
+
+.card-action-button:hover {
+    -fx-background-color: #ecfdf5;
+}
+
+/* === Task Items === */
+.task-item {
+    -fx-background-color: #f9fafb;
+    -fx-background-radius: 10;
+    -fx-padding: 12 16;
+}
+
+.task-item:hover {
+    -fx-background-color: #ecfdf5;
+}
+
+.task-priority {
+    -fx-font-size: 18px;
+}
+
+.priority-high {
+    -fx-text-fill: #ef4444;
+}
+
+.priority-medium {
+    -fx-text-fill: #f59e0b;
+}
+
+.priority-low {
+    -fx-text-fill: #10b981;
+}
+
+.task-name {
+    -fx-font-size: 14px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #1f2937;
+}
+
+.task-project {
+    -fx-font-size: 12px;
+    -fx-text-fill: #6b7280;
+}
+
+/* === Activity Items === */
+.activity-item {
+    -fx-padding: 8 0;
+}
+
+.activity-icon {
+    -fx-font-size: 16px;
+    -fx-text-fill: #10b981;
+}
+
+.activity-text {
+    -fx-font-size: 13px;
+    -fx-text-fill: #374151;
+}
+
+.activity-time {
+    -fx-font-size: 11px;
+    -fx-text-fill: #9ca3af;
+}
+
+/* === Announcements === */
+.announcements-card {
+    -fx-background-color: linear-gradient(to right, #ffffff, #f0fdf4);
+}
+
+.announcement-item {
+    -fx-padding: 12 0;
+}
+
+.announcement-badge {
+    -fx-padding: 4 10;
+    -fx-background-radius: 4;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+
+.new-badge {
+    -fx-background-color: #dbeafe;
+    -fx-text-fill: #2563eb;
+}
+
+.announcement-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #1f2937;
+}
+
+.announcement-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: #6b7280;
+}
+
+.announcement-date {
+    -fx-font-size: 11px;
+    -fx-text-fill: #9ca3af;
+    -fx-font-weight: 600;
+}
+
+/* === ScrollBar Styling === */
+.scroll-pane .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-padding: 0 0 0 4;
+}
+
+.scroll-pane .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane .scroll-bar:vertical .thumb {
+    -fx-background-color: #d1d5db;
+    -fx-background-radius: 4;
+}
+
+.scroll-pane .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #10b981;
+}

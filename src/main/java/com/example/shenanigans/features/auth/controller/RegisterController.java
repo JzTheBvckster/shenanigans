@@ -49,6 +49,16 @@ public class RegisterController {
     @FXML
     private ProgressIndicator loadingIndicator;
 
+    // FXML Components - Field Error Labels
+    @FXML
+    private Label nameErrorLabel;
+    @FXML
+    private Label emailErrorLabel;
+    @FXML
+    private Label passwordErrorLabel;
+    @FXML
+    private Label confirmPasswordErrorLabel;
+
     /**
      * Called automatically after FXML is loaded.
      */
@@ -56,8 +66,8 @@ public class RegisterController {
     public void initialize() {
         // Setup role combo box
         if (roleComboBox != null) {
-            roleComboBox.getItems().addAll("Project Manager", "Managing Director");
-            roleComboBox.setValue("Project Manager");
+            roleComboBox.getItems().addAll("Employee", "Project Manager", "Managing Director");
+            roleComboBox.setValue("Employee");
         }
 
         // Hide loading indicator initially
@@ -68,7 +78,165 @@ public class RegisterController {
         // Clear status initially
         clearStatus();
 
+        // Setup real-time validation listeners
+        setupValidationListeners();
+
         LOGGER.info("RegisterController initialized");
+    }
+
+    /**
+     * Sets up real-time validation listeners for form fields.
+     * Validates when user finishes typing (on focus lost).
+     */
+    private void setupValidationListeners() {
+        // Name field validation - on focus lost
+        if (displayNameField != null) {
+            displayNameField.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
+                if (!isNowFocused) { // Lost focus
+                    validateNameField();
+                }
+            });
+        }
+
+        // Email field validation - on focus lost
+        if (registerEmailField != null) {
+            registerEmailField.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
+                if (!isNowFocused) { // Lost focus
+                    validateEmailField();
+                }
+            });
+        }
+
+        // Password field validation - on focus lost
+        if (registerPasswordField != null) {
+            registerPasswordField.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
+                if (!isNowFocused) { // Lost focus
+                    validatePasswordField();
+                    // Also re-validate confirm password if it has content
+                    if (confirmPasswordField != null && !confirmPasswordField.getText().isEmpty()) {
+                        validateConfirmPasswordField();
+                    }
+                }
+            });
+        }
+
+        // Confirm password field validation - on focus lost
+        if (confirmPasswordField != null) {
+            confirmPasswordField.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
+                if (!isNowFocused) { // Lost focus
+                    validateConfirmPasswordField();
+                }
+            });
+        }
+    }
+
+    /**
+     * Validates the name field and shows/hides error.
+     * 
+     * @return true if valid
+     */
+    private boolean validateNameField() {
+        String name = displayNameField.getText().trim();
+        if (name.isEmpty()) {
+            showFieldError(displayNameField, nameErrorLabel, "Full name is required");
+            return false;
+        } else if (name.length() < 2) {
+            showFieldError(displayNameField, nameErrorLabel, "Name must be at least 2 characters");
+            return false;
+        } else {
+            clearFieldError(displayNameField, nameErrorLabel);
+            return true;
+        }
+    }
+
+    /**
+     * Validates the email field and shows/hides error.
+     * 
+     * @return true if valid
+     */
+    private boolean validateEmailField() {
+        String email = registerEmailField.getText().trim();
+        if (email.isEmpty()) {
+            showFieldError(registerEmailField, emailErrorLabel, "Email address is required");
+            return false;
+        } else if (!isValidEmail(email)) {
+            showFieldError(registerEmailField, emailErrorLabel, "Please enter a valid email address");
+            return false;
+        } else {
+            clearFieldError(registerEmailField, emailErrorLabel);
+            return true;
+        }
+    }
+
+    /**
+     * Validates the password field and shows/hides error.
+     * 
+     * @return true if valid
+     */
+    private boolean validatePasswordField() {
+        String password = registerPasswordField.getText();
+        if (password.isEmpty()) {
+            showFieldError(registerPasswordField, passwordErrorLabel, "Password is required");
+            return false;
+        }
+        String error = validatePassword(password);
+        if (error != null) {
+            showFieldError(registerPasswordField, passwordErrorLabel, error);
+            return false;
+        } else {
+            clearFieldError(registerPasswordField, passwordErrorLabel);
+            return true;
+        }
+    }
+
+    /**
+     * Validates the confirm password field and shows/hides error.
+     * 
+     * @return true if valid
+     */
+    private boolean validateConfirmPasswordField() {
+        String password = registerPasswordField.getText();
+        String confirmPassword = confirmPasswordField.getText();
+        if (confirmPassword.isEmpty()) {
+            showFieldError(confirmPasswordField, confirmPasswordErrorLabel, "Please confirm your password");
+            return false;
+        } else if (!confirmPassword.equals(password)) {
+            showFieldError(confirmPasswordField, confirmPasswordErrorLabel, "Passwords do not match");
+            return false;
+        } else {
+            clearFieldError(confirmPasswordField, confirmPasswordErrorLabel);
+            return true;
+        }
+    }
+
+    /**
+     * Shows an error for a specific field.
+     */
+    private void showFieldError(TextField field, Label errorLabel, String message) {
+        if (field != null) {
+            field.getStyleClass().removeAll("auth-field-valid", "auth-field-error");
+            field.getStyleClass().add("auth-field-error");
+        }
+        if (errorLabel != null) {
+            errorLabel.setText(message);
+            errorLabel.setVisible(true);
+            errorLabel.setManaged(true);
+        }
+    }
+
+    /**
+     * Clears the error for a specific field and marks it as valid.
+     */
+    private void clearFieldError(TextField field, Label errorLabel) {
+        if (field != null) {
+            field.getStyleClass().removeAll("auth-field-valid", "auth-field-error");
+            field.getStyleClass().add("auth-field-valid");
+        }
+        if (errorLabel != null) {
+            errorLabel.setText("");
+            errorLabel.setVisible(false);
+            errorLabel.setManaged(false);
+        }
     }
 
     /**
@@ -76,40 +244,20 @@ public class RegisterController {
      */
     @FXML
     private void handleRegister() {
+        String displayName = displayNameField.getText().trim();
         String email = registerEmailField.getText().trim();
         String password = registerPasswordField.getText();
-        String confirmPassword = confirmPasswordField.getText();
-        String displayName = displayNameField.getText().trim();
         String selectedRole = roleComboBox.getValue();
 
-        // Validate inputs
-        if (displayName.isEmpty()) {
-            showStatus("Please enter your display name", true);
-            return;
-        }
+        // Run all validations
+        boolean nameValid = validateNameField();
+        boolean emailValid = validateEmailField();
+        boolean passwordValid = validatePasswordField();
+        boolean confirmValid = validateConfirmPasswordField();
 
-        if (email.isEmpty()) {
-            showStatus("Please enter your email address", true);
-            return;
-        }
-
-        if (!isValidEmail(email)) {
-            showStatus("Please enter a valid email address", true);
-            return;
-        }
-
-        if (password.isEmpty()) {
-            showStatus("Please enter a password", true);
-            return;
-        }
-
-        if (password.length() < 6) {
-            showStatus("Password must be at least 6 characters", true);
-            return;
-        }
-
-        if (!password.equals(confirmPassword)) {
-            showStatus("Passwords do not match", true);
+        // If any validation fails, stop
+        if (!nameValid || !emailValid || !passwordValid || !confirmValid) {
+            showStatus("Please fix the errors above", true);
             return;
         }
 
@@ -119,7 +267,12 @@ public class RegisterController {
         }
 
         // Convert display role to system role
-        String role = "Project Manager".equals(selectedRole) ? "PROJECT_MANAGER" : "MANAGING_DIRECTOR";
+        String role = switch (selectedRole) {
+            case "Employee" -> "EMPLOYEE";
+            case "Project Manager" -> "PROJECT_MANAGER";
+            case "Managing Director" -> "MANAGING_DIRECTOR";
+            default -> "EMPLOYEE";
+        };
 
         setLoading(true);
         showStatus("Creating account...", false);
@@ -180,11 +333,16 @@ public class RegisterController {
     }
 
     /**
-     * Navigates to the main dashboard view.
+     * Navigates to the appropriate dashboard based on user role.
      */
     private void navigateToDashboard() {
         try {
-            App.setRoot("features/dashboard/view/dashboard_view");
+            User user = SessionManager.getInstance().getCurrentUser();
+            if (user != null && user.isEmployee()) {
+                App.setRoot("features/employee_dashboard/view/employee_dashboard_view");
+            } else {
+                App.setRoot("features/dashboard/view/dashboard_view");
+            }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to navigate to dashboard", e);
             showStatus("Failed to load dashboard", true);
@@ -250,12 +408,68 @@ public class RegisterController {
     }
 
     /**
-     * Validates an email address format.
+     * Validates an email address format using RFC 5322 compliant pattern.
      * 
      * @param email The email to validate
      * @return true if the email format is valid
      */
     private boolean isValidEmail(String email) {
-        return email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
+        if (email == null || email.isEmpty()) {
+            return false;
+        }
+        // RFC 5322 compliant email regex pattern
+        String emailRegex = "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$";
+        return email.matches(emailRegex) && email.contains(".") && email.indexOf("@") < email.lastIndexOf(".");
+    }
+
+    /**
+     * Validates password strength according to modern security standards.
+     * Requirements:
+     * - Minimum 8 characters
+     * - At least one uppercase letter
+     * - At least one lowercase letter
+     * - At least one digit
+     * - At least one special character
+     * 
+     * @param password The password to validate
+     * @return Error message if invalid, null if valid
+     */
+    private String validatePassword(String password) {
+        if (password == null || password.isEmpty()) {
+            return "Password is required";
+        }
+
+        if (password.length() < 8) {
+            return "Password must be at least 8 characters long";
+        }
+
+        if (password.length() > 128) {
+            return "Password must not exceed 128 characters";
+        }
+
+        if (!password.matches(".*[A-Z].*")) {
+            return "Password must contain at least one uppercase letter";
+        }
+
+        if (!password.matches(".*[a-z].*")) {
+            return "Password must contain at least one lowercase letter";
+        }
+
+        if (!password.matches(".*[0-9].*")) {
+            return "Password must contain at least one digit";
+        }
+
+        if (!password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{}|;:,.<>?].*")) {
+            return "Password must contain at least one special character (!@#$%^&*...)";
+        }
+
+        // Check for common weak passwords
+        String lowerPassword = password.toLowerCase();
+        if (lowerPassword.contains("password") || lowerPassword.contains("123456") ||
+                lowerPassword.contains("qwerty") || lowerPassword.equals("abcdefgh")) {
+            return "Password is too common. Please choose a stronger password";
+        }
+
+        return null; // Password is valid
     }
 }

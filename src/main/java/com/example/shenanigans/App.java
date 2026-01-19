@@ -36,8 +36,15 @@ public class App extends Application {
         // Check if user is already authenticated
         String initialView;
         if (SessionManager.getInstance().isLoggedIn()) {
-            initialView = "features/dashboard/view/dashboard_view";
-            LOGGER.info("User already authenticated, loading dashboard");
+            // Route to appropriate dashboard based on user role
+            var user = SessionManager.getInstance().getCurrentUser();
+            if (user != null && user.isEmployee()) {
+                initialView = "features/employee_dashboard/view/employee_dashboard_view";
+                LOGGER.info("Employee authenticated, loading employee dashboard");
+            } else {
+                initialView = "features/dashboard/view/dashboard_view";
+                LOGGER.info("User authenticated, loading main dashboard");
+            }
         } else {
             initialView = "features/auth/view/auth_view";
             LOGGER.info("No authenticated user, loading login");

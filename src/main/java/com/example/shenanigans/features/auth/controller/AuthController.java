@@ -174,11 +174,16 @@ public class AuthController {
     }
 
     /**
-     * Navigates to the main dashboard view.
+     * Navigates to the appropriate dashboard based on user role.
      */
     private void navigateToDashboard() {
         try {
-            com.example.shenanigans.App.setRoot("features/dashboard/view/dashboard_view");
+            User user = SessionManager.getInstance().getCurrentUser();
+            if (user != null && user.isEmployee()) {
+                com.example.shenanigans.App.setRoot("features/employee_dashboard/view/employee_dashboard_view");
+            } else {
+                com.example.shenanigans.App.setRoot("features/dashboard/view/dashboard_view");
+            }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to navigate to dashboard", e);
             showStatus("Failed to load dashboard", true);
@@ -258,7 +263,18 @@ public class AuthController {
             resetPasswordButton.setDisable(loading);
     }
 
+    /**
+     * Validates an email address format using RFC 5322 compliant pattern.
+     * 
+     * @param email The email to validate
+     * @return true if the email format is valid
+     */
     private boolean isValidEmail(String email) {
-        return email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
+        if (email == null || email.isEmpty()) {
+            return false;
+        }
+        // RFC 5322 compliant email regex pattern
+        String emailRegex = "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$";
+        return email.matches(emailRegex) && email.contains(".") && email.indexOf("@") < email.lastIndexOf(".");
     }
 }

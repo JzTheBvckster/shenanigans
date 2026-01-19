@@ -259,3 +259,40 @@
     -fx-text-fill: rgba(255, 255, 255, 0.9);
     -fx-font-weight: normal;
 }
+
+/* ===== Field Error Labels ===== */
+.field-error {
+    -fx-font-size: 11px;
+    -fx-text-fill: #dc2626;
+    -fx-padding: 2px 2px 0 2px;
+}
+
+/* ===== Input Field Error State ===== */
+.auth-field-error {
+    -fx-background-color: #fef2f2;
+    -fx-border-color: #dc2626;
+    -fx-border-width: 2px;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+}
+
+.auth-field-error:focused {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dc2626;
+    -fx-effect: dropshadow(gaussian, rgba(220, 38, 38, 0.25), 8, 0, 0, 0);
+}
+
+/* ===== Input Field Valid State ===== */
+.auth-field-valid {
+    -fx-background-color: #f0fdf4;
+    -fx-border-color: #22c55e;
+    -fx-border-width: 2px;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+}
+
+.auth-field-valid:focused {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #22c55e;
+    -fx-effect: dropshadow(gaussian, rgba(34, 197, 94, 0.25), 8, 0, 0, 0);
+}

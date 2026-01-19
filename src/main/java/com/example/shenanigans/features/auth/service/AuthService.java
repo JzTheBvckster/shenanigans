@@ -115,13 +115,71 @@ public class AuthService {
                 // Create user object
                 User user = new User(response.localId, email, displayName, role);
 
-                // Save to Firestore
+                // Save to Firestore users collection
                 saveUserToFirestore(user);
+
+                // If role is EMPLOYEE, also create an employee record
+                if ("EMPLOYEE".equals(role)) {
+                    createEmployeeRecord(user);
+                }
 
                 LOGGER.info("User created: " + user.getEmail());
                 return user;
             }
         };
+    }
+
+    /**
+     * Creates an employee record in the employees collection.
+     * 
+     * @param user The user to create an employee record for
+     */
+    private void createEmployeeRecord(User user) {
+        try {
+            Firestore firestore = FirebaseInitializer.getFirestore();
+
+            // Parse display name into first and last name
+            String[] nameParts = parseDisplayName(user.getDisplayName());
+
+            Map<String, Object> employeeData = new HashMap<>();
+            employeeData.put("id", user.getUid());
+            employeeData.put("firstName", nameParts[0]);
+            employeeData.put("lastName", nameParts[1]);
+            employeeData.put("email", user.getEmail());
+            employeeData.put("status", "ACTIVE");
+            employeeData.put("position", "Employee");
+            employeeData.put("department", "Unassigned");
+            employeeData.put("hireDate", System.currentTimeMillis());
+            employeeData.put("createdAt", System.currentTimeMillis());
+            employeeData.put("updatedAt", System.currentTimeMillis());
+
+            firestore.collection("employees")
+                    .document(user.getUid())
+                    .set(employeeData)
+                    .get();
+
+            LOGGER.info("Employee record created for: " + user.getEmail());
+        } catch (Exception e) {
+            LOGGER.warning("Failed to create employee record: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Parses a display name into first and last name.
+     * 
+     * @param displayName The full display name
+     * @return Array with [firstName, lastName]
+     */
+    private String[] parseDisplayName(String displayName) {
+        if (displayName == null || displayName.trim().isEmpty()) {
+            return new String[] { "", "" };
+        }
+
+        String[] parts = displayName.trim().split("\\s+", 2);
+        if (parts.length == 1) {
+            return new String[] { parts[0], "" };
+        }
+        return parts;
     }
 
     /**

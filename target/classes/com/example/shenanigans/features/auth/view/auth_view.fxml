@@ -18,63 +18,63 @@
   <center>
     <ScrollPane fitToHeight="true" fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background: transparent;">
       <StackPane style="-fx-background-color: transparent;">
-        <VBox alignment="CENTER" maxWidth="420" spacing="25">
+        <VBox alignment="CENTER" maxWidth="488.0" prefHeight="875.0" prefWidth="488.0" spacing="25">
           <padding>
-            <Insets bottom="50" left="40" right="40" top="50"/>
+            <Insets bottom="50" left="40" right="40" top="50" />
           </padding>
           <!-- App Branding -->
           <VBox alignment="CENTER" spacing="8">
-            <Label styleClass="app-title" text="Shenanigans"/>
-            <Label styleClass="app-subtitle" text="Enterprise Management System"/>
+            <Label styleClass="app-title" text="Shenanigans" />
+            <Label styleClass="app-subtitle" text="Enterprise Management System" />
           </VBox>
-          <Region prefHeight="10"/>
+          <Region prefHeight="10" />
           <!-- Login Form Card -->
           <VBox fx:id="loginPane" spacing="18" styleClass="auth-form">
             <VBox alignment="CENTER" spacing="5">
-              <Label styleClass="form-title" text="Welcome Back"/>
-              <Label styleClass="form-description" text="Sign in to continue to your dashboard"/>
+              <Label styleClass="form-title" text="Welcome Back" />
+              <Label styleClass="form-description" text="Sign in to continue to your dashboard" />
             </VBox>
-            <Region prefHeight="5"/>
+            <Region prefHeight="5" />
             <VBox spacing="6">
-              <Label styleClass="field-label" text="EMAIL ADDRESS"/>
-              <TextField fx:id="loginEmailField" promptText="you@example.com" styleClass="auth-field"/>
+              <Label styleClass="field-label" text="EMAIL ADDRESS" />
+              <TextField fx:id="loginEmailField" promptText="you@example.com" styleClass="auth-field" />
             </VBox>
             <VBox spacing="6">
-              <Label styleClass="field-label" text="PASSWORD"/>
-              <PasswordField fx:id="loginPasswordField" promptText="Enter your password" styleClass="auth-field"/>
+              <Label styleClass="field-label" text="PASSWORD" />
+              <PasswordField fx:id="loginPasswordField" promptText="Enter your password" styleClass="auth-field" />
             </VBox>
             <HBox alignment="CENTER_RIGHT">
-              <Hyperlink fx:id="forgotPasswordLink" onAction="#showForgotPasswordPane" text="Forgot password?"/>
+              <Hyperlink fx:id="forgotPasswordLink" onAction="#showForgotPasswordPane" text="Forgot password?" />
             </HBox>
-            <Region prefHeight="5"/>
-            <Button fx:id="loginButton" maxWidth="Infinity" onAction="#handleLogin" styleClass="primary-button" text="Sign In"/>
+            <Region prefHeight="5" />
+            <Button fx:id="loginButton" maxWidth="Infinity" onAction="#handleLogin" styleClass="primary-button" text="Sign In" />
             <!-- Loading Indicator -->
             <HBox alignment="CENTER">
-              <ProgressIndicator fx:id="loadingIndicator" maxHeight="24" maxWidth="24" visible="false"/>
+              <ProgressIndicator fx:id="loadingIndicator" maxHeight="24" maxWidth="24" visible="false" />
             </HBox>
             <!-- Status Label -->
-            <Label fx:id="statusLabel" styleClass="status-label" wrapText="true"/>
+            <Label fx:id="statusLabel" styleClass="status-label" wrapText="true" />
             <HBox alignment="CENTER" spacing="5">
-              <Label styleClass="link-text" text="Don't have an account?"/>
-              <Hyperlink fx:id="createAccountLink" onAction="#showRegisterPane" text="Sign up"/>
+              <Label styleClass="link-text" text="Don't have an account?" />
+              <Hyperlink fx:id="createAccountLink" onAction="#showRegisterPane" text="Sign up" />
             </HBox>
           </VBox>
           <!-- Forgot Password Form Card -->
           <VBox fx:id="forgotPasswordPane" managed="false" spacing="18" styleClass="auth-form" visible="false">
             <VBox alignment="CENTER" spacing="5">
-              <Label styleClass="form-title" text="Reset Password"/>
-              <Label styleClass="form-description" text="Enter your email and we'll send you a reset link" wrapText="true"/>
+              <Label styleClass="form-title" text="Reset Password" />
+              <Label styleClass="form-description" text="Enter your email and we'll send you a reset link" wrapText="true" />
             </VBox>
-            <Region prefHeight="5"/>
+            <Region prefHeight="5" />
             <VBox spacing="6">
-              <Label styleClass="field-label" text="EMAIL ADDRESS"/>
-              <TextField fx:id="resetEmailField" promptText="you@example.com" styleClass="auth-field"/>
+              <Label styleClass="field-label" text="EMAIL ADDRESS" />
+              <TextField fx:id="resetEmailField" promptText="you@example.com" styleClass="auth-field" />
             </VBox>
-            <Region prefHeight="5"/>
-            <Button fx:id="resetPasswordButton" maxWidth="Infinity" onAction="#handlePasswordReset" styleClass="primary-button" text="Send Reset Link"/>
+            <Region prefHeight="5" />
+            <Button fx:id="resetPasswordButton" maxWidth="Infinity" onAction="#handlePasswordReset" styleClass="primary-button" text="Send Reset Link" />
             <HBox alignment="CENTER" spacing="5">
-              <Label styleClass="link-text" text="Remember your password?"/>
-              <Hyperlink fx:id="backToLoginFromResetLink" onAction="#showLoginPane" text="Sign in"/>
+              <Label styleClass="link-text" text="Remember your password?" />
+              <Hyperlink fx:id="backToLoginFromResetLink" onAction="#showLoginPane" text="Sign in" />
             </HBox>
           </VBox>
         </VBox>

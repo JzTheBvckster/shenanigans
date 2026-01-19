@@ -30,31 +30,33 @@
           </VBox>
           <Region prefHeight="10"/>
           <!-- Register Form Card -->
-          <VBox fx:id="registerPane" spacing="16" styleClass="auth-form">
+          <VBox fx:id="registerPane" spacing="12" styleClass="auth-form">
             <VBox alignment="CENTER" spacing="5">
               <Label styleClass="form-title" text="Create Account"/>
               <Label styleClass="form-description" text="Join the team and start managing projects"/>
             </VBox>
             <Region prefHeight="5"/>
-            <VBox spacing="6">
+            <VBox spacing="4">
               <Label styleClass="field-label" text="FULL NAME"/>
               <TextField fx:id="displayNameField" promptText="John Doe" styleClass="auth-field"/>
+              <Label fx:id="nameErrorLabel" styleClass="field-error" managed="false" visible="false" wrapText="true"/>
             </VBox>
-            <VBox spacing="6">
+            <VBox spacing="4">
               <Label styleClass="field-label" text="EMAIL ADDRESS"/>
               <TextField fx:id="registerEmailField" promptText="you@example.com" styleClass="auth-field"/>
+              <Label fx:id="emailErrorLabel" styleClass="field-error" managed="false" visible="false" wrapText="true"/>
             </VBox>
-            <HBox spacing="15">
-              <VBox spacing="6" HBox.hgrow="ALWAYS">
-                <Label styleClass="field-label" text="PASSWORD"/>
-                <PasswordField fx:id="registerPasswordField" promptText="Min. 6 characters" styleClass="auth-field"/>
-              </VBox>
-              <VBox spacing="6" HBox.hgrow="ALWAYS">
-                <Label styleClass="field-label" text="CONFIRM PASSWORD"/>
-                <PasswordField fx:id="confirmPasswordField" promptText="Re-enter password" styleClass="auth-field"/>
-              </VBox>
-            </HBox>
-            <VBox spacing="6">
+            <VBox spacing="4">
+              <Label styleClass="field-label" text="PASSWORD"/>
+              <PasswordField fx:id="registerPasswordField" promptText="Min. 8 characters" styleClass="auth-field"/>
+              <Label fx:id="passwordErrorLabel" styleClass="field-error" managed="false" visible="false" wrapText="true"/>
+            </VBox>
+            <VBox spacing="4">
+              <Label styleClass="field-label" text="CONFIRM PASSWORD"/>
+              <PasswordField fx:id="confirmPasswordField" promptText="Re-enter password" styleClass="auth-field"/>
+              <Label fx:id="confirmPasswordErrorLabel" styleClass="field-error" managed="false" visible="false" wrapText="true"/>
+            </VBox>
+            <VBox spacing="4">
               <Label styleClass="field-label" text="SELECT ROLE"/>
               <ComboBox fx:id="roleComboBox" maxWidth="Infinity" promptText="Choose your role" styleClass="auth-field"/>
             </VBox>
