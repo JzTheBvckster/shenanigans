@@ -11,6 +11,7 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
 
 <BorderPane styleClass="employee-root" stylesheets="@../styles/employee.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.shenanigans.features.employees.controller.EmployeeController">
   <!-- Modern Header -->
@@ -20,13 +21,17 @@
         <padding>
           <Insets bottom="16" left="24" right="24" top="16"/>
         </padding>
-        <!-- Back Button -->
-        <Button onAction="#handleBack" styleClass="back-button" text="←"/>
-        <!-- Page Title -->
-        <VBox spacing="2">
-          <Label styleClass="page-title" text="Employees"/>
-          <Label styleClass="page-subtitle" text="Manage your team members"/>
-        </VBox>
+        <!-- Logo/Brand -->
+        <HBox alignment="CENTER_LEFT" spacing="12">
+          <StackPane styleClass="logo-container">
+            <Circle radius="20" styleClass="logo-circle"/>
+            <Label styleClass="logo-letter" text="S"/>
+          </StackPane>
+          <VBox spacing="2">
+            <Label styleClass="app-title" text="Shenanigans"/>
+            <Label styleClass="app-subtitle" text="Employee Management"/>
+          </VBox>
+        </HBox>
         <Region HBox.hgrow="ALWAYS"/>
         <!-- Search -->
         <HBox alignment="CENTER_LEFT" spacing="8" styleClass="header-search-container">
@@ -45,6 +50,47 @@
     </VBox>
   </top>
 
+  <!-- Sidebar -->
+  <left>
+    <VBox fx:id="sidebarContent" prefWidth="280" spacing="8" styleClass="sidebar">
+      <padding>
+        <Insets bottom="24" left="20" right="20" top="12"/>
+      </padding>
+      <!-- Sidebar Toggle (match dashboard) -->
+      <HBox alignment="CENTER" spacing="0" style="-fx-padding:0 0 8 0;">
+        <children>
+          <Button fx:id="sidebarToggleButton" styleClass="sidebar-toggle-button,sidebar-toggle-large" ellipsisString="+" mnemonicParsing="false" onAction="#handleSidebarToggle" prefHeight="28.0" prefWidth="239.0" text="collapse"/>
+        </children>
+      </HBox>
+      <!-- Navigation Section -->
+      <Label fx:id="menuHeaderLabel" styleClass="menu-header" text="MAIN MENU"/>
+      <VBox fx:id="mainMenuSection" spacing="6" styleClass="menu-section">
+        <Button fx:id="dashboardButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleDashboard" styleClass="menu-button" text="🏠 Dashboard"/>
+        <Button fx:id="employeesButton" graphicTextGap="14" maxWidth="Infinity" styleClass="menu-button,menu-button-active" text="👥 Employees"/>
+        <Button fx:id="projectsButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleProjects" styleClass="menu-button" text="📋 Projects"/>
+        <Button fx:id="financeButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleFinance" styleClass="menu-button" text="💰 Finance"/>
+      </VBox>
+      <Region prefHeight="20"/>
+      <Label fx:id="settingsHeaderLabel" styleClass="menu-header" text="SETTINGS"/>
+      <VBox fx:id="settingsSection" spacing="6">
+        <Button fx:id="settingsButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleSettings" styleClass="menu-button,menu-button-secondary" text="Settings">
+          <graphic>
+            <Label styleClass="menu-icon" text="⚙️"/>
+          </graphic>
+        </Button>
+      </VBox>
+      <Region VBox.vgrow="ALWAYS"/>
+      <!-- System Info -->
+      <VBox fx:id="systemInfoCard" spacing="8" styleClass="system-info-card">
+        <Label fx:id="systemInfoTitle" styleClass="system-info-title" text="System Status"/>
+        <HBox alignment="CENTER_LEFT" spacing="8">
+          <StackPane styleClass="status-dot,status-dot-online"/>
+          <Label fx:id="systemInfoText" styleClass="system-info-text" text="All systems operational"/>
+        </HBox>
+      </VBox>
+    </VBox>
+  </left>
+
   <!-- Main Content - Employee Cards by Type -->
   <center>
     <ScrollPane fitToHeight="true" fitToWidth="true" styleClass="content-scroll">
@@ -58,9 +104,9 @@
           <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-blue" HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT" spacing="12">
               <StackPane styleClass="stat-icon-container stat-icon-blue">
-                <Label styleClass="stat-icon" text="👥"/>
+                <Label styleClass="stat-icon" text="👥" textFill="#2b64d6"/>
               </StackPane>
-              <VBox spacing="2">
+              <VBox alignment="TOP_CENTER" spacing="2">
                 <Label fx:id="totalCountLabel" styleClass="stat-value" text="0"/>
                 <Label styleClass="stat-label" text="Total Employees"/>
               </VBox>
@@ -70,9 +116,9 @@
           <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-green" HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT" spacing="12">
               <StackPane styleClass="stat-icon-container stat-icon-green">
-                <Label styleClass="stat-icon" text="✓"/>
+                <Label styleClass="stat-icon" text="✓" textFill="#2b64d6"/>
               </StackPane>
-              <VBox spacing="2">
+              <VBox alignment="TOP_CENTER" spacing="2">
                 <Label fx:id="activeCountLabel" styleClass="stat-value" text="0"/>
                 <Label styleClass="stat-label" text="Active"/>
               </VBox>
@@ -82,9 +128,9 @@
           <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-orange" HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT" spacing="12">
               <StackPane styleClass="stat-icon-container stat-icon-orange">
-                <Label styleClass="stat-icon" text="🏖"/>
+                <Label styleClass="stat-icon" text="🏖" textFill="#2b64d6"/>
               </StackPane>
-              <VBox spacing="2">
+              <VBox alignment="TOP_CENTER" spacing="2">
                 <Label fx:id="onLeaveCountLabel" styleClass="stat-value" text="0"/>
                 <Label styleClass="stat-label" text="On Leave"/>
               </VBox>
@@ -94,9 +140,9 @@
           <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-purple" HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT" spacing="12">
               <StackPane styleClass="stat-icon-container stat-icon-purple">
-                <Label styleClass="stat-icon" text="🏢"/>
+                <Label styleClass="stat-icon" text="🏢" textFill="#2b64d6"/>
               </StackPane>
-              <VBox spacing="2">
+              <VBox alignment="TOP_CENTER" spacing="2">
                 <Label fx:id="departmentCountLabel" styleClass="stat-value" text="0"/>
                 <Label styleClass="stat-label" text="Departments"/>
               </VBox>
@@ -104,14 +150,17 @@
           </VBox>
         </HBox>
         <!-- Employee Type Columns -->
-        <HBox spacing="20" VBox.vgrow="ALWAYS" styleClass="employee-board">
+        <HBox spacing="20" styleClass="employee-board" VBox.vgrow="ALWAYS">
           <!-- Active Employees Column -->
           <VBox spacing="0" styleClass="employee-column" HBox.hgrow="ALWAYS">
-            <HBox alignment="CENTER_LEFT" spacing="10" styleClass="column-header column-header-active">
+            <HBox alignment="CENTER_LEFT" spacing="6.0" style="-fx-background-color: #2b64d6b0; -fx-background-radius: 16;" styleClass="column-header column-header-active">
               <Label styleClass="column-icon" text="✓"/>
               <Label styleClass="column-title" text="Active"/>
               <Region HBox.hgrow="ALWAYS"/>
               <Label fx:id="activeColumnCount" styleClass="column-count" text="0"/>
+              <padding>
+                <Insets bottom="8.0" left="8.0" right="8.0" top="8.0"/>
+              </padding>
             </HBox>
             <ScrollPane fitToWidth="true" styleClass="column-scroll" VBox.vgrow="ALWAYS">
               <VBox fx:id="activeEmployeesContainer" spacing="12" styleClass="cards-container">
@@ -123,11 +172,14 @@
           </VBox>
           <!-- On Leave Employees Column -->
           <VBox spacing="0" styleClass="employee-column" HBox.hgrow="ALWAYS">
-            <HBox alignment="CENTER_LEFT" spacing="10" styleClass="column-header column-header-leave">
+            <HBox alignment="CENTER_LEFT" spacing="6.0" style="-fx-background-color: #2b64d6b0; -fx-background-radius: 16;" styleClass="column-header column-header-leave">
               <Label styleClass="column-icon" text="🏖"/>
               <Label styleClass="column-title" text="On Leave"/>
               <Region HBox.hgrow="ALWAYS"/>
               <Label fx:id="leaveColumnCount" styleClass="column-count" text="0"/>
+              <padding>
+                <Insets bottom="8.0" left="8.0" right="8.0" top="8.0"/>
+              </padding>
             </HBox>
             <ScrollPane fitToWidth="true" styleClass="column-scroll" VBox.vgrow="ALWAYS">
               <VBox fx:id="onLeaveEmployeesContainer" spacing="12" styleClass="cards-container">
@@ -139,11 +191,14 @@
           </VBox>
           <!-- Terminated Employees Column -->
           <VBox spacing="0" styleClass="employee-column" HBox.hgrow="ALWAYS">
-            <HBox alignment="CENTER_LEFT" spacing="10" styleClass="column-header column-header-terminated">
+            <HBox alignment="CENTER_LEFT" spacing="6.0" style="-fx-background-color: #2b64d6b0; -fx-background-radius: 16;" styleClass="column-header column-header-terminated">
               <Label styleClass="column-icon" text="✗"/>
               <Label styleClass="column-title" text="Terminated"/>
               <Region HBox.hgrow="ALWAYS"/>
               <Label fx:id="terminatedColumnCount" styleClass="column-count" text="0"/>
+              <padding>
+                <Insets bottom="8.0" left="8.0" right="8.0" top="8.0"/>
+              </padding>
             </HBox>
             <ScrollPane fitToWidth="true" styleClass="column-scroll" VBox.vgrow="ALWAYS">
               <VBox fx:id="terminatedEmployeesContainer" spacing="12" styleClass="cards-container">

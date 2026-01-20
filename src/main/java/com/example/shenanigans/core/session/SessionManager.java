@@ -17,6 +17,8 @@ public final class SessionManager {
     private User currentUser;
     private String idToken;
     private String refreshToken;
+    // Sidebar expanded/collapsed state for the current session
+    private boolean sidebarExpanded = true;
 
     private SessionManager() {
         // Private constructor for singleton
@@ -108,5 +110,23 @@ public final class SessionManager {
      */
     public String getUserId() {
         return currentUser != null ? currentUser.getUid() : null;
+    }
+
+    /**
+     * Gets the sidebar expanded state for the current session.
+     * 
+     * @return true if sidebar should be expanded, false if collapsed
+     */
+    public boolean isSidebarExpanded() {
+        return sidebarExpanded;
+    }
+
+    /**
+     * Sets the sidebar expanded state for the current session.
+     * 
+     * @param expanded the new state
+     */
+    public void setSidebarExpanded(boolean expanded) {
+        this.sidebarExpanded = expanded;
     }
 }

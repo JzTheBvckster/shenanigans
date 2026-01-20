@@ -66,6 +66,12 @@ public class EmployeeDashboardController {
     private VBox tasksContainer;
     @FXML
     private VBox activityContainer;
+    @FXML
+    private VBox projectsContainer;
+
+    // Loading indicator
+    @FXML
+    private javafx.scene.control.ProgressIndicator loadingIndicator;
 
     /**
      * Called automatically after FXML is loaded.
