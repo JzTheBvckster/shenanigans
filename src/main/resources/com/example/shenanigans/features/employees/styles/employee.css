@@ -452,3 +452,203 @@
     -fx-background-color: #f1f5f9;
     -fx-text-fill: #64748b;
 }
+
+/* ============================================
+   EMPLOYEE BOARD STYLES
+   ============================================ */
+.employee-board {
+    -fx-min-height: 500;
+}
+
+.employee-column {
+    -fx-background-color: #f1f5f9;
+    -fx-background-radius: 16;
+    -fx-min-width: 300;
+    -fx-pref-width: 350;
+}
+
+.column-header {
+    -fx-padding: 16 20 16 20;
+    -fx-background-radius: 16 16 0 0;
+}
+
+.column-header-active {
+    -fx-background-color: linear-gradient(to right, #10b981, #059669);
+}
+
+.column-header-leave {
+    -fx-background-color: linear-gradient(to right, #f59e0b, #d97706);
+}
+
+.column-header-terminated {
+    -fx-background-color: linear-gradient(to right, #ef4444, #dc2626);
+}
+
+.column-icon {
+    -fx-font-size: 18px;
+}
+
+.column-title {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.column-count {
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-color: rgba(255, 255, 255, 0.25);
+    -fx-padding: 4 12 4 12;
+    -fx-background-radius: 20;
+}
+
+.column-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.column-scroll>.viewport {
+    -fx-background-color: transparent;
+}
+
+.cards-container {
+    -fx-background-color: transparent;
+}
+
+/* ============================================
+   EMPLOYEE CARD STYLES
+   ============================================ */
+.employee-card {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 10, 0, 0, 2);
+    -fx-cursor: hand;
+}
+
+.employee-card-hover {
+    -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.25), 15, 0, 0, 4);
+    -fx-translate-y: -2;
+}
+
+.employee-avatar {
+    -fx-background-color: linear-gradient(to bottom right, #667eea, #764ba2);
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-min-width: 48;
+    -fx-min-height: 48;
+    -fx-max-width: 48;
+    -fx-max-height: 48;
+    -fx-background-radius: 24;
+    -fx-alignment: center;
+}
+
+.card-name {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1e293b;
+}
+
+.card-position {
+    -fx-font-size: 13px;
+    -fx-text-fill: #64748b;
+}
+
+.card-department {
+    -fx-font-size: 12px;
+    -fx-text-fill: #667eea;
+    -fx-background-color: #eef2ff;
+    -fx-padding: 4 10 4 10;
+    -fx-background-radius: 12;
+}
+
+.card-contact {
+    -fx-font-size: 12px;
+    -fx-text-fill: #64748b;
+}
+
+.card-hire-date {
+    -fx-font-size: 11px;
+    -fx-text-fill: #94a3b8;
+}
+
+.card-status-badge {
+    -fx-padding: 4 12 4 12;
+    -fx-background-radius: 20;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+/* ============================================
+   COLUMN EMPTY STATE
+   ============================================ */
+.column-empty-state {
+    -fx-background-color: rgba(255, 255, 255, 0.5);
+    -fx-background-radius: 12;
+    -fx-border-color: #cbd5e1;
+    -fx-border-style: dashed;
+    -fx-border-width: 2;
+    -fx-border-radius: 12;
+}
+
+.empty-state-icon {
+    -fx-font-size: 32px;
+    -fx-opacity: 0.5;
+}
+
+.empty-state-message {
+    -fx-font-size: 14px;
+    -fx-text-fill: #94a3b8;
+    -fx-font-weight: 500;
+}
+
+/* ============================================
+   HEADER SEARCH STYLES
+   ============================================ */
+.header-search-container {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+    -fx-background-radius: 10;
+    -fx-padding: 0 12 0 12;
+}
+
+.header-search-field {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-prompt-text-fill: rgba(255, 255, 255, 0.6);
+    -fx-font-size: 14px;
+    -fx-padding: 10 0 10 0;
+}
+
+.header-search-field:focused {
+    -fx-background-color: transparent;
+}
+
+.header-icon-button {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 14 10 14;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
+}
+
+.header-icon-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.3);
+}
+
+.header-primary-button {
+    -fx-background-color: rgba(255, 255, 255, 0.95);
+    -fx-text-fill: #667eea;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 20 10 20;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
+}
+
+.header-primary-button:hover {
+    -fx-background-color: white;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 8, 0, 0, 2);
+}

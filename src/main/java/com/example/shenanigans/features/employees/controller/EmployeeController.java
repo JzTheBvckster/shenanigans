@@ -5,49 +5,49 @@ import com.example.shenanigans.features.employees.model.Employee;
 import com.example.shenanigans.features.employees.service.EmployeeService;
 
 import javafx.application.Platform;
-import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
+import java.text.NumberFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Controller for the employees management view.
- * Handles CRUD operations for employees.
+ * Controller for the employees management view with card-based layout.
+ * Displays employees grouped by status type in columns.
  */
 public class EmployeeController {
 
     private static final Logger LOGGER = Logger.getLogger(EmployeeController.class.getName());
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("MMM dd, yyyy");
+    private static final NumberFormat CURRENCY_FORMAT = NumberFormat.getCurrencyInstance(Locale.US);
 
     private final EmployeeService employeeService = new EmployeeService();
     private final ObservableList<Employee> employeeList = FXCollections.observableArrayList();
 
-    // FXML Components
+    // FXML Components - Employee Columns
     @FXML
-    private TableView<Employee> employeeTable;
+    private VBox activeEmployeesContainer;
 
     @FXML
-    private TableColumn<Employee, String> nameColumn;
+    private VBox onLeaveEmployeesContainer;
 
     @FXML
-    private TableColumn<Employee, String> emailColumn;
-
-    @FXML
-    private TableColumn<Employee, String> departmentColumn;
-
-    @FXML
-    private TableColumn<Employee, String> positionColumn;
-
-    @FXML
-    private TableColumn<Employee, String> statusColumn;
+    private VBox terminatedEmployeesContainer;
 
     @FXML
     private TextField searchField;
@@ -64,6 +64,7 @@ public class EmployeeController {
     @FXML
     private ProgressIndicator loadingIndicator;
 
+    // Stats Labels
     @FXML
     private Label totalCountLabel;
 
@@ -75,6 +76,16 @@ public class EmployeeController {
 
     @FXML
     private Label departmentCountLabel;
+
+    // Column Count Labels
+    @FXML
+    private Label activeColumnCount;
+
+    @FXML
+    private Label leaveColumnCount;
+
+    @FXML
+    private Label terminatedColumnCount;
 
     private Employee selectedEmployee;
 
@@ -90,96 +101,10 @@ public class EmployeeController {
             return;
         }
 
-        setupTable();
         setupSearch();
         loadEmployees();
 
-        LOGGER.info("EmployeeController initialized");
-    }
-
-    /**
-     * Sets up the table columns.
-     */
-    private void setupTable() {
-        nameColumn.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getFullName()));
-
-        emailColumn.setCellValueFactory(new PropertyValueFactory<>("email"));
-        departmentColumn.setCellValueFactory(new PropertyValueFactory<>("department"));
-        positionColumn.setCellValueFactory(new PropertyValueFactory<>("position"));
-
-        statusColumn.setCellValueFactory(
-                cellData -> new SimpleStringProperty(formatStatus(cellData.getValue().getStatus())));
-
-        // Style status column with modern badges
-        statusColumn.setCellFactory(column -> new TableCell<>() {
-            private final Label statusBadge = new Label();
-
-            {
-                statusBadge.setMinWidth(80);
-                statusBadge.setAlignment(javafx.geometry.Pos.CENTER);
-            }
-
-            @Override
-            protected void updateItem(String status, boolean empty) {
-                super.updateItem(status, empty);
-                if (empty || status == null) {
-                    setGraphic(null);
-                    setText(null);
-                } else {
-                    statusBadge.setText(status);
-                    switch (status) {
-                        case "Active" -> statusBadge.getStyleClass().setAll("status-active");
-                        case "On Leave" -> statusBadge.getStyleClass().setAll("status-on-leave");
-                        case "Terminated" -> statusBadge.getStyleClass().setAll("status-inactive");
-                        default -> statusBadge.getStyleClass().clear();
-                    }
-                    setGraphic(statusBadge);
-                    setText(null);
-                }
-            }
-        });
-
-        employeeTable.setItems(employeeList);
-
-        // Double-click to edit
-        employeeTable.setRowFactory(tv -> {
-            TableRow<Employee> row = new TableRow<>();
-            row.setOnMouseClicked(event -> {
-                if (event.getClickCount() == 2 && !row.isEmpty()) {
-                    handleEditEmployee(row.getItem());
-                }
-            });
-            return row;
-        });
-
-        // Context menu
-        employeeTable.setContextMenu(createContextMenu());
-    }
-
-    /**
-     * Creates a context menu for the table.
-     */
-    private ContextMenu createContextMenu() {
-        ContextMenu menu = new ContextMenu();
-
-        MenuItem editItem = new MenuItem("Edit");
-        editItem.setOnAction(e -> {
-            Employee selected = employeeTable.getSelectionModel().getSelectedItem();
-            if (selected != null) {
-                handleEditEmployee(selected);
-            }
-        });
-
-        MenuItem deleteItem = new MenuItem("Delete");
-        deleteItem.setOnAction(e -> {
-            Employee selected = employeeTable.getSelectionModel().getSelectedItem();
-            if (selected != null) {
-                handleDeleteEmployee(selected);
-            }
-        });
-
-        menu.getItems().addAll(editItem, deleteItem);
-        return menu;
+        LOGGER.info("EmployeeController initialized with card-based view");
     }
 
     /**
@@ -198,7 +123,7 @@ public class EmployeeController {
     }
 
     /**
-     * Loads all employees from Firestore.
+     * Loads all employees from Firestore and displays in columns.
      */
     @FXML
     private void loadEmployees() {
@@ -212,6 +137,7 @@ public class EmployeeController {
             List<Employee> employees = task.getValue();
             employeeList.setAll(employees);
             updateCounts(employees);
+            displayEmployeesInColumns(employees);
             showStatus("Loaded " + employees.size() + " employees", false);
         }));
 
@@ -234,7 +160,9 @@ public class EmployeeController {
 
         task.setOnSucceeded(event -> Platform.runLater(() -> {
             setLoading(false);
-            employeeList.setAll(task.getValue());
+            List<Employee> results = task.getValue();
+            employeeList.setAll(results);
+            displayEmployeesInColumns(results);
         }));
 
         task.setOnFailed(event -> Platform.runLater(() -> {
@@ -243,6 +171,243 @@ public class EmployeeController {
         }));
 
         new Thread(task).start();
+    }
+
+    /**
+     * Displays employees in the status columns.
+     */
+    private void displayEmployeesInColumns(List<Employee> employees) {
+        // Clear all columns
+        if (activeEmployeesContainer != null)
+            activeEmployeesContainer.getChildren().clear();
+        if (onLeaveEmployeesContainer != null)
+            onLeaveEmployeesContainer.getChildren().clear();
+        if (terminatedEmployeesContainer != null)
+            terminatedEmployeesContainer.getChildren().clear();
+
+        int activeCount = 0;
+        int leaveCount = 0;
+        int terminatedCount = 0;
+
+        for (Employee employee : employees) {
+            VBox card = createEmployeeCard(employee);
+            String status = employee.getStatus();
+
+            if ("ACTIVE".equals(status)) {
+                if (activeEmployeesContainer != null) {
+                    activeEmployeesContainer.getChildren().add(card);
+                    activeCount++;
+                }
+            } else if ("ON_LEAVE".equals(status)) {
+                if (onLeaveEmployeesContainer != null) {
+                    onLeaveEmployeesContainer.getChildren().add(card);
+                    leaveCount++;
+                }
+            } else if ("TERMINATED".equals(status)) {
+                if (terminatedEmployeesContainer != null) {
+                    terminatedEmployeesContainer.getChildren().add(card);
+                    terminatedCount++;
+                }
+            }
+        }
+
+        // Update column counts
+        if (activeColumnCount != null)
+            activeColumnCount.setText(String.valueOf(activeCount));
+        if (leaveColumnCount != null)
+            leaveColumnCount.setText(String.valueOf(leaveCount));
+        if (terminatedColumnCount != null)
+            terminatedColumnCount.setText(String.valueOf(terminatedCount));
+
+        // Add empty states if needed
+        addEmptyStateIfNeeded(activeEmployeesContainer, activeCount, "No active employees", "✓");
+        addEmptyStateIfNeeded(onLeaveEmployeesContainer, leaveCount, "No employees on leave", "🏖");
+        addEmptyStateIfNeeded(terminatedEmployeesContainer, terminatedCount, "No terminated employees", "✗");
+    }
+
+    /**
+     * Adds empty state placeholder if column has no employees.
+     */
+    private void addEmptyStateIfNeeded(VBox container, int count, String message, String icon) {
+        if (container != null && count == 0) {
+            VBox emptyState = new VBox(8);
+            emptyState.setAlignment(Pos.CENTER);
+            emptyState.getStyleClass().add("column-empty-state");
+            emptyState.setPadding(new Insets(32, 16, 32, 16));
+
+            Label iconLabel = new Label(icon);
+            iconLabel.getStyleClass().add("empty-state-icon");
+
+            Label messageLabel = new Label(message);
+            messageLabel.getStyleClass().add("empty-state-message");
+
+            emptyState.getChildren().addAll(iconLabel, messageLabel);
+            container.getChildren().add(emptyState);
+        }
+    }
+
+    /**
+     * Creates an employee card for display.
+     */
+    private VBox createEmployeeCard(Employee employee) {
+        VBox card = new VBox(12);
+        card.getStyleClass().add("employee-card");
+        card.setPadding(new Insets(16));
+
+        // Header with avatar and name
+        HBox header = new HBox(12);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        // Avatar circle with initials
+        Label avatar = new Label(getInitials(employee));
+        avatar.getStyleClass().add("employee-avatar");
+
+        VBox nameBox = new VBox(2);
+        Label nameLabel = new Label(employee.getFullName());
+        nameLabel.getStyleClass().add("card-name");
+
+        Label positionLabel = new Label(employee.getPosition() != null ? employee.getPosition() : "No position");
+        positionLabel.getStyleClass().add("card-position");
+
+        nameBox.getChildren().addAll(nameLabel, positionLabel);
+        HBox.setHgrow(nameBox, Priority.ALWAYS);
+
+        header.getChildren().addAll(avatar, nameBox);
+
+        // Department badge
+        HBox deptRow = new HBox(8);
+        deptRow.setAlignment(Pos.CENTER_LEFT);
+
+        if (employee.getDepartment() != null && !employee.getDepartment().isEmpty()) {
+            Label deptBadge = new Label("🏢 " + employee.getDepartment());
+            deptBadge.getStyleClass().add("card-department");
+            deptRow.getChildren().add(deptBadge);
+        }
+
+        // Contact info
+        VBox contactBox = new VBox(6);
+
+        if (employee.getEmail() != null && !employee.getEmail().isEmpty()) {
+            Label emailLabel = new Label("✉ " + employee.getEmail());
+            emailLabel.getStyleClass().add("card-contact");
+            contactBox.getChildren().add(emailLabel);
+        }
+
+        if (employee.getPhone() != null && !employee.getPhone().isEmpty()) {
+            Label phoneLabel = new Label("📞 " + employee.getPhone());
+            phoneLabel.getStyleClass().add("card-contact");
+            contactBox.getChildren().add(phoneLabel);
+        }
+
+        // Footer with hire date and status
+        HBox footer = new HBox(8);
+        footer.setAlignment(Pos.CENTER_LEFT);
+
+        if (employee.getHireDate() > 0) {
+            Label hireDateLabel = new Label("Joined: " + DATE_FORMAT.format(new Date(employee.getHireDate())));
+            hireDateLabel.getStyleClass().add("card-hire-date");
+            footer.getChildren().add(hireDateLabel);
+        }
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        footer.getChildren().add(spacer);
+
+        // Status badge
+        Label statusBadge = new Label(formatStatus(employee.getStatus()));
+        statusBadge.getStyleClass().addAll("card-status-badge", getStatusStyleClass(employee.getStatus()));
+        footer.getChildren().add(statusBadge);
+
+        card.getChildren().addAll(header, deptRow, contactBox, footer);
+
+        // Add context menu
+        card.setOnContextMenuRequested(event -> {
+            ContextMenu menu = createCardContextMenu(employee);
+            menu.show(card, event.getScreenX(), event.getScreenY());
+        });
+
+        // Double-click to edit
+        card.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                handleEditEmployee(employee);
+            }
+        });
+
+        // Hover effect
+        card.setOnMouseEntered(e -> card.getStyleClass().add("employee-card-hover"));
+        card.setOnMouseExited(e -> card.getStyleClass().remove("employee-card-hover"));
+
+        return card;
+    }
+
+    /**
+     * Gets initials from employee name.
+     */
+    private String getInitials(Employee employee) {
+        String first = employee.getFirstName();
+        String last = employee.getLastName();
+        StringBuilder initials = new StringBuilder();
+
+        if (first != null && !first.isEmpty()) {
+            initials.append(first.charAt(0));
+        }
+        if (last != null && !last.isEmpty()) {
+            initials.append(last.charAt(0));
+        }
+
+        return initials.toString().toUpperCase();
+    }
+
+    /**
+     * Creates context menu for an employee card.
+     */
+    private ContextMenu createCardContextMenu(Employee employee) {
+        ContextMenu menu = new ContextMenu();
+
+        MenuItem editItem = new MenuItem("✏️ Edit");
+        editItem.setOnAction(e -> handleEditEmployee(employee));
+
+        // Status change submenu
+        Menu statusMenu = new Menu("📋 Change Status...");
+
+        MenuItem activeItem = new MenuItem("Active");
+        activeItem.setOnAction(e -> updateEmployeeStatus(employee, "ACTIVE"));
+
+        MenuItem leaveItem = new MenuItem("On Leave");
+        leaveItem.setOnAction(e -> updateEmployeeStatus(employee, "ON_LEAVE"));
+
+        MenuItem terminatedItem = new MenuItem("Terminated");
+        terminatedItem.setOnAction(e -> updateEmployeeStatus(employee, "TERMINATED"));
+
+        statusMenu.getItems().addAll(activeItem, leaveItem, terminatedItem);
+
+        MenuItem deleteItem = new MenuItem("🗑️ Delete");
+        deleteItem.setOnAction(e -> handleDeleteEmployee(employee));
+
+        menu.getItems().addAll(editItem, new SeparatorMenuItem(), statusMenu, new SeparatorMenuItem(), deleteItem);
+        return menu;
+    }
+
+    /**
+     * Updates employee status.
+     */
+    private void updateEmployeeStatus(Employee employee, String newStatus) {
+        employee.setStatus(newStatus);
+        saveEmployee(employee);
+    }
+
+    /**
+     * Gets CSS style class for status.
+     */
+    private String getStatusStyleClass(String status) {
+        if (status == null)
+            return "status-active";
+        return switch (status) {
+            case "ACTIVE" -> "status-active";
+            case "ON_LEAVE" -> "status-on-leave";
+            case "TERMINATED" -> "status-inactive";
+            default -> "status-active";
+        };
     }
 
     /**
@@ -325,7 +490,11 @@ public class EmployeeController {
                 new Label("Status:"), statusInput,
                 new Label("Salary:"), salaryInput);
 
-        dialog.getDialogPane().setContent(content);
+        ScrollPane scrollPane = new ScrollPane(content);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setPrefHeight(400);
+
+        dialog.getDialogPane().setContent(scrollPane);
 
         // Convert result
         dialog.setResultConverter(dialogButton -> {
@@ -365,7 +534,7 @@ public class EmployeeController {
         setLoading(true);
 
         Task<?> task;
-        if (selectedEmployee == null) {
+        if (selectedEmployee == null && (employee.getId() == null || employee.getId().isEmpty())) {
             // Create new
             task = employeeService.createEmployee(employee);
             showStatus("Creating employee...", false);

@@ -535,3 +535,228 @@
     -fx-background-color: #f1f5f9;
     -fx-text-fill: #64748b;
 }
+
+/* ============================================
+   KANBAN BOARD STYLES
+   ============================================ */
+.kanban-board {
+    -fx-min-height: 500;
+}
+
+.kanban-column {
+    -fx-background-color: #f1f5f9;
+    -fx-background-radius: 16;
+    -fx-min-width: 300;
+    -fx-pref-width: 350;
+}
+
+.kanban-column-header {
+    -fx-padding: 16 20 16 20;
+    -fx-background-radius: 16 16 0 0;
+}
+
+.kanban-header-new {
+    -fx-background-color: linear-gradient(to right, #8b5cf6, #7c3aed);
+}
+
+.kanban-header-pending {
+    -fx-background-color: linear-gradient(to right, #f59e0b, #d97706);
+}
+
+.kanban-header-completed {
+    -fx-background-color: linear-gradient(to right, #10b981, #059669);
+}
+
+.kanban-column-icon {
+    -fx-font-size: 18px;
+}
+
+.kanban-column-title {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.kanban-column-count {
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-color: rgba(255, 255, 255, 0.25);
+    -fx-padding: 4 12 4 12;
+    -fx-background-radius: 20;
+}
+
+.kanban-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.kanban-scroll>.viewport {
+    -fx-background-color: transparent;
+}
+
+.kanban-cards-container {
+    -fx-background-color: transparent;
+}
+
+/* ============================================
+   PROJECT CARD STYLES
+   ============================================ */
+.project-card {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 10, 0, 0, 2);
+    -fx-cursor: hand;
+}
+
+.project-card-hover {
+    -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.25), 15, 0, 0, 4);
+    -fx-translate-y: -2;
+}
+
+.card-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1e293b;
+}
+
+.card-description {
+    -fx-font-size: 13px;
+    -fx-text-fill: #64748b;
+    -fx-wrap-text: true;
+}
+
+.card-progress-bar {
+    -fx-accent: linear-gradient(to right, #667eea, #764ba2);
+    -fx-background-color: #e2e8f0;
+    -fx-background-radius: 6;
+    -fx-pref-height: 6;
+}
+
+.card-progress-bar .bar {
+    -fx-background-color: linear-gradient(to right, #667eea, #764ba2);
+    -fx-background-radius: 6;
+    -fx-background-insets: 0;
+}
+
+.card-progress-bar .track {
+    -fx-background-color: #e2e8f0;
+    -fx-background-radius: 6;
+}
+
+.card-progress-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #64748b;
+    -fx-font-weight: bold;
+}
+
+.card-meta {
+    -fx-font-size: 12px;
+    -fx-text-fill: #94a3b8;
+}
+
+.card-overdue {
+    -fx-text-fill: #dc2626 !important;
+    -fx-font-weight: bold;
+}
+
+.card-priority-badge {
+    -fx-padding: 3 8 3 8;
+    -fx-background-radius: 12;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.card-status-badge {
+    -fx-padding: 4 12 4 12;
+    -fx-background-radius: 20;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+}
+
+/* ============================================
+   KANBAN EMPTY STATE
+   ============================================ */
+.kanban-empty-state {
+    -fx-background-color: rgba(255, 255, 255, 0.5);
+    -fx-background-radius: 12;
+    -fx-border-color: #cbd5e1;
+    -fx-border-style: dashed;
+    -fx-border-width: 2;
+    -fx-border-radius: 12;
+}
+
+.empty-state-icon {
+    -fx-font-size: 32px;
+    -fx-opacity: 0.5;
+}
+
+.empty-state-message {
+    -fx-font-size: 14px;
+    -fx-text-fill: #94a3b8;
+    -fx-font-weight: 500;
+}
+
+/* ============================================
+   HEADER SEARCH STYLES
+   ============================================ */
+.header-search-container {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+    -fx-background-radius: 10;
+    -fx-padding: 0 12 0 12;
+}
+
+.header-search-field {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-prompt-text-fill: rgba(255, 255, 255, 0.6);
+    -fx-font-size: 14px;
+    -fx-padding: 10 0 10 0;
+}
+
+.header-search-field:focused {
+    -fx-background-color: transparent;
+}
+
+.header-icon-button {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 14 10 14;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
+}
+
+.header-icon-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.3);
+}
+
+.header-primary-button {
+    -fx-background-color: rgba(255, 255, 255, 0.95);
+    -fx-text-fill: #667eea;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 20 10 20;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
+}
+
+.header-primary-button:hover {
+    -fx-background-color: white;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 8, 0, 0, 2);
+}
+
+/* ============================================
+   STAT CARD ORANGE (for In Progress)
+   ============================================ */
+.stat-icon-orange {
+    -fx-background-color: linear-gradient(to bottom right, #f59e0b, #d97706);
+}
+
+.stat-card-orange {
+    -fx-border-color: transparent transparent transparent #f59e0b;
+    -fx-border-width: 0 0 0 4;
+    -fx-border-radius: 16;
+}

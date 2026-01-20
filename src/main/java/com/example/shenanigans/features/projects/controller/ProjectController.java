@@ -6,15 +6,16 @@ import com.example.shenanigans.features.projects.model.Project;
 import com.example.shenanigans.features.projects.service.ProjectService;
 
 import javafx.application.Platform;
-import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.text.NumberFormat;
@@ -29,8 +30,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Controller for the projects management view.
- * Handles CRUD operations for projects.
+ * Controller for the projects management view with Kanban board.
+ * Handles CRUD operations for projects displayed in columns by status.
  */
 public class ProjectController {
 
@@ -41,27 +42,15 @@ public class ProjectController {
     private final ProjectService projectService = new ProjectService();
     private final ObservableList<Project> projectList = FXCollections.observableArrayList();
 
-    // FXML Components
+    // FXML Components - Kanban Columns
     @FXML
-    private TableView<Project> projectTable;
+    private VBox newProjectsContainer;
 
     @FXML
-    private TableColumn<Project, String> nameColumn;
+    private VBox pendingProjectsContainer;
 
     @FXML
-    private TableColumn<Project, String> managerColumn;
-
-    @FXML
-    private TableColumn<Project, String> statusColumn;
-
-    @FXML
-    private TableColumn<Project, String> priorityColumn;
-
-    @FXML
-    private TableColumn<Project, String> progressColumn;
-
-    @FXML
-    private TableColumn<Project, String> deadlineColumn;
+    private VBox completedProjectsContainer;
 
     @FXML
     private TextField searchField;
@@ -78,8 +67,12 @@ public class ProjectController {
     @FXML
     private ProgressIndicator loadingIndicator;
 
+    // Stats Labels
     @FXML
     private Label totalCountLabel;
+
+    @FXML
+    private Label newCountLabel;
 
     @FXML
     private Label activeCountLabel;
@@ -87,8 +80,15 @@ public class ProjectController {
     @FXML
     private Label completedCountLabel;
 
+    // Column Count Labels
     @FXML
-    private Label overdueCountLabel;
+    private Label newColumnCount;
+
+    @FXML
+    private Label pendingColumnCount;
+
+    @FXML
+    private Label completedColumnCount;
 
     private Project selectedProject;
 
@@ -104,193 +104,10 @@ public class ProjectController {
             return;
         }
 
-        setupTable();
         setupSearch();
         loadProjects();
 
-        LOGGER.info("ProjectController initialized");
-    }
-
-    /**
-     * Sets up the table columns.
-     */
-    private void setupTable() {
-        nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
-        managerColumn.setCellValueFactory(new PropertyValueFactory<>("projectManager"));
-
-        // Status column with badges
-        statusColumn.setCellValueFactory(
-                cellData -> new SimpleStringProperty(formatStatus(cellData.getValue().getStatus())));
-
-        statusColumn.setCellFactory(column -> new TableCell<>() {
-            private final Label statusBadge = new Label();
-
-            {
-                statusBadge.setMinWidth(90);
-                statusBadge.setAlignment(Pos.CENTER);
-            }
-
-            @Override
-            protected void updateItem(String status, boolean empty) {
-                super.updateItem(status, empty);
-                if (empty || status == null) {
-                    setGraphic(null);
-                } else {
-                    statusBadge.setText(status);
-                    statusBadge.getStyleClass().clear();
-                    switch (status) {
-                        case "In Progress" -> statusBadge.getStyleClass().add("status-in-progress");
-                        case "Completed" -> statusBadge.getStyleClass().add("status-completed");
-                        case "Planning" -> statusBadge.getStyleClass().add("status-planning");
-                        case "On Hold" -> statusBadge.getStyleClass().add("status-on-hold");
-                        case "Cancelled" -> statusBadge.getStyleClass().add("status-cancelled");
-                    }
-                    setGraphic(statusBadge);
-                }
-            }
-        });
-
-        // Priority column with badges
-        priorityColumn.setCellValueFactory(
-                cellData -> new SimpleStringProperty(formatPriority(cellData.getValue().getPriority())));
-
-        priorityColumn.setCellFactory(column -> new TableCell<>() {
-            private final Label priorityBadge = new Label();
-
-            {
-                priorityBadge.setMinWidth(70);
-                priorityBadge.setAlignment(Pos.CENTER);
-            }
-
-            @Override
-            protected void updateItem(String priority, boolean empty) {
-                super.updateItem(priority, empty);
-                if (empty || priority == null) {
-                    setGraphic(null);
-                } else {
-                    priorityBadge.setText(priority);
-                    priorityBadge.getStyleClass().clear();
-                    switch (priority) {
-                        case "Critical" -> priorityBadge.getStyleClass().add("priority-critical");
-                        case "High" -> priorityBadge.getStyleClass().add("priority-high");
-                        case "Medium" -> priorityBadge.getStyleClass().add("priority-medium");
-                        case "Low" -> priorityBadge.getStyleClass().add("priority-low");
-                    }
-                    setGraphic(priorityBadge);
-                }
-            }
-        });
-
-        // Progress column with progress bar
-        progressColumn.setCellValueFactory(
-                cellData -> new SimpleStringProperty(String.valueOf(cellData.getValue().getCompletionPercentage())));
-
-        progressColumn.setCellFactory(column -> new TableCell<>() {
-            private final ProgressBar progressBar = new ProgressBar();
-            private final Label percentLabel = new Label();
-            private final HBox container = new HBox(8);
-
-            {
-                progressBar.setPrefWidth(80);
-                progressBar.setPrefHeight(8);
-                progressBar.getStyleClass().add("project-progress-bar");
-                percentLabel.getStyleClass().add("progress-label");
-                container.setAlignment(Pos.CENTER_LEFT);
-                container.getChildren().addAll(progressBar, percentLabel);
-            }
-
-            @Override
-            protected void updateItem(String value, boolean empty) {
-                super.updateItem(value, empty);
-                if (empty || value == null) {
-                    setGraphic(null);
-                } else {
-                    int percent = Integer.parseInt(value);
-                    progressBar.setProgress(percent / 100.0);
-                    percentLabel.setText(percent + "%");
-                    setGraphic(container);
-                }
-            }
-        });
-
-        // Deadline column
-        deadlineColumn.setCellValueFactory(cellData -> {
-            long endDate = cellData.getValue().getEndDate();
-            if (endDate > 0) {
-                return new SimpleStringProperty(DATE_FORMAT.format(new Date(endDate)));
-            }
-            return new SimpleStringProperty("—");
-        });
-
-        deadlineColumn.setCellFactory(column -> new TableCell<>() {
-            @Override
-            protected void updateItem(String date, boolean empty) {
-                super.updateItem(date, empty);
-                if (empty || date == null) {
-                    setText(null);
-                    setStyle("");
-                } else {
-                    setText(date);
-                    // Check if overdue
-                    Project project = getTableRow().getItem();
-                    if (project != null && project.isOverdue()) {
-                        setStyle("-fx-text-fill: #dc2626; -fx-font-weight: bold;");
-                    } else {
-                        setStyle("");
-                    }
-                }
-            }
-        });
-
-        projectTable.setItems(projectList);
-
-        // Double-click to edit
-        projectTable.setRowFactory(tv -> {
-            TableRow<Project> row = new TableRow<>();
-            row.setOnMouseClicked(event -> {
-                if (event.getClickCount() == 2 && !row.isEmpty()) {
-                    handleEditProject(row.getItem());
-                }
-            });
-            return row;
-        });
-
-        // Context menu
-        projectTable.setContextMenu(createContextMenu());
-    }
-
-    /**
-     * Creates a context menu for the table.
-     */
-    private ContextMenu createContextMenu() {
-        ContextMenu menu = new ContextMenu();
-
-        MenuItem editItem = new MenuItem("Edit");
-        editItem.setOnAction(e -> {
-            Project selected = projectTable.getSelectionModel().getSelectedItem();
-            if (selected != null) {
-                handleEditProject(selected);
-            }
-        });
-
-        MenuItem deleteItem = new MenuItem("Delete");
-        deleteItem.setOnAction(e -> {
-            Project selected = projectTable.getSelectionModel().getSelectedItem();
-            if (selected != null) {
-                handleDeleteProject(selected);
-            }
-        });
-
-        MenuItem viewItem = new MenuItem("View Details");
-        viewItem.setOnAction(e -> {
-            Project selected = projectTable.getSelectionModel().getSelectedItem();
-            if (selected != null) {
-                showProjectDetails(selected);
-            }
-        });
-
-        menu.getItems().addAll(viewItem, editItem, new SeparatorMenuItem(), deleteItem);
-        return menu;
+        LOGGER.info("ProjectController initialized with Kanban view");
     }
 
     /**
@@ -309,7 +126,7 @@ public class ProjectController {
     }
 
     /**
-     * Loads all projects from Firestore.
+     * Loads all projects from Firestore and displays in Kanban board.
      */
     @FXML
     private void loadProjects() {
@@ -323,6 +140,7 @@ public class ProjectController {
             List<Project> projects = task.getValue();
             projectList.setAll(projects);
             updateCounts(projects);
+            displayProjectsInKanban(projects);
             showStatus("Loaded " + projects.size() + " projects", false);
         }));
 
@@ -345,7 +163,9 @@ public class ProjectController {
 
         task.setOnSucceeded(event -> Platform.runLater(() -> {
             setLoading(false);
-            projectList.setAll(task.getValue());
+            List<Project> results = task.getValue();
+            projectList.setAll(results);
+            displayProjectsInKanban(results);
         }));
 
         task.setOnFailed(event -> Platform.runLater(() -> {
@@ -354,6 +174,218 @@ public class ProjectController {
         }));
 
         new Thread(task).start();
+    }
+
+    /**
+     * Displays projects in the Kanban board columns.
+     */
+    private void displayProjectsInKanban(List<Project> projects) {
+        // Clear all columns
+        if (newProjectsContainer != null)
+            newProjectsContainer.getChildren().clear();
+        if (pendingProjectsContainer != null)
+            pendingProjectsContainer.getChildren().clear();
+        if (completedProjectsContainer != null)
+            completedProjectsContainer.getChildren().clear();
+
+        int newCount = 0;
+        int pendingCount = 0;
+        int completedCount = 0;
+
+        for (Project project : projects) {
+            VBox card = createProjectCard(project);
+            String status = project.getStatus();
+
+            if ("PLANNING".equals(status) || "ON_HOLD".equals(status)) {
+                if (newProjectsContainer != null) {
+                    newProjectsContainer.getChildren().add(card);
+                    newCount++;
+                }
+            } else if ("IN_PROGRESS".equals(status)) {
+                if (pendingProjectsContainer != null) {
+                    pendingProjectsContainer.getChildren().add(card);
+                    pendingCount++;
+                }
+            } else if ("COMPLETED".equals(status) || "CANCELLED".equals(status)) {
+                if (completedProjectsContainer != null) {
+                    completedProjectsContainer.getChildren().add(card);
+                    completedCount++;
+                }
+            }
+        }
+
+        // Update column counts
+        if (newColumnCount != null)
+            newColumnCount.setText(String.valueOf(newCount));
+        if (pendingColumnCount != null)
+            pendingColumnCount.setText(String.valueOf(pendingCount));
+        if (completedColumnCount != null)
+            completedColumnCount.setText(String.valueOf(completedCount));
+
+        // Add empty states if needed
+        addEmptyStateIfNeeded(newProjectsContainer, newCount, "No new projects", "✨");
+        addEmptyStateIfNeeded(pendingProjectsContainer, pendingCount, "No projects in progress", "⏳");
+        addEmptyStateIfNeeded(completedProjectsContainer, completedCount, "No completed projects", "✓");
+    }
+
+    /**
+     * Adds empty state placeholder if column has no projects.
+     */
+    private void addEmptyStateIfNeeded(VBox container, int count, String message, String icon) {
+        if (container != null && count == 0) {
+            VBox emptyState = new VBox(8);
+            emptyState.setAlignment(Pos.CENTER);
+            emptyState.getStyleClass().add("kanban-empty-state");
+            emptyState.setPadding(new Insets(32, 16, 32, 16));
+
+            Label iconLabel = new Label(icon);
+            iconLabel.getStyleClass().add("empty-state-icon");
+
+            Label messageLabel = new Label(message);
+            messageLabel.getStyleClass().add("empty-state-message");
+
+            emptyState.getChildren().addAll(iconLabel, messageLabel);
+            container.getChildren().add(emptyState);
+        }
+    }
+
+    /**
+     * Creates a Kanban card for a project.
+     */
+    private VBox createProjectCard(Project project) {
+        VBox card = new VBox(12);
+        card.getStyleClass().add("project-card");
+        card.setPadding(new Insets(16));
+
+        // Header with name and priority
+        HBox header = new HBox(8);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        Label nameLabel = new Label(project.getName());
+        nameLabel.getStyleClass().add("card-title");
+        nameLabel.setWrapText(true);
+        HBox.setHgrow(nameLabel, Priority.ALWAYS);
+
+        Label priorityBadge = new Label(formatPriority(project.getPriority()));
+        priorityBadge.getStyleClass().addAll("card-priority-badge", getPriorityStyleClass(project.getPriority()));
+
+        header.getChildren().addAll(nameLabel, priorityBadge);
+
+        // Description (truncated)
+        Label descLabel = new Label(truncateText(project.getDescription(), 80));
+        descLabel.getStyleClass().add("card-description");
+        descLabel.setWrapText(true);
+
+        // Progress bar
+        HBox progressRow = new HBox(8);
+        progressRow.setAlignment(Pos.CENTER_LEFT);
+
+        ProgressBar progressBar = new ProgressBar(project.getCompletionPercentage() / 100.0);
+        progressBar.getStyleClass().add("card-progress-bar");
+        progressBar.setPrefWidth(120);
+        progressBar.setPrefHeight(6);
+        HBox.setHgrow(progressBar, Priority.ALWAYS);
+
+        Label progressLabel = new Label(project.getCompletionPercentage() + "%");
+        progressLabel.getStyleClass().add("card-progress-label");
+
+        progressRow.getChildren().addAll(progressBar, progressLabel);
+
+        // Meta info row (manager, deadline)
+        HBox metaRow = new HBox(12);
+        metaRow.setAlignment(Pos.CENTER_LEFT);
+
+        if (project.getProjectManager() != null && !project.getProjectManager().isEmpty()) {
+            Label managerLabel = new Label("👤 " + project.getProjectManager());
+            managerLabel.getStyleClass().add("card-meta");
+            metaRow.getChildren().add(managerLabel);
+        }
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        metaRow.getChildren().add(spacer);
+
+        if (project.getEndDate() > 0) {
+            Label deadlineLabel = new Label("📅 " + DATE_FORMAT.format(new Date(project.getEndDate())));
+            deadlineLabel.getStyleClass().add("card-meta");
+            if (project.isOverdue()) {
+                deadlineLabel.getStyleClass().add("card-overdue");
+            }
+            metaRow.getChildren().add(deadlineLabel);
+        }
+
+        // Status badge
+        Label statusBadge = new Label(formatStatus(project.getStatus()));
+        statusBadge.getStyleClass().addAll("card-status-badge", getStatusStyleClass(project.getStatus()));
+
+        card.getChildren().addAll(header, descLabel, progressRow, metaRow, statusBadge);
+
+        // Add context menu
+        card.setOnContextMenuRequested(event -> {
+            ContextMenu menu = createCardContextMenu(project);
+            menu.show(card, event.getScreenX(), event.getScreenY());
+        });
+
+        // Double-click to edit
+        card.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                handleEditProject(project);
+            }
+        });
+
+        // Hover effect
+        card.setOnMouseEntered(e -> card.getStyleClass().add("project-card-hover"));
+        card.setOnMouseExited(e -> card.getStyleClass().remove("project-card-hover"));
+
+        return card;
+    }
+
+    /**
+     * Creates context menu for a project card.
+     */
+    private ContextMenu createCardContextMenu(Project project) {
+        ContextMenu menu = new ContextMenu();
+
+        MenuItem viewItem = new MenuItem("👁 View Details");
+        viewItem.setOnAction(e -> showProjectDetails(project));
+
+        MenuItem editItem = new MenuItem("✏️ Edit");
+        editItem.setOnAction(e -> handleEditProject(project));
+
+        // Status change submenu
+        Menu moveMenu = new Menu("📦 Move to...");
+
+        MenuItem moveToPlanningItem = new MenuItem("Planning");
+        moveToPlanningItem.setOnAction(e -> updateProjectStatus(project, "PLANNING"));
+
+        MenuItem moveToProgressItem = new MenuItem("In Progress");
+        moveToProgressItem.setOnAction(e -> updateProjectStatus(project, "IN_PROGRESS"));
+
+        MenuItem moveToCompletedItem = new MenuItem("Completed");
+        moveToCompletedItem.setOnAction(e -> updateProjectStatus(project, "COMPLETED"));
+
+        MenuItem moveToHoldItem = new MenuItem("On Hold");
+        moveToHoldItem.setOnAction(e -> updateProjectStatus(project, "ON_HOLD"));
+
+        moveMenu.getItems().addAll(moveToPlanningItem, moveToProgressItem, moveToCompletedItem, moveToHoldItem);
+
+        MenuItem deleteItem = new MenuItem("🗑️ Delete");
+        deleteItem.setOnAction(e -> handleDeleteProject(project));
+
+        menu.getItems().addAll(viewItem, editItem, new SeparatorMenuItem(), moveMenu, new SeparatorMenuItem(),
+                deleteItem);
+        return menu;
+    }
+
+    /**
+     * Updates project status and refreshes the board.
+     */
+    private void updateProjectStatus(Project project, String newStatus) {
+        project.setStatus(newStatus);
+        if ("COMPLETED".equals(newStatus)) {
+            project.setCompletionPercentage(100);
+        }
+        saveProject(project);
     }
 
     /**
@@ -645,6 +677,12 @@ public class ProjectController {
         if (totalCountLabel != null) {
             totalCountLabel.setText(String.valueOf(projects.size()));
         }
+        if (newCountLabel != null) {
+            long newCount = projects.stream()
+                    .filter(p -> "PLANNING".equals(p.getStatus()) || "ON_HOLD".equals(p.getStatus()))
+                    .count();
+            newCountLabel.setText(String.valueOf(newCount));
+        }
         if (activeCountLabel != null) {
             long activeCount = projects.stream()
                     .filter(p -> "IN_PROGRESS".equals(p.getStatus()))
@@ -657,12 +695,50 @@ public class ProjectController {
                     .count();
             completedCountLabel.setText(String.valueOf(completedCount));
         }
-        if (overdueCountLabel != null) {
-            long overdueCount = projects.stream()
-                    .filter(Project::isOverdue)
-                    .count();
-            overdueCountLabel.setText(String.valueOf(overdueCount));
+    }
+
+    /**
+     * Truncates text to a maximum length.
+     */
+    private String truncateText(String text, int maxLength) {
+        if (text == null || text.isEmpty()) {
+            return "No description";
         }
+        if (text.length() <= maxLength) {
+            return text;
+        }
+        return text.substring(0, maxLength - 3) + "...";
+    }
+
+    /**
+     * Gets CSS style class for priority.
+     */
+    private String getPriorityStyleClass(String priority) {
+        if (priority == null)
+            return "priority-medium";
+        return switch (priority) {
+            case "LOW" -> "priority-low";
+            case "MEDIUM" -> "priority-medium";
+            case "HIGH" -> "priority-high";
+            case "CRITICAL" -> "priority-critical";
+            default -> "priority-medium";
+        };
+    }
+
+    /**
+     * Gets CSS style class for status.
+     */
+    private String getStatusStyleClass(String status) {
+        if (status == null)
+            return "status-planning";
+        return switch (status) {
+            case "PLANNING" -> "status-planning";
+            case "IN_PROGRESS" -> "status-in-progress";
+            case "COMPLETED" -> "status-completed";
+            case "ON_HOLD" -> "status-on-hold";
+            case "CANCELLED" -> "status-cancelled";
+            default -> "status-planning";
+        };
     }
 
     /**
