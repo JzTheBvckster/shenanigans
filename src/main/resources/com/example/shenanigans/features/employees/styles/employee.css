@@ -653,6 +653,10 @@
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 8, 0, 0, 2);
 }
 
+.header-primary-button:pressed {
+    -fx-background-color: linear-gradient(to right, #4f5fc2, #5d387f);
+}
+
 /* ============================================
    SIDEBAR STYLES
    ============================================ */
@@ -845,6 +849,7 @@
     -fx-fill: #1e293b;
 }
 
+/* System Info Card */
 .system-info-card {
     -fx-background-color: #f8fafc;
     -fx-background-radius: 12;
@@ -859,9 +864,33 @@
     -fx-text-fill: #64748b;
 }
 
+.system-info-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: #10b981;
+}
+
 .logo-icon {
     -fx-font-size: 24px;
 }
+
+.brand-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.status-dot {
+    -fx-min-width: 8;
+    -fx-min-height: 8;
+    -fx-max-width: 8;
+    -fx-max-height: 8;
+    -fx-background-radius: 4;
+}
+
+.status-dot-online {
+    -fx-background-color: #10b981;
+}
+
 
 .brand-title {
     -fx-font-size: 20px;

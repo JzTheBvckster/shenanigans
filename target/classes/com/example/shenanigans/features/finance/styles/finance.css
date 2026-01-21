@@ -144,6 +144,7 @@
 }
 
 
+/* System Info Card */
 .system-info-card {
     -fx-background-color: #f8fafc;
     -fx-background-radius: 12;
@@ -158,6 +159,11 @@
     -fx-text-fill: #64748b;
 }
 
+.system-info-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: #10b981;
+}
+
 .logo-icon {
     -fx-font-size: 24px;
 }
@@ -167,6 +173,19 @@
     -fx-font-weight: bold;
     -fx-text-fill: white;
 }
+
+.status-dot {
+    -fx-min-width: 8;
+    -fx-min-height: 8;
+    -fx-max-width: 8;
+    -fx-max-height: 8;
+    -fx-background-radius: 4;
+}
+
+.status-dot-online {
+    -fx-background-color: #10b981;
+}
+
 
 /* Stats and cards */
 .stat-row,
@@ -246,11 +265,6 @@
     -fx-background-color: rgba(15, 23, 42, 0.05);
 }
 
-.link-button {
-    -fx-background-color: transparent;
-    -fx-text-fill: #374151;
-}
-
 /* Small utilities */
 .view-title {
     -fx-padding: 0 8 0 0;
@@ -297,12 +311,25 @@
 }
 
 .header-primary-button {
-    -fx-background-color: white;
-    -fx-text-fill: #0f172a;
-    -fx-background-radius: 8;
-    -fx-padding: 6 12;
-    -fx-font-weight: 700;
+    -fx-background-color: rgba(255, 255, 255, 0.95);
+    -fx-text-fill: #667eea;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 20 10 20;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
 }
+
+.header-primary-button:hover {
+    -fx-background-color: white;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 8, 0, 0, 2);
+}
+
+.header-primary-button:pressed {
+    -fx-background-color: linear-gradient(to right, #4f5fc2, #5d387f);
+}
+
+
 
 .status-label {
     -fx-text-fill: rgba(255, 255, 255, 0.9);
@@ -362,13 +389,24 @@
 }
 
 /* Export/add buttons */
-#addInvoiceButton,
+#addInvoiceButton {
+    -fx-background-color: rgba(255, 255, 255, 0.95);
+    -fx-text-fill: #667eea;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 20 10 20;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
+}
+
 #exportButton {
-    -fx-background-color: linear-gradient(to right, #667eea, #764ba2);
+    -fx-background-color: linear-gradient(to right, #4f5fc2, #5d387f);
     -fx-text-fill: white;
-    -fx-background-radius: 8;
-    -fx-padding: 6 10;
-    -fx-font-weight: 600;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 20 10 20;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
 }
 
 /* Empty state */
