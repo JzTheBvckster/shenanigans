@@ -884,8 +884,8 @@ public class EmployeeController {
 
     @FXML
     private void handleFinance() {
-        LOGGER.info("Navigating to Finance");
-        // TODO: Implement navigation
+        LOGGER.info("Opening Finance");
+        navigateTo("features/finance/view/finance_view");
     }
 
     @FXML

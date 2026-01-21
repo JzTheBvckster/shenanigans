@@ -482,8 +482,8 @@ public class DashboardController {
     private void handleFinance() {
         if (!checkAuth())
             return;
-        LOGGER.info("Navigating to Finance");
-        // TODO: Implement navigation
+        LOGGER.info("Opening Finance");
+        navigateTo("features/finance/view/finance_view");
     }
 
     /**
