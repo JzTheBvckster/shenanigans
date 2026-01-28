@@ -10,6 +10,8 @@ import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.UserRecord;
+import com.example.shenanigans.features.employees.model.Employee;
+import com.example.shenanigans.features.employees.service.EmployeeService;
 
 import javafx.concurrent.Task;
 
@@ -32,6 +34,7 @@ public class AuthService {
     private User currentUser;
     private String currentIdToken;
     private String currentRefreshToken;
+    EmployeeService EmployeeService = new EmployeeService();
 
     public AuthService() {
         FirebaseConfig config = FirebaseConfig.getInstance();

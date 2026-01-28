@@ -336,6 +336,125 @@
     -fx-font-size: 12px;
 }
 
+/* ============================================
+   HEADER SEARCH STYLES
+   ============================================ */
+.header-search-container {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+    -fx-background-radius: 10;
+    -fx-padding: 0 12 0 12;
+}
+
+.header-search-field {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-prompt-text-fill: rgba(255, 255, 255, 0.6);
+    -fx-font-size: 14px;
+    -fx-padding: 10 0 10 0;
+}
+
+.header-search-field:focused {
+    -fx-background-color: transparent;
+}
+
+.header-icon-button {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 14 10 14;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
+}
+
+.header-icon-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.3);
+}
+
+.header-primary-button {
+    -fx-background-color: rgba(255, 255, 255, 0.95);
+    -fx-text-fill: #667eea;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 20 10 20;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
+}
+
+.header-primary-button:hover {
+    -fx-background-color: white;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 8, 0, 0, 2);
+}
+
+.header-primary-button:pressed {
+    -fx-background-color: linear-gradient(to right, #4f5fc2, #5d387f);
+}
+
+/* Search Container */
+.search-container {
+    -fx-background-color: #f1f5f9;
+    -fx-background-radius: 10;
+    -fx-padding: 0 12 0 12;
+}
+
+.search-icon {
+    -fx-font-size: 14px;
+    -fx-text-fill: #94a3b8;
+}
+
+.search-field {
+    -fx-background-color: transparent;
+    -fx-font-size: 14px;
+    -fx-text-fill: #334155;
+    -fx-prompt-text-fill: #94a3b8;
+    -fx-padding: 10 0 10 0;
+}
+
+.search-field:focused {
+    -fx-background-color: transparent;
+}
+
+/* Buttons */
+.icon-button {
+    -fx-background-color: #f1f5f9;
+    -fx-text-fill: #64748b;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 14 10 14;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
+}
+
+.icon-button:hover {
+    -fx-background-color: #e2e8f0;
+    -fx-text-fill: #475569;
+}
+
+.refresh-button {
+    -fx-font-size: 18px;
+}
+
+.primary-button {
+    -fx-background-color: linear-gradient(to right, #667eea, #764ba2);
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 20 10 20;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.3), 8, 0, 0, 2);
+}
+
+.primary-button:hover {
+    -fx-background-color: linear-gradient(to right, #5a6fd6, #6a4190);
+    -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.4), 12, 0, 0, 4);
+}
+
+.primary-button:pressed {
+    -fx-background-color: linear-gradient(to right, #4f5fc2, #5d387f);
+}
+
+
 /* Stat card color variants */
 .stat-card-blue {
     -fx-border-color: transparent;
