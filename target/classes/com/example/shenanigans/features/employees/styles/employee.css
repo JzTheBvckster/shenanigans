@@ -10,13 +10,41 @@
 /* ============================================
    HEADER STYLES
    ============================================ */
+/* === Header Styles === */
 .header-container {
     -fx-background-color: linear-gradient(to right, #667eea, #764ba2);
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.15), 20, 0, 0, 4);
+    -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.3), 20, 0, 0, 4);
 }
 
 .header {
-    -fx-padding: 16 24 16 24;
+    -fx-background-color: transparent;
+}
+
+/* Logo */
+.logo-container {
+    -fx-alignment: center;
+}
+
+.logo-circle {
+    -fx-fill: rgba(255, 255, 255, 0.2);
+}
+
+.logo-letter {
+    -fx-text-fill: white;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+
+.page-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.page-subtitle {
+    -fx-font-size: 11px;
+    -fx-text-fill: rgba(255, 255, 255, 0.7);
+    -fx-font-weight: 500;
 }
 
 .back-button {
@@ -39,13 +67,13 @@
     -fx-background-color: rgba(255, 255, 255, 0.15);
 }
 
-.page-title {
+.app-title {
     -fx-text-fill: white;
     -fx-font-size: 24px;
     -fx-font-weight: bold;
 }
 
-.page-subtitle {
+.app-subtitle {
     -fx-text-fill: rgba(255, 255, 255, 0.8);
     -fx-font-size: 13px;
 }

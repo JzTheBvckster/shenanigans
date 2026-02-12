@@ -19,6 +19,8 @@ public final class SessionManager {
     private String refreshToken;
     // Sidebar expanded/collapsed state for the current session
     private boolean sidebarExpanded = true;
+    // Theme preference for the current session: false = light, true = dark
+    private boolean darkMode = false;
 
     private SessionManager() {
         // Private constructor for singleton
@@ -128,5 +130,23 @@ public final class SessionManager {
      */
     public void setSidebarExpanded(boolean expanded) {
         this.sidebarExpanded = expanded;
+    }
+
+    /**
+     * Returns current theme preference.
+     *
+     * @return true if dark mode is enabled
+     */
+    public boolean isDarkMode() {
+        return darkMode;
+    }
+
+    /**
+     * Sets the current theme preference for the session.
+     *
+     * @param dark true to enable dark mode
+     */
+    public void setDarkMode(boolean dark) {
+        this.darkMode = dark;
     }
 }

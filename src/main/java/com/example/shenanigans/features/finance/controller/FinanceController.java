@@ -7,6 +7,12 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
+import javafx.scene.control.TextField;
+import javafx.stage.FileChooser;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -21,6 +27,13 @@ import javafx.scene.shape.SVGPath;
 import javafx.util.Duration;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -32,6 +45,9 @@ public class FinanceController {
     private static final Logger LOGGER = Logger.getLogger(FinanceController.class.getName());
 
     private final FinanceService financeService = new FinanceService();
+
+    // cached invoices for export and local operations
+    private final List<Invoice> currentInvoices = new ArrayList<>();
 
     // Sidebar constants
     private static final double SIDEBAR_EXPANDED_WIDTH = 280;
@@ -86,6 +102,13 @@ public class FinanceController {
     @FXML
     private VBox invoicesContainer;
 
+    // Kanban column containers (New, Due, Completed)
+    @FXML
+    private VBox newProjectsContainer;
+
+    @FXML
+    private VBox newProjectsContainer1;
+
     @FXML
     private ProgressIndicator loadingIndicator;
 
@@ -102,16 +125,13 @@ public class FinanceController {
     private Button refreshButton;
 
     @FXML
-    private Label totalInvoicesLabel;
+    private Label totalCountLabel;
 
     @FXML
-    private Label outstandingLabel;
+    private Label activeCountLabel;
 
     @FXML
-    private Label paidLabel;
-
-    @FXML
-    private Label revenueLabel;
+    private Label completedCountLabel;
 
     @FXML
     public void initialize() {
@@ -140,7 +160,35 @@ public class FinanceController {
             LOGGER.fine("No session sidebar state available: using defaults");
         }
 
+        // Apply previously selected theme
+        try {
+            boolean dark = SessionManager.getInstance().isDarkMode();
+            applyTheme(dark);
+        } catch (Exception e) {
+            LOGGER.fine("No session theme available: using defaults");
+        }
+
         loadInvoices();
+    }
+
+    private void applyTheme(boolean dark) {
+        try {
+            // scene-level stylesheets are easiest to toggle
+            if (sidebarContent == null || sidebarContent.getScene() == null)
+                return;
+            var scene = sidebarContent.getScene();
+            String darkCss = getClass().getResource("/com/example/shenanigans/features/finance/styles/finance-dark.css")
+                    .toExternalForm();
+
+            if (dark) {
+                if (!scene.getStylesheets().contains(darkCss))
+                    scene.getStylesheets().add(darkCss);
+            } else {
+                scene.getStylesheets().removeIf(s -> s.endsWith("finance-dark.css"));
+            }
+        } catch (Exception ex) {
+            LOGGER.fine("Failed to apply theme: " + ex.getMessage());
+        }
     }
 
     private void loadInvoices() {
@@ -151,8 +199,16 @@ public class FinanceController {
             if (loadingIndicator != null)
                 loadingIndicator.setVisible(false);
             List<Invoice> list = task.getValue();
+            // cache current invoices for export and local operations
+            currentInvoices.clear();
+            if (list != null)
+                currentInvoices.addAll(list);
             if (invoicesContainer != null)
                 invoicesContainer.getChildren().clear();
+            if (newProjectsContainer != null)
+                newProjectsContainer.getChildren().clear();
+            if (newProjectsContainer1 != null)
+                newProjectsContainer1.getChildren().clear();
 
             int total = list.size();
             int paid = 0;
@@ -162,23 +218,32 @@ public class FinanceController {
                     paid++;
                     revenue += inv.getAmount();
                 }
-                Label label = new Label(
-                        inv.getId() + " — " + inv.getClient() + " — $" + String.format("%.2f", inv.getAmount())
-                                + (inv.isPaid() ? " (PAID)" : ""));
-                label.getStyleClass().add("invoice-row");
-                if (invoicesContainer != null)
-                    invoicesContainer.getChildren().add(label);
+                HBox card = createInvoiceCard(inv);
+                // Route to appropriate kanban column
+                if (inv.isPaid()) {
+                    if (newProjectsContainer1 != null)
+                        newProjectsContainer1.getChildren().add(card);
+                } else {
+                    // treat invoices older than 7 days as Due, otherwise New
+                    long ageMs = System.currentTimeMillis() - inv.getIssuedAt();
+                    long sevenDaysMs = 7L * 24 * 60 * 60 * 1000;
+                    if (ageMs > sevenDaysMs) {
+                        if (newProjectsContainer1 != null)
+                            newProjectsContainer1.getChildren().add(card);
+                    } else {
+                        if (newProjectsContainer != null)
+                            newProjectsContainer.getChildren().add(card);
+                    }
+                }
             }
 
             int outstanding = total - paid;
-            if (totalInvoicesLabel != null)
-                totalInvoicesLabel.setText(String.valueOf(total));
-            if (paidLabel != null)
-                paidLabel.setText(String.valueOf(paid));
-            if (outstandingLabel != null)
-                outstandingLabel.setText(String.valueOf(outstanding));
-            if (revenueLabel != null)
-                revenueLabel.setText("$" + String.format("%.2f", revenue));
+            if (totalCountLabel != null)
+                totalCountLabel.setText(String.valueOf(total));
+            if (completedCountLabel != null)
+                completedCountLabel.setText(String.valueOf(paid));
+            if (activeCountLabel != null)
+                activeCountLabel.setText(String.valueOf(outstanding));
             if (statusLabel != null)
                 statusLabel.setText("Loaded " + total + " invoices");
         }));
@@ -197,14 +262,172 @@ public class FinanceController {
 
     @FXML
     private void handleAddInvoice() {
-        LOGGER.info("Add Invoice clicked (stub)");
-        // TODO: Show add invoice dialog
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Add Invoice");
+        DialogPane pane = dialog.getDialogPane();
+
+        TextField clientField = new TextField();
+        clientField.setPromptText("Client name");
+        TextField amountField = new TextField();
+        amountField.setPromptText("Amount");
+        CheckBox paidBox = new CheckBox("Paid");
+
+        javafx.scene.layout.GridPane grid = new javafx.scene.layout.GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.add(new Label("Client:"), 0, 0);
+        grid.add(clientField, 1, 0);
+        grid.add(new Label("Amount:"), 0, 1);
+        grid.add(amountField, 1, 1);
+        grid.add(paidBox, 1, 2);
+
+        pane.setContent(grid);
+        pane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        dialog.setResultConverter(btn -> btn);
+        var result = dialog.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            String client = clientField.getText().trim();
+            String amountText = amountField.getText().trim();
+            double amount = 0.0;
+            try {
+                amount = Double.parseDouble(amountText);
+            } catch (NumberFormatException ex) {
+                LOGGER.warning("Invalid amount entered for invoice");
+                return;
+            }
+
+            Invoice invoice = new Invoice();
+            // generate simple id
+            String id = "INV-" + (currentInvoices.size() + 1);
+            invoice.setId(id);
+            invoice.setClient(client);
+            invoice.setAmount(amount);
+            invoice.setPaid(paidBox.isSelected());
+
+            var task = financeService.createInvoice(invoice);
+            task.setOnSucceeded(evt -> Platform.runLater(() -> {
+                // refresh list after creation
+                loadInvoices();
+            }));
+            task.setOnFailed(evt -> LOGGER.log(Level.SEVERE, "Failed to create invoice", task.getException()));
+            new Thread(task).start();
+        }
     }
 
     @FXML
     private void handleExport() {
-        LOGGER.info("Export invoices (stub)");
-        // TODO: Implement export
+        if (currentInvoices.isEmpty()) {
+            LOGGER.info("No invoices to export");
+            return;
+        }
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Export Invoices");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+        File file = chooser.showSaveDialog(exportButton == null ? null : exportButton.getScene().getWindow());
+        if (file == null)
+            return;
+
+        try (BufferedWriter writer = Files.newBufferedWriter(file.toPath(), StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+            writer.write("id,client,amount,paid,issuedAt\n");
+            for (Invoice inv : currentInvoices) {
+                writer.write(String.format("%s,%s,%.2f,%s,%d\n", inv.getId(), inv.getClient().replace(",", " "),
+                        inv.getAmount(), inv.isPaid(), inv.getIssuedAt()));
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Failed to export invoices", e);
+        }
+    }
+
+    private HBox createInvoiceCard(Invoice inv) {
+        HBox root = new HBox();
+        root.getStyleClass().add("invoice-row");
+        root.setSpacing(12);
+        root.setPadding(new Insets(10));
+        root.setAlignment(Pos.CENTER_LEFT);
+
+        VBox left = new VBox();
+        left.setSpacing(4);
+        Label id = new Label(inv.getId());
+        id.getStyleClass().add("view-title");
+        Label client = new Label(inv.getClient());
+        client.setStyle("-fx-text-fill: #64748b; -fx-font-size: 12px;");
+        left.getChildren().addAll(id, client);
+
+        javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        VBox right = new VBox();
+        right.setSpacing(6);
+        right.setAlignment(Pos.CENTER_RIGHT);
+
+        Label amount = new Label("$" + String.format("%.2f", inv.getAmount()));
+        amount.getStyleClass().add("stat-value");
+
+        Label status = new Label(inv.isPaid() ? "PAID" : "OUTSTANDING");
+        status.setStyle(inv.isPaid() ? "-fx-text-fill: #10b981; -fx-font-weight: 700;"
+                : "-fx-text-fill: #ef4444; -fx-font-weight: 700;");
+
+        HBox actions = new HBox();
+        actions.setSpacing(8);
+
+        Button togglePaid = new Button(inv.isPaid() ? "Mark Unpaid" : "Mark Paid");
+        togglePaid.getStyleClass().add("invoice-toggle-button");
+        togglePaid.setOnAction(e -> {
+            inv.setPaid(!inv.isPaid());
+            status.setText(inv.isPaid() ? "PAID" : "OUTSTANDING");
+            status.setStyle(inv.isPaid() ? "-fx-text-fill: #10b981; -fx-font-weight: 700;"
+                    : "-fx-text-fill: #ef4444; -fx-font-weight: 700;");
+            togglePaid.setText(inv.isPaid() ? "Mark Unpaid" : "Mark Paid");
+
+            // Move card between kanban columns on status change
+            javafx.scene.Parent parent = root.getParent();
+            if (parent instanceof VBox) {
+                ((VBox) parent).getChildren().remove(root);
+            }
+            if (inv.isPaid()) {
+                if (newProjectsContainer1 != null)
+                    newProjectsContainer1.getChildren().add(root);
+            } else {
+                long ageMs = System.currentTimeMillis() - inv.getIssuedAt();
+                long sevenDaysMs = 7L * 24 * 60 * 60 * 1000;
+                if (ageMs > sevenDaysMs) {
+                    if (newProjectsContainer1 != null)
+                        newProjectsContainer1.getChildren().add(root);
+                } else {
+                    if (newProjectsContainer != null)
+                        newProjectsContainer.getChildren().add(root);
+                }
+            }
+
+            var t = financeService.updateInvoice(inv);
+            t.setOnFailed(evt -> LOGGER.log(Level.SEVERE, "Failed to update invoice", t.getException()));
+            new Thread(t).start();
+        });
+
+        Button delete = new Button("Delete");
+        delete.getStyleClass().add("invoice-delete-button");
+        delete.setOnAction(e -> {
+            var t = financeService.deleteInvoice(inv.getId());
+            t.setOnSucceeded(evt -> Platform.runLater(() -> {
+                javafx.scene.Parent parent = root.getParent();
+                if (parent instanceof VBox) {
+                    ((VBox) parent).getChildren().remove(root);
+                } else if (invoicesContainer != null) {
+                    invoicesContainer.getChildren().remove(root);
+                }
+            }));
+            t.setOnFailed(evt -> LOGGER.log(Level.SEVERE, "Failed to delete invoice", t.getException()));
+            new Thread(t).start();
+        });
+
+        actions.getChildren().addAll(togglePaid, delete);
+
+        right.getChildren().addAll(amount, status, actions);
+
+        root.getChildren().addAll(left, spacer, right);
+        return root;
     }
 
     private void redirectToLogin() {
@@ -332,7 +555,32 @@ public class FinanceController {
 
     @FXML
     private void handleSettings() {
-        LOGGER.info("Navigating to Settings (not implemented)");
+        // Show a simple settings dialog with theme toggle
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Settings");
+        DialogPane pane = dialog.getDialogPane();
+
+        CheckBox darkToggle = new CheckBox("Enable dark mode");
+        boolean current = false;
+        try {
+            current = SessionManager.getInstance().isDarkMode();
+        } catch (Exception ignored) {
+        }
+        darkToggle.setSelected(current);
+
+        pane.setContent(darkToggle);
+        pane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        dialog.setResultConverter(btn -> btn);
+        var result = dialog.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            boolean dark = darkToggle.isSelected();
+            try {
+                SessionManager.getInstance().setDarkMode(dark);
+            } catch (Exception ignored) {
+            }
+            applyTheme(dark);
+        }
     }
 
     private void navigateTo(String fxml) {
