@@ -27,6 +27,9 @@ public class App extends Application {
     public void init() {
         // Initialize Firebase Admin SDK before the UI loads
         initializeFirebase();
+
+        // Load persisted theme preference early
+        com.example.shenanigans.core.theme.ThemeService.initFromPreferences();
     }
 
     @Override
@@ -51,6 +54,9 @@ public class App extends Application {
         }
 
         scene = new Scene(loadFXML(initialView), 1024, 700);
+
+        // Apply theme and keep it in sync for the lifetime of this scene
+        com.example.shenanigans.core.theme.ThemeService.bindToScene(scene);
         stage.setTitle("Shenanigans - Enterprise Management");
         stage.setMinWidth(800);
         stage.setMinHeight(600);
@@ -92,6 +98,18 @@ public class App extends Application {
      */
     public static void setRoot(String fxml) throws IOException {
         scene.setRoot(loadFXML(fxml));
+
+        // Re-apply theme because root-local stylesheets change per view.
+        com.example.shenanigans.core.theme.ThemeService.applyToScene(scene);
+    }
+
+    /**
+     * Gets the primary Scene.
+     *
+     * @return the primary Scene, or null if not yet created
+     */
+    public static Scene getScene() {
+        return scene;
     }
 
     /**

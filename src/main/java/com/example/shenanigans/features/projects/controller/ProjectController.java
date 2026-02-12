@@ -2,6 +2,7 @@ package com.example.shenanigans.features.projects.controller;
 
 import com.example.shenanigans.App;
 import com.example.shenanigans.core.session.SessionManager;
+import com.example.shenanigans.core.theme.ThemeService;
 import com.example.shenanigans.features.projects.model.Project;
 import com.example.shenanigans.features.projects.service.ProjectService;
 
@@ -960,7 +961,7 @@ public class ProjectController {
                 continue;
             SVGPath svg = new SVGPath();
             svg.setContent(svgs[i]);
-            svg.setFill(Color.web("#475569"));
+            svg.setFill(ThemeService.isDarkMode() ? Color.web("#e2e8f0") : Color.web("#475569"));
             svg.setScaleX(0.9);
             svg.setScaleY(0.9);
             svg.getStyleClass().add("menu-icon-svg");
@@ -988,8 +989,21 @@ public class ProjectController {
 
     @FXML
     private void handleSettings() {
-        LOGGER.info("Navigating to Settings");
-        // TODO: Implement navigation
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Settings");
+        DialogPane pane = dialog.getDialogPane();
+
+        CheckBox darkToggle = new CheckBox("Enable dark mode");
+        darkToggle.setSelected(ThemeService.isDarkMode());
+
+        pane.setContent(darkToggle);
+        pane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        var result = dialog.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            ThemeService.setDarkMode(darkToggle.isSelected());
+            setupSidebarIcons();
+        }
     }
 
     private void navigateTo(String fxml) {

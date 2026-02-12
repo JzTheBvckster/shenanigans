@@ -1,6 +1,7 @@
 package com.example.shenanigans.features.finance.controller;
 
 import com.example.shenanigans.core.session.SessionManager;
+import com.example.shenanigans.core.theme.ThemeService;
 import com.example.shenanigans.features.finance.model.Invoice;
 import com.example.shenanigans.features.finance.service.FinanceService;
 import javafx.animation.KeyFrame;
@@ -160,35 +161,7 @@ public class FinanceController {
             LOGGER.fine("No session sidebar state available: using defaults");
         }
 
-        // Apply previously selected theme
-        try {
-            boolean dark = SessionManager.getInstance().isDarkMode();
-            applyTheme(dark);
-        } catch (Exception e) {
-            LOGGER.fine("No session theme available: using defaults");
-        }
-
         loadInvoices();
-    }
-
-    private void applyTheme(boolean dark) {
-        try {
-            // scene-level stylesheets are easiest to toggle
-            if (sidebarContent == null || sidebarContent.getScene() == null)
-                return;
-            var scene = sidebarContent.getScene();
-            String darkCss = getClass().getResource("/com/example/shenanigans/features/finance/styles/finance-dark.css")
-                    .toExternalForm();
-
-            if (dark) {
-                if (!scene.getStylesheets().contains(darkCss))
-                    scene.getStylesheets().add(darkCss);
-            } else {
-                scene.getStylesheets().removeIf(s -> s.endsWith("finance-dark.css"));
-            }
-        } catch (Exception ex) {
-            LOGGER.fine("Failed to apply theme: " + ex.getMessage());
-        }
     }
 
     private void loadInvoices() {
@@ -523,7 +496,7 @@ public class FinanceController {
                 continue;
             SVGPath svg = new SVGPath();
             svg.setContent(svgs[i]);
-            svg.setFill(Color.web("#475569"));
+            svg.setFill(ThemeService.isDarkMode() ? Color.web("#e2e8f0") : Color.web("#475569"));
             svg.setScaleX(0.9);
             svg.setScaleY(0.9);
             svg.getStyleClass().add("menu-icon-svg");
@@ -555,18 +528,12 @@ public class FinanceController {
 
     @FXML
     private void handleSettings() {
-        // Show a simple settings dialog with theme toggle
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Settings");
         DialogPane pane = dialog.getDialogPane();
 
         CheckBox darkToggle = new CheckBox("Enable dark mode");
-        boolean current = false;
-        try {
-            current = SessionManager.getInstance().isDarkMode();
-        } catch (Exception ignored) {
-        }
-        darkToggle.setSelected(current);
+        darkToggle.setSelected(ThemeService.isDarkMode());
 
         pane.setContent(darkToggle);
         pane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
@@ -574,12 +541,8 @@ public class FinanceController {
         dialog.setResultConverter(btn -> btn);
         var result = dialog.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
-            boolean dark = darkToggle.isSelected();
-            try {
-                SessionManager.getInstance().setDarkMode(dark);
-            } catch (Exception ignored) {
-            }
-            applyTheme(dark);
+            ThemeService.setDarkMode(darkToggle.isSelected());
+            setupSidebarIcons();
         }
     }
 

@@ -1,0 +1,95 @@
+/* ============================================
+   Global Dark Mode Overrides
+   Applied at the Scene root to override feature styles.
+   ============================================ */
+
+/* ---- Root backgrounds ---- */
+.dashboard-root,
+.employee-root,
+.project-root,
+.finance-root {
+    -fx-background-color: linear-gradient(to bottom right, #0b1220, #0f172a);
+}
+
+.auth-container {
+    -fx-background-color: linear-gradient(to bottom right, #0f172a, #1e293b);
+}
+
+/* ---- Sidebar ---- */
+.sidebar {
+    -fx-background-color: #0f172a;
+    -fx-border-color: #1e293b;
+}
+
+.menu-header {
+    -fx-text-fill: #94a3b8;
+}
+
+.menu-button {
+    -fx-text-fill: #e2e8f0;
+}
+
+.menu-button:hover {
+    -fx-background-color: rgba(148, 163, 184, 0.12);
+}
+
+.menu-button-secondary {
+    -fx-text-fill: #cbd5e1;
+}
+
+/* ---- Cards / Surfaces ---- */
+.system-info-card,
+.card,
+.table-card,
+.employee-card,
+.project-card,
+.project-item {
+    -fx-background-color: rgba(15, 23, 42, 0.75);
+    -fx-border-color: rgba(148, 163, 184, 0.18);
+}
+
+.system-info-title,
+.card-title,
+.card-name,
+.project-name,
+.page-title {
+    -fx-text-fill: #e2e8f0;
+}
+
+.system-info-text,
+.card-description,
+.project-meta,
+.card-position,
+.card-department,
+.card-contact,
+.card-hire-date,
+.stat-label,
+.stat-number-light,
+.stat-label-light {
+    -fx-text-fill: #94a3b8;
+}
+
+/* ---- Auth form ---- */
+.auth-form {
+    -fx-background-color: rgba(15, 23, 42, 0.92);
+}
+
+.form-title {
+    -fx-text-fill: #e2e8f0;
+}
+
+.form-description,
+.field-label {
+    -fx-text-fill: #94a3b8;
+}
+
+.auth-field {
+    -fx-background-color: rgba(30, 41, 59, 0.82);
+    -fx-text-fill: #e2e8f0;
+    -fx-prompt-text-fill: #64748b;
+}
+
+.auth-field:focused {
+    -fx-background-color: rgba(30, 41, 59, 1.0);
+    -fx-border-color: #818cf8;
+}
