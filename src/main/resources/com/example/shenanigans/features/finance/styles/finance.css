@@ -585,3 +585,61 @@
     -fx-padding: 24;
     -fx-text-fill: #64748b;
 }
+
+/* Kanban area */
+.kanban-column {
+    -fx-background-color: #f1f5f9;
+    -fx-background-radius: 16;
+    -fx-min-width: 300;
+    -fx-pref-width: 350;
+}
+
+.kanban-column-header {
+    -fx-padding: 16 20 16 20;
+    -fx-background-radius: 16 16 0 0;
+}
+
+/* Kanban area */
+.kanban-header {
+    -fx-background-color: linear-gradient(to right, #667eea, #764ba2);
+}
+
+.kanban-header-due {
+    -fx-background-color: linear-gradient(to right, #f59e0b, #d97706);
+}
+
+.kanban-header-paid {
+    -fx-background-color: linear-gradient(to right, #10b981, #059669);
+}
+
+.kanban-column-icon {
+    -fx-font-size: 18px;
+}
+
+.kanban-column-title {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.kanban-column-count {
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-color: rgba(255, 255, 255, 0.25);
+    -fx-padding: 4 12 4 12;
+    -fx-background-radius: 20;
+}
+
+.kanban-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.kanban-scroll>.viewport {
+    -fx-background-color: transparent;
+}
+
+.kanban-cards-container {
+    -fx-background-color: transparent;
+}

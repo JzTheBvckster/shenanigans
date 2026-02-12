@@ -484,45 +484,54 @@
 /* ============================================
    EMPLOYEE BOARD STYLES
    ============================================ */
-.employee-board {
+.employee-board,
+.kanban-board {
     -fx-min-height: 500;
 }
 
-.employee-column {
+.employee-column,
+.kanban-column {
     -fx-background-color: #f1f5f9;
     -fx-background-radius: 16;
     -fx-min-width: 300;
     -fx-pref-width: 350;
 }
 
-.column-header {
+.column-header,
+.kanban-column-header {
     -fx-padding: 16 20 16 20;
     -fx-background-radius: 16 16 0 0;
 }
 
-.column-header-active {
+.column-header-active,
+.kanban-header-active {
     -fx-background-color: linear-gradient(to right, #10b981, #059669);
 }
 
-.column-header-leave {
+.column-header-leave,
+.kanban-header-leave {
     -fx-background-color: linear-gradient(to right, #f59e0b, #d97706);
 }
 
-.column-header-terminated {
+.column-header-terminated,
+.kanban-header-terminated {
     -fx-background-color: linear-gradient(to right, #ef4444, #dc2626);
 }
 
-.column-icon {
+.column-icon,
+.kanban-column-icon {
     -fx-font-size: 18px;
 }
 
-.column-title {
+.column-title,
+.kanban-column-title {
     -fx-text-fill: white;
     -fx-font-size: 16px;
     -fx-font-weight: bold;
 }
 
-.column-count {
+.column-count,
+.kanban-column-count {
     -fx-text-fill: white;
     -fx-font-size: 14px;
     -fx-font-weight: bold;
@@ -531,16 +540,19 @@
     -fx-background-radius: 20;
 }
 
-.column-scroll {
+.column-scroll,
+.kanban-scroll {
     -fx-background-color: transparent;
     -fx-background: transparent;
 }
 
-.column-scroll>.viewport {
+.column-scroll>.viewport,
+.kanban-scroll>.viewport {
     -fx-background-color: transparent;
 }
 
-.cards-container {
+.cards-container,
+.kanban-cards-container {
     -fx-background-color: transparent;
 }
 
@@ -612,6 +624,15 @@
    COLUMN EMPTY STATE
    ============================================ */
 .column-empty-state {
+    -fx-background-color: rgba(255, 255, 255, 0.5);
+    -fx-background-radius: 12;
+    -fx-border-color: #cbd5e1;
+    -fx-border-style: dashed;
+    -fx-border-width: 2;
+    -fx-border-radius: 12;
+}
+
+.kanban-empty-state {
     -fx-background-color: rgba(255, 255, 255, 0.5);
     -fx-background-radius: 12;
     -fx-border-color: #cbd5e1;

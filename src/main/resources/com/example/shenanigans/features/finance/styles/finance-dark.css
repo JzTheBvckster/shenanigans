@@ -36,3 +36,9 @@
 .kanban-cards-container {
     -fx-background-color: transparent;
 }
+
+/* Kanban area */
+.kanban-header {
+    -fx-background-color: linear-gradient(to right, #667eea, #764ba2);
+    -fx-background-radius: 16;
+}

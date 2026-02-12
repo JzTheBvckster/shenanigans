@@ -604,6 +604,11 @@
     -fx-background-radius: 16 16 0 0;
 }
 
+/* Kanban area */
+.kanban-header {
+    -fx-background-color: linear-gradient(to right, #667eea, #764ba2);
+}
+
 .kanban-header-new {
     -fx-background-color: linear-gradient(to right, #8b5cf6, #7c3aed);
 }
