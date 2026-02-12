@@ -99,57 +99,6 @@
         <padding>
           <Insets bottom="24" left="24" right="24" top="24" />
         </padding>
-        <!-- Stats Cards Row -->
-        <HBox spacing="20" styleClass="stats-row">
-          <!-- Total Projects Card -->
-          <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-blue" HBox.hgrow="ALWAYS">
-            <HBox alignment="CENTER_LEFT" spacing="12">
-              <StackPane styleClass="stat-icon-container stat-icon-blue">
-                <Label styleClass="stat-icon" text="📁" textFill="#2a63d7" />
-              </StackPane>
-              <VBox alignment="TOP_CENTER" spacing="2">
-                <Label fx:id="totalCountLabel" styleClass="stat-value" text="0" />
-                <Label styleClass="stat-label" text="Total Projects" />
-              </VBox>
-            </HBox>
-          </VBox>
-          <!-- New Projects Card -->
-          <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-purple" HBox.hgrow="ALWAYS">
-            <HBox alignment="CENTER_LEFT" spacing="12">
-              <StackPane styleClass="stat-icon-container stat-icon-purple">
-                <Label styleClass="stat-icon" text="✨" textFill="#2a63d7" />
-              </StackPane>
-              <VBox alignment="TOP_CENTER" spacing="2">
-                <Label fx:id="newCountLabel" styleClass="stat-value" text="0" />
-                <Label styleClass="stat-label" text="New / Planning" />
-              </VBox>
-            </HBox>
-          </VBox>
-          <!-- Pending/In Progress Card -->
-          <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-orange" HBox.hgrow="ALWAYS">
-            <HBox alignment="CENTER_LEFT" spacing="12">
-              <StackPane styleClass="stat-icon-container stat-icon-orange">
-                <Label styleClass="stat-icon" text="⏳" textFill="#2a63d7" />
-              </StackPane>
-              <VBox alignment="TOP_CENTER" spacing="2">
-                <Label fx:id="activeCountLabel" styleClass="stat-value" text="0" />
-                <Label styleClass="stat-label" text="In Progress" />
-              </VBox>
-            </HBox>
-          </VBox>
-          <!-- Completed Card -->
-          <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-green" HBox.hgrow="ALWAYS">
-            <HBox alignment="CENTER_LEFT" spacing="12">
-              <StackPane styleClass="stat-icon-container stat-icon-green">
-                <Label styleClass="stat-icon" text="✓" textFill="#2a63d7" />
-              </StackPane>
-              <VBox alignment="TOP_CENTER" spacing="2">
-                <Label fx:id="completedCountLabel" styleClass="stat-value" text="0" />
-                <Label styleClass="stat-label" text="Completed" />
-              </VBox>
-            </HBox>
-          </VBox>
-        </HBox>
         <!-- Kanban Board -->
         <HBox spacing="20" styleClass="kanban-board" VBox.vgrow="ALWAYS">
           <!-- New / Planning Column -->

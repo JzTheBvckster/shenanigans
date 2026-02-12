@@ -98,73 +98,12 @@
         <padding>
           <Insets bottom="24" left="24" right="24" top="24" />
         </padding>
-        <HBox alignment="CENTER" prefHeight="115.0" prefWidth="686.0" spacing="20" styleClass="stats-row">
-          <children>
-            <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-blue" HBox.hgrow="ALWAYS">
-              <children>
-                <HBox alignment="CENTER" spacing="12">
-                  <children>
-                    <StackPane styleClass="stat-icon-container stat-icon-blue">
-                      <children>
-                        <Label style="-fx-font-size: 18;" styleClass="stat-icon" text="💰" textFill="#2a63d7" />
-                      </children>
-                    </StackPane>
-                    <VBox alignment="TOP_CENTER" spacing="2">
-                      <children>
-                        <Label fx:id="totalCountLabel" style="-fx-font-size: 18;" styleClass="stat-value" text="0" />
-                        <Label style="-fx-font-size: 18;" styleClass="stat-label" text="Total Invoices" />
-                      </children>
-                    </VBox>
-                  </children>
-                </HBox>
-              </children>
-            </VBox>
-            <VBox alignment="CENTER_LEFT" spacing="8" styleClass="stat-card stat-card-orange" HBox.hgrow="ALWAYS">
-              <children>
-                <HBox alignment="CENTER" spacing="12">
-                  <children>
-                    <StackPane styleClass="stat-icon-container stat-icon-orange">
-                      <children>
-                        <Label style="-fx-font-size: 18;" styleClass="stat-icon" text="⏳" textFill="#2a63d7" />
-                      </children>
-                    </StackPane>
-                    <VBox alignment="TOP_CENTER" spacing="2">
-                      <children>
-                        <Label fx:id="activeCountLabel" style="-fx-font-size: 18;" styleClass="stat-value" text="0" />
-                        <Label style="-fx-font-size: 18;" styleClass="stat-label" text="In Progress" />
-                      </children>
-                    </VBox>
-                  </children>
-                </HBox>
-              </children>
-            </VBox>
-            <VBox alignment="CENTER" spacing="8" styleClass="stat-card stat-card-green" HBox.hgrow="ALWAYS">
-              <children>
-                <HBox alignment="CENTER" spacing="12">
-                  <children>
-                    <StackPane styleClass="stat-icon-container stat-icon-green">
-                      <children>
-                        <Label style="-fx-font-size: 18;" styleClass="stat-icon" text="✓" textFill="#2a63d7" />
-                      </children>
-                    </StackPane>
-                    <VBox alignment="TOP_CENTER" spacing="2">
-                      <children>
-                        <Label fx:id="completedCountLabel" style="-fx-font-size: 18;" styleClass="stat-value" text="0" />
-                        <Label style="-fx-font-size: 18;" styleClass="stat-label" text="Completed" />
-                      </children>
-                    </VBox>
-                  </children>
-                </HBox>
-              </children>
-            </VBox>
-          </children>
-        </HBox>
         <VBox fx:id="invoicesContainer" styleClass="invoices-container" />
         <HBox alignment="CENTER" prefHeight="402.0" prefWidth="699.0" spacing="48.0">
           <children>
             <VBox prefHeight="402.0" prefWidth="293.0" spacing="0" styleClass="kanban-column">
               <children>
-                <HBox alignment="CENTER_LEFT" spacing="2.0" style="-fx-background-color: #2b64d6b0; -fx-background-radius: 16;">
+                <HBox alignment="CENTER_LEFT" spacing="2.0" style="-fx-background-radius: 16; -fx-background-color: #2b64d6b0;" styleClass="header">
                   <VBox.margin>
                     <Insets />
                   </VBox.margin>
