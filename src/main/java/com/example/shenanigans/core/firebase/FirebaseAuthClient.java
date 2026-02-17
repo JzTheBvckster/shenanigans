@@ -35,24 +35,12 @@ public class FirebaseAuthClient {
 
     private final String apiKey;
 
-    /**
-     * Creates a new FirebaseAuthClient.
-     * 
-     * @param apiKey Your Firebase Web API Key (found in Firebase Console > Project
-     *               Settings)
-     */
+    
     public FirebaseAuthClient(String apiKey) {
         this.apiKey = apiKey;
     }
 
-    /**
-     * Signs up a new user with email and password.
-     * 
-     * @param email    User's email
-     * @param password User's password (min 6 characters)
-     * @return AuthResponse containing idToken, refreshToken, and localId (uid)
-     * @throws FirebaseAuthException if sign up fails
-     */
+    
     public AuthResponse signUp(String email, String password) throws FirebaseAuthException {
         String payload = String.format(
                 "{\"email\":\"%s\",\"password\":\"%s\",\"returnSecureToken\":true}",
@@ -61,14 +49,7 @@ public class FirebaseAuthClient {
         return executeAuthRequest(SIGN_UP_URL + apiKey, payload);
     }
 
-    /**
-     * Signs in a user with email and password.
-     * 
-     * @param email    User's email
-     * @param password User's password
-     * @return AuthResponse containing idToken, refreshToken, and localId (uid)
-     * @throws FirebaseAuthException if sign in fails
-     */
+    
     public AuthResponse signIn(String email, String password) throws FirebaseAuthException {
         String payload = String.format(
                 "{\"email\":\"%s\",\"password\":\"%s\",\"returnSecureToken\":true}",
@@ -77,12 +58,7 @@ public class FirebaseAuthClient {
         return executeAuthRequest(SIGN_IN_URL + apiKey, payload);
     }
 
-    /**
-     * Sends a password reset email.
-     * 
-     * @param email User's email address
-     * @throws FirebaseAuthException if the request fails
-     */
+    
     public void sendPasswordResetEmail(String email) throws FirebaseAuthException {
         String payload = String.format(
                 "{\"requestType\":\"PASSWORD_RESET\",\"email\":\"%s\"}",
@@ -96,13 +72,7 @@ public class FirebaseAuthClient {
         }
     }
 
-    /**
-     * Updates user's display name.
-     * 
-     * @param idToken     The user's ID token
-     * @param displayName New display name
-     * @throws FirebaseAuthException if update fails
-     */
+    
     public void updateProfile(String idToken, String displayName) throws FirebaseAuthException {
         String payload = String.format(
                 "{\"idToken\":\"%s\",\"displayName\":\"%s\",\"returnSecureToken\":true}",
@@ -116,13 +86,7 @@ public class FirebaseAuthClient {
         }
     }
 
-    /**
-     * Gets user data using their ID token.
-     * 
-     * @param idToken The user's ID token
-     * @return JSON response with user data
-     * @throws FirebaseAuthException if request fails
-     */
+    
     public String getUserData(String idToken) throws FirebaseAuthException {
         String payload = String.format("{\"idToken\":\"%s\"}", escapeJson(idToken));
 
