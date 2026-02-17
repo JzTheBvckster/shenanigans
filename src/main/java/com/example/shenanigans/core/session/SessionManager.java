@@ -17,7 +17,6 @@ public final class SessionManager {
     private User currentUser;
     private String idToken;
     private String refreshToken;
-    // Sidebar expanded/collapsed state for the current session
     private boolean sidebarExpanded = true;
     // Theme preference for the current session: false = light, true = dark
     private boolean darkMode = false;
