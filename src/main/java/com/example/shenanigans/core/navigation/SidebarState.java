@@ -13,9 +13,7 @@ public class SidebarState {
     private SidebarState() {
     }
 
-    /**
-     * Gets the singleton instance.
-     */
+    
     public static SidebarState getInstance() {
         if (instance == null) {
             instance = new SidebarState();
@@ -23,23 +21,17 @@ public class SidebarState {
         return instance;
     }
 
-    /**
-     * Gets the currently expanded pane title.
-     */
+    
     public String getExpandedPane() {
         return expandedPane;
     }
 
-    /**
-     * Sets the currently expanded pane title.
-     */
+    
     public void setExpandedPane(String paneTitle) {
         this.expandedPane = paneTitle;
     }
 
-    /**
-     * Resets to default state.
-     */
+    
     public void reset() {
         this.expandedPane = "MAIN MENU";
     }
