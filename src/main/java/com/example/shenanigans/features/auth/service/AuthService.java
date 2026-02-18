@@ -9,9 +9,12 @@ import com.example.shenanigans.features.auth.model.User;
 import com.example.shenanigans.features.employees.service.EmployeeService;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.UserRecord;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 import javafx.concurrent.Task;
@@ -348,16 +351,7 @@ public class AuthService {
       return null;
     }
 
-    User user = new User();
-    user.setUid(uid);
-    user.setEmail(doc.getString("email"));
-    user.setDisplayName(doc.getString("displayName"));
-    user.setRole(doc.getString("role"));
-    user.setPhotoUrl(doc.getString("photoUrl"));
-    Boolean mdApproved = doc.getBoolean("mdApproved");
-    user.setMdApproved(mdApproved == null ? true : mdApproved);
-
-    return user;
+    return mapUserDocument(doc);
   }
 
   private void saveUserToFirestore(User user) throws Exception {
@@ -405,8 +399,56 @@ public class AuthService {
     };
   }
 
+  /**
+   * Fetches all users pending Managing Director approval.
+   *
+   * @return task that completes with pending users list
+   */
+  public Task<List<User>> getPendingManagingDirectorApprovals() {
+    return new Task<>() {
+      @Override
+      protected List<User> call() throws Exception {
+        Firestore firestore = FirebaseInitializer.getFirestore();
+        List<QueryDocumentSnapshot> documents = firestore.collection(USERS_COLLECTION)
+            .whereEqualTo("mdApproved", false)
+            .get()
+            .get()
+            .getDocuments();
+
+        List<User> pendingUsers = new ArrayList<>();
+        for (QueryDocumentSnapshot document : documents) {
+          User user = mapUserDocument(document);
+          if (user == null) {
+            continue;
+          }
+          if (requiresManagingDirectorApproval(user.getRole())) {
+            pendingUsers.add(user);
+          }
+        }
+
+        return pendingUsers;
+      }
+    };
+  }
+
   private boolean requiresManagingDirectorApproval(String role) {
     return "EMPLOYEE".equals(role) || "PROJECT_MANAGER".equals(role);
+  }
+
+  private User mapUserDocument(DocumentSnapshot doc) {
+    if (doc == null || !doc.exists()) {
+      return null;
+    }
+
+    User user = new User();
+    user.setUid(doc.getId());
+    user.setEmail(doc.getString("email"));
+    user.setDisplayName(doc.getString("displayName"));
+    user.setRole(doc.getString("role"));
+    user.setPhotoUrl(doc.getString("photoUrl"));
+    Boolean mdApproved = doc.getBoolean("mdApproved");
+    user.setMdApproved(mdApproved == null ? true : mdApproved);
+    return user;
   }
 
   private void enforceManagingDirectorApproval(User user) throws FirebaseAuthException {

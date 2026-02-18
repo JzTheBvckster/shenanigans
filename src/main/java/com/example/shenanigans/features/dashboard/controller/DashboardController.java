@@ -5,12 +5,16 @@ import com.example.shenanigans.core.navigation.ViewNavigator;
 import com.example.shenanigans.core.session.SessionManager;
 import com.example.shenanigans.core.theme.ThemeSettingsDialogComponent;
 import com.example.shenanigans.features.auth.model.User;
+import com.example.shenanigans.features.auth.service.AuthService;
 import com.example.shenanigans.features.employees.model.Employee;
 import com.example.shenanigans.features.employees.service.EmployeeService;
 import com.example.shenanigans.features.finance.model.Invoice;
 import com.example.shenanigans.features.finance.service.FinanceService;
 import com.example.shenanigans.features.projects.model.Project;
 import com.example.shenanigans.features.projects.service.ProjectService;
+import javafx.animation.FadeTransition;
+import javafx.animation.PauseTransition;
+import javafx.animation.SequentialTransition;
 import java.text.NumberFormat;
 import java.time.YearMonth;
 import java.time.Duration;
@@ -44,10 +48,12 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.stage.Popup;
 import javafx.concurrent.Task;
 
 /**
@@ -66,6 +72,7 @@ public class DashboardController {
     private final ProjectService projectService = new ProjectService();
     private final EmployeeService employeeService = new EmployeeService();
     private final FinanceService financeService = new FinanceService();
+    private final AuthService authService = new AuthService();
 
     @FXML
     private Label welcomeLabel;
@@ -78,6 +85,12 @@ public class DashboardController {
 
     @FXML
     private Label avatarLabel;
+
+    @FXML
+    private Button notificationButton;
+
+    @FXML
+    private Label notificationCountLabel;
 
     // Sidebar components
     @FXML
@@ -148,6 +161,21 @@ public class DashboardController {
     private VBox activityContainer;
 
     @FXML
+    private VBox approvalQueueCard;
+
+    @FXML
+    private VBox approvalQueueContainer;
+
+    @FXML
+    private Label approvalQueueEmptyLabel;
+
+    @FXML
+    private Label approvalQueueTitleLabel;
+
+    @FXML
+    private Label toastLabel;
+
+    @FXML
     private Label portfolioHealthLabel;
 
     @FXML
@@ -212,6 +240,9 @@ public class DashboardController {
 
     private List<Project> latestProjects = List.of();
     private List<Invoice> latestInvoices = List.of();
+    private List<User> pendingApprovals = List.of();
+    private Popup notificationPopup;
+    private VBox notificationPopupContent;
 
     /** Called automatically after FXML is loaded. */
     @FXML
@@ -238,6 +269,7 @@ public class DashboardController {
         configureMenuForRole(user);
         initializeSidebarComponent();
         initializeAnalyticsFilters();
+        initializeNotificationUi();
 
         // Load dashboard data
         loadDashboardData();
@@ -333,9 +365,38 @@ public class DashboardController {
         if (projectStatusChart != null) {
             projectStatusChart.setData(FXCollections.observableArrayList());
         }
+        if (approvalQueueContainer != null) {
+            approvalQueueContainer.getChildren().clear();
+        }
+        if (approvalQueueEmptyLabel != null) {
+            approvalQueueEmptyLabel.setVisible(false);
+            approvalQueueEmptyLabel.setManaged(false);
+        }
+        setNotificationCount(0);
         resetDrilldownPanel();
         loadProjectsOverview(List.of());
         loadRecentActivity(List.of(), List.of(), List.of());
+    }
+
+    private void initializeNotificationUi() {
+        if (notificationButton != null) {
+            notificationButton.setTooltip(new Tooltip("Pending approvals"));
+        }
+        if (toastLabel != null) {
+            toastLabel.setVisible(false);
+            toastLabel.setManaged(false);
+        }
+        initializeNotificationPopup();
+        setNotificationCount(0);
+    }
+
+    private void initializeNotificationPopup() {
+        notificationPopupContent = new VBox(8);
+        notificationPopupContent.getStyleClass().add("notification-dropdown");
+
+        notificationPopup = new Popup();
+        notificationPopup.setAutoHide(true);
+        notificationPopup.getContent().add(notificationPopupContent);
     }
 
     private void applyDashboardData(DashboardData data) {
@@ -911,7 +972,7 @@ public class DashboardController {
         activityEntries.stream()
                 .filter(activity -> activity.timestamp() > 0)
                 .sorted(Comparator.comparingLong(ActivityEntry::timestamp).reversed())
-                .limit(5)
+                .limit(3)
                 .forEach(
                         activity -> addActivityItem(
                                 activity.title(), formatRelativeTime(activity.timestamp()), activity.color()));
@@ -943,6 +1004,266 @@ public class DashboardController {
 
         activityItem.getChildren().addAll(dot, content);
         activityContainer.getChildren().add(activityItem);
+    }
+
+    private void loadPendingApprovals() {
+        Task<List<User>> approvalsTask = authService.getPendingManagingDirectorApprovals();
+
+        approvalsTask.setOnSucceeded(event -> {
+            pendingApprovals = safeList(approvalsTask.getValue());
+            renderApprovalQueue();
+            setNotificationCount(pendingApprovals.size());
+            refreshNotificationPopupPreview();
+        });
+
+        approvalsTask.setOnFailed(event -> {
+            LOGGER.warning("Failed to load pending approvals: " + approvalsTask.getException());
+            pendingApprovals = List.of();
+            renderApprovalQueue();
+            setNotificationCount(0);
+            refreshNotificationPopupPreview();
+            showToast("Could not refresh approvals", true);
+        });
+
+        Thread thread = new Thread(approvalsTask, "dashboard-approval-loader");
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    private void renderApprovalQueue() {
+        if (approvalQueueContainer == null || approvalQueueEmptyLabel == null) {
+            return;
+        }
+
+        approvalQueueContainer.getChildren().clear();
+        if (approvalQueueTitleLabel != null) {
+            approvalQueueTitleLabel.setText("Approval Queue (" + pendingApprovals.size() + ")");
+        }
+
+        if (pendingApprovals.isEmpty()) {
+            approvalQueueEmptyLabel.setVisible(true);
+            approvalQueueEmptyLabel.setManaged(true);
+            return;
+        }
+
+        approvalQueueEmptyLabel.setVisible(false);
+        approvalQueueEmptyLabel.setManaged(false);
+
+        pendingApprovals.forEach(user -> {
+            VBox queueItem = new VBox(8);
+            queueItem.getStyleClass().add("approval-item");
+
+            Label nameLabel = new Label(resolveDisplayName(user));
+            nameLabel.getStyleClass().add("approval-item-title");
+
+            Label metaLabel = new Label((user.getRole() == null ? "User" : formatRole(user.getRole()))
+                    + " • " + (user.getEmail() == null ? "No email" : user.getEmail()));
+            metaLabel.getStyleClass().add("approval-item-meta");
+
+            Button approveButton = new Button("Approve");
+            approveButton.getStyleClass().add("approve-button");
+            approveButton.setOnAction(event -> approvePendingUser(user, approveButton));
+
+            queueItem.getChildren().addAll(nameLabel, metaLabel, approveButton);
+            approvalQueueContainer.getChildren().add(queueItem);
+        });
+    }
+
+    private String resolveDisplayName(User user) {
+        if (user == null || user.getDisplayName() == null || user.getDisplayName().isBlank()) {
+            return "Unnamed User";
+        }
+        return user.getDisplayName();
+    }
+
+    private void approvePendingUser(User user, Button approveButton) {
+        if (user == null || SessionManager.getInstance().getCurrentUser() == null) {
+            return;
+        }
+
+        approveButton.setDisable(true);
+        approveButton.setText("Approving...");
+
+        String approverUid = SessionManager.getInstance().getCurrentUser().getUid();
+        Task<Void> approveTask = authService.approveUserByManagingDirector(user.getUid(), approverUid);
+
+        approveTask.setOnSucceeded(event -> {
+            showToast("Approved " + resolveDisplayName(user), false);
+            if (notificationPopup != null && notificationPopup.isShowing()) {
+                notificationPopup.hide();
+            }
+            loadPendingApprovals();
+        });
+
+        approveTask.setOnFailed(event -> {
+            LOGGER.warning("Failed to approve user " + user.getUid() + ": " + approveTask.getException());
+            approveButton.setDisable(false);
+            approveButton.setText("Approve");
+            showToast("Approval failed. Try again.", true);
+        });
+
+        Thread thread = new Thread(approveTask, "dashboard-approve-user");
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    @FXML
+    private void handleRefreshApprovals() {
+        if (!checkAuth()) {
+            return;
+        }
+
+        User currentUser = SessionManager.getInstance().getCurrentUser();
+        if (currentUser == null || !currentUser.isManagingDirector()) {
+            showToast("Approvals are available for Managing Directors only.", true);
+            return;
+        }
+
+        loadPendingApprovals();
+        showToast("Approval notifications refreshed", false);
+    }
+
+    @FXML
+    private void handleNotificationClick() {
+        if (!checkAuth()) {
+            return;
+        }
+
+        User currentUser = SessionManager.getInstance().getCurrentUser();
+        if (currentUser == null || !currentUser.isManagingDirector()) {
+            showToast("Approvals are available for Managing Directors only.", true);
+            return;
+        }
+
+        if (notificationPopup != null && notificationPopup.isShowing()) {
+            notificationPopup.hide();
+            return;
+        }
+
+        renderNotificationPopupPreview(true);
+        showNotificationPopup();
+        loadPendingApprovals();
+    }
+
+    private void showNotificationPopup() {
+        if (notificationPopup == null || notificationButton == null) {
+            return;
+        }
+
+        double x = notificationButton.localToScreen(notificationButton.getBoundsInLocal()).getMinX() - 248;
+        double y = notificationButton.localToScreen(notificationButton.getBoundsInLocal()).getMaxY() + 8;
+        notificationPopup.show(notificationButton, x, y);
+    }
+
+    private void refreshNotificationPopupPreview() {
+        if (notificationPopup == null || !notificationPopup.isShowing()) {
+            return;
+        }
+
+        renderNotificationPopupPreview(false);
+    }
+
+    private void renderNotificationPopupPreview(boolean loading) {
+        if (notificationPopupContent == null) {
+            return;
+        }
+
+        notificationPopupContent.getChildren().clear();
+
+        Label title = new Label("Pending approvals");
+        title.getStyleClass().add("notification-dropdown-title");
+        notificationPopupContent.getChildren().add(title);
+
+        if (loading) {
+            Label loadingLabel = new Label("Loading...");
+            loadingLabel.getStyleClass().add("notification-dropdown-empty");
+            notificationPopupContent.getChildren().add(loadingLabel);
+            return;
+        }
+
+        if (pendingApprovals.isEmpty()) {
+            Label emptyLabel = new Label("No pending approvals.");
+            emptyLabel.getStyleClass().add("notification-dropdown-empty");
+            notificationPopupContent.getChildren().add(emptyLabel);
+            return;
+        }
+
+        pendingApprovals.stream().limit(4).forEach(user -> {
+            HBox row = new HBox(8);
+            row.getStyleClass().add("notification-dropdown-item");
+
+            VBox info = new VBox(2);
+            info.setMaxWidth(Double.MAX_VALUE);
+            HBox.setHgrow(info, Priority.ALWAYS);
+
+            Label nameLabel = new Label(resolveDisplayName(user));
+            nameLabel.getStyleClass().add("notification-dropdown-name");
+            Label metaLabel = new Label(formatRole(user.getRole()));
+            metaLabel.getStyleClass().add("notification-dropdown-meta");
+
+            info.getChildren().addAll(nameLabel, metaLabel);
+
+            Button approveButton = new Button("Approve");
+            approveButton.getStyleClass().addAll("approve-button", "approve-button-compact");
+            approveButton.setOnAction(event -> approvePendingUser(user, approveButton));
+
+            row.getChildren().addAll(info, approveButton);
+            notificationPopupContent.getChildren().add(row);
+        });
+
+        if (pendingApprovals.size() > 4) {
+            Label moreLabel = new Label("+" + (pendingApprovals.size() - 4) + " more in queue");
+            moreLabel.getStyleClass().add("notification-dropdown-empty");
+            notificationPopupContent.getChildren().add(moreLabel);
+        }
+    }
+
+    private void setNotificationCount(int count) {
+        if (notificationCountLabel == null || notificationButton == null) {
+            return;
+        }
+
+        String text = String.valueOf(Math.max(0, count));
+        notificationCountLabel.setText(text);
+        boolean hasNotifications = count > 0;
+        notificationCountLabel.setVisible(hasNotifications);
+        notificationCountLabel.setManaged(hasNotifications);
+
+        if (hasNotifications) {
+            notificationButton.getStyleClass().remove("notification-button-muted");
+        } else if (!notificationButton.getStyleClass().contains("notification-button-muted")) {
+            notificationButton.getStyleClass().add("notification-button-muted");
+        }
+    }
+
+    private void showToast(String message, boolean error) {
+        if (toastLabel == null) {
+            return;
+        }
+
+        toastLabel.setText(message == null ? "" : message);
+        toastLabel.getStyleClass().removeAll("toast-error", "toast-success");
+        toastLabel.getStyleClass().add(error ? "toast-error" : "toast-success");
+        toastLabel.setOpacity(0);
+        toastLabel.setManaged(true);
+        toastLabel.setVisible(true);
+
+        FadeTransition fadeIn = new FadeTransition(javafx.util.Duration.millis(180), toastLabel);
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+
+        PauseTransition pause = new PauseTransition(javafx.util.Duration.seconds(2.2));
+
+        FadeTransition fadeOut = new FadeTransition(javafx.util.Duration.millis(240), toastLabel);
+        fadeOut.setFromValue(1);
+        fadeOut.setToValue(0);
+        fadeOut.setOnFinished(event -> {
+            toastLabel.setVisible(false);
+            toastLabel.setManaged(false);
+        });
+
+        SequentialTransition sequence = new SequentialTransition(fadeIn, pause, fadeOut);
+        sequence.play();
     }
 
     /** Handles adding a new employee. */
@@ -1082,10 +1403,28 @@ public class DashboardController {
             // Managing Directors have access to all features
             financeButton.setVisible(true);
             financeButton.setManaged(true);
+            if (approvalQueueCard != null) {
+                approvalQueueCard.setVisible(true);
+                approvalQueueCard.setManaged(true);
+            }
+            if (notificationButton != null) {
+                notificationButton.setVisible(true);
+                notificationButton.setManaged(true);
+            }
+            loadPendingApprovals();
         } else {
             // Project Managers have limited access
             financeButton.setVisible(false);
             financeButton.setManaged(false);
+            if (approvalQueueCard != null) {
+                approvalQueueCard.setVisible(false);
+                approvalQueueCard.setManaged(false);
+            }
+            if (notificationButton != null) {
+                notificationButton.setVisible(false);
+                notificationButton.setManaged(false);
+            }
+            setNotificationCount(0);
         }
     }
 

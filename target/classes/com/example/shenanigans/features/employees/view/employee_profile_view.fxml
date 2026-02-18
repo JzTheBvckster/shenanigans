@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
+
+<BorderPane styleClass="employee-root" stylesheets="@../styles/employee.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.shenanigans.features.employees.controller.EmployeeProfileController">
+  <top>
+    <VBox styleClass="header-container">
+      <HBox alignment="CENTER_LEFT" spacing="12" styleClass="header">
+        <padding>
+          <Insets bottom="16" left="24" right="24" top="16" />
+        </padding>
+        <Button onAction="#handleBackToEmployees" styleClass="header-icon-button" text="←" />
+        <Label styleClass="app-title" text="Employee Profile" />
+        <Region HBox.hgrow="ALWAYS" />
+        <ProgressIndicator fx:id="loadingIndicator" maxHeight="20" maxWidth="20" visible="false" />
+      </HBox>
+    </VBox>
+  </top>
+
+  <center>
+    <ScrollPane fitToHeight="true" fitToWidth="true" styleClass="content-scroll">
+      <VBox spacing="16" styleClass="content-area">
+        <padding>
+          <Insets bottom="24" left="24" right="24" top="24" />
+        </padding>
+        <Label fx:id="statusLabel" styleClass="status-label" text="" />
+        <VBox fx:id="profilePanel" spacing="14" style="-fx-background-color: #fff;" styleClass="profile-panel social-profile-card">
+          <VBox spacing="0" styleClass="social-cover">
+            <HBox alignment="CENTER_RIGHT" spacing="10" styleClass="social-cover-actions">
+              <Button fx:id="editProfileButton" onAction="#handleEditProfile" styleClass="header-primary-button" text="Edit Profile" />
+              <Button fx:id="cancelEditButton" managed="false" onAction="#handleCancelEdit" styleClass="header-icon-button" text="Cancel" visible="false" />
+              <Button fx:id="saveProfileButton" managed="false" onAction="#handleSaveProfile" styleClass="header-primary-button" text="Save Changes" visible="false" />
+            </HBox>
+          </VBox>
+          <HBox alignment="CENTER_LEFT" spacing="14" styleClass="social-profile-header">
+            <StackPane styleClass="social-avatar-wrap">
+              <Circle radius="40" styleClass="social-avatar-circle" />
+              <Label fx:id="profileAvatarLabel" styleClass="social-avatar-text" text="U" />
+            </StackPane>
+            <VBox spacing="4" HBox.hgrow="ALWAYS">
+              <Label fx:id="profileDisplayNameLabel" styleClass="social-name" text="Employee Name" />
+              <Label fx:id="profileHeadlineLabel" styleClass="social-headline" text="Department • Position" />
+              <Label fx:id="profileMetaLabel" styleClass="social-meta" text="Status" />
+            </VBox>
+          </HBox>
+          <HBox spacing="10" styleClass="social-stats-row">
+            <Label fx:id="profileStatStatusLabel" styleClass="social-stat-pill" text="Status" />
+            <Label fx:id="profileStatDeptLabel" styleClass="social-stat-pill" text="Department" />
+            <Label fx:id="profileStatSalaryLabel" styleClass="social-stat-pill" text="Salary" />
+          </HBox>
+               <VBox>
+                  <children>
+                <HBox alignment="CENTER_LEFT" spacing="10">
+                  <Label fx:id="profileTitleLabel" styleClass="profile-title" text="Profile Details" />
+                </HBox>
+                <HBox spacing="12">
+                  <VBox spacing="6" HBox.hgrow="ALWAYS">
+                    <Label styleClass="profile-field-label" text="First Name" />
+                    <TextField fx:id="profileFirstNameField" editable="false" styleClass="profile-field" />
+                  </VBox>
+                  <VBox spacing="6" HBox.hgrow="ALWAYS">
+                    <Label styleClass="profile-field-label" text="Last Name" />
+                    <TextField fx:id="profileLastNameField" editable="false" styleClass="profile-field" />
+                  </VBox>
+                </HBox>
+                <HBox spacing="12">
+                  <VBox spacing="6" HBox.hgrow="ALWAYS">
+                    <Label styleClass="profile-field-label" text="Email" />
+                    <TextField fx:id="profileEmailField" editable="false" styleClass="profile-field" />
+                  </VBox>
+                  <VBox spacing="6" HBox.hgrow="ALWAYS">
+                    <Label styleClass="profile-field-label" text="Phone" />
+                    <TextField fx:id="profilePhoneField" editable="false" styleClass="profile-field" />
+                  </VBox>
+                </HBox>
+                <HBox spacing="12">
+                  <VBox spacing="6" HBox.hgrow="ALWAYS">
+                    <Label styleClass="profile-field-label" text="Department" />
+                    <TextField fx:id="profileDepartmentField" editable="false" styleClass="profile-field" />
+                  </VBox>
+                  <VBox spacing="6" HBox.hgrow="ALWAYS">
+                    <Label styleClass="profile-field-label" text="Position" />
+                    <TextField fx:id="profilePositionField" editable="false" styleClass="profile-field" />
+                  </VBox>
+                </HBox>
+                <HBox spacing="12">
+                  <VBox spacing="6" HBox.hgrow="ALWAYS">
+                    <Label styleClass="profile-field-label" text="Status" />
+                    <ComboBox fx:id="profileStatusCombo" disable="true" styleClass="profile-field" />
+                  </VBox>
+                  <VBox spacing="6" HBox.hgrow="ALWAYS">
+                    <Label styleClass="profile-field-label" text="Salary" />
+                    <TextField fx:id="profileSalaryField" editable="false" styleClass="profile-field" />
+                  </VBox>
+                </HBox>
+                  </children>
+                  <padding>
+                     <Insets bottom="16.0" left="16.0" right="16.0" />
+                  </padding>
+               </VBox>
+        </VBox>
+      </VBox>
+    </ScrollPane>
+  </center>
+</BorderPane>

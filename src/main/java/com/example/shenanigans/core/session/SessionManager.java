@@ -4,7 +4,8 @@ import com.example.shenanigans.features.auth.model.User;
 import java.util.logging.Logger;
 
 /**
- * Manages the current user session across the application. Singleton class that holds the
+ * Manages the current user session across the application. Singleton class that
+ * holds the
  * authenticated user information.
  */
 public final class SessionManager {
@@ -16,6 +17,7 @@ public final class SessionManager {
   private User currentUser;
   private String idToken;
   private String refreshToken;
+  private String selectedEmployeeId;
   private boolean sidebarExpanded = true;
   // Theme preference for the current session: false = light, true = dark
   private boolean darkMode = false;
@@ -39,8 +41,8 @@ public final class SessionManager {
   /**
    * Sets the current authenticated user.
    *
-   * @param user The authenticated user
-   * @param idToken Firebase ID token
+   * @param user         The authenticated user
+   * @param idToken      Firebase ID token
    * @param refreshToken Firebase refresh token
    */
   public void setSession(User user, String idToken, String refreshToken) {
@@ -56,6 +58,7 @@ public final class SessionManager {
     this.currentUser = null;
     this.idToken = null;
     this.refreshToken = null;
+    this.selectedEmployeeId = null;
     LOGGER.info("Session cleared for: " + email);
   }
 
@@ -108,6 +111,29 @@ public final class SessionManager {
    */
   public String getUserId() {
     return currentUser != null ? currentUser.getUid() : null;
+  }
+
+  /**
+   * Stores the selected employee id for cross-view navigation.
+   *
+   * @param employeeId employee id to persist for profile navigation
+   */
+  public void setSelectedEmployeeId(String employeeId) {
+    this.selectedEmployeeId = employeeId;
+  }
+
+  /**
+   * Returns currently selected employee id for profile navigation.
+   *
+   * @return selected employee id or null
+   */
+  public String getSelectedEmployeeId() {
+    return selectedEmployeeId;
+  }
+
+  /** Clears selected employee navigation context. */
+  public void clearSelectedEmployeeId() {
+    this.selectedEmployeeId = null;
   }
 
   /**

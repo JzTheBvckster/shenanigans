@@ -57,6 +57,76 @@
     -fx-text-fill: rgba(255, 255, 255, 0.8);
 }
 
+.notification-button {
+    -fx-background-color: rgba(255, 255, 255, 0.18);
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+    -fx-font-weight: 700;
+    -fx-min-width: 38;
+    -fx-min-height: 38;
+    -fx-background-radius: 19;
+    -fx-border-color: rgba(255, 255, 255, 0.25);
+    -fx-border-radius: 19;
+    -fx-cursor: hand;
+}
+
+.notification-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.3);
+}
+
+.notification-button-muted {
+    -fx-opacity: 0.78;
+}
+
+.notification-count {
+    -fx-background-color: #ef4444;
+    -fx-text-fill: white;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-padding: 2 6;
+    -fx-background-radius: 999;
+}
+
+.notification-dropdown {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 12;
+    -fx-padding: 12;
+    -fx-min-width: 300;
+    -fx-max-width: 300;
+    -fx-effect: dropshadow(gaussian, rgba(2, 6, 23, 0.18), 16, 0, 0, 4);
+}
+
+.notification-dropdown-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #1e293b;
+}
+
+.notification-dropdown-item {
+    -fx-background-color: #f8fafc;
+    -fx-background-radius: 8;
+    -fx-padding: 8 10;
+}
+
+.notification-dropdown-name {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #1e293b;
+}
+
+.notification-dropdown-meta {
+    -fx-font-size: 10px;
+    -fx-text-fill: #64748b;
+}
+
+.notification-dropdown-empty {
+    -fx-font-size: 11px;
+    -fx-text-fill: #64748b;
+    -fx-padding: 2 0 0 0;
+}
+
 /* Avatar */
 .avatar-container {
     -fx-alignment: center;
@@ -737,4 +807,57 @@
 .insight-highlight-item {
     -fx-font-size: 12px;
     -fx-text-fill: #334155;
+}
+
+.approval-item {
+    -fx-background-color: #f8fafc;
+    -fx-background-radius: 10;
+    -fx-padding: 10 12;
+}
+
+.approval-item-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #1e293b;
+}
+
+.approval-item-meta {
+    -fx-font-size: 11px;
+    -fx-text-fill: #64748b;
+}
+
+.approve-button {
+    -fx-background-color: linear-gradient(to right, #22c55e, #16a34a);
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-background-radius: 8;
+    -fx-padding: 6 12;
+    -fx-cursor: hand;
+}
+
+.approve-button:hover {
+    -fx-opacity: 0.9;
+}
+
+.approve-button-compact {
+    -fx-font-size: 11px;
+    -fx-padding: 4 10;
+}
+
+.toast-message {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 8 12;
+    -fx-background-radius: 8;
+    -fx-text-fill: white;
+    -fx-max-width: 460;
+}
+
+.toast-success {
+    -fx-background-color: rgba(22, 163, 74, 0.95);
+}
+
+.toast-error {
+    -fx-background-color: rgba(220, 38, 38, 0.95);
 }

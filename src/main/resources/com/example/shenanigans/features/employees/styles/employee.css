@@ -518,6 +518,123 @@
     -fx-background-color: linear-gradient(to right, #ef4444, #dc2626);
 }
 
+/* ============================================
+   EMPLOYEE PROFILE PANEL
+   ============================================ */
+.profile-panel {
+    -fx-background-color: white;
+    -fx-background-radius: 16;
+    -fx-padding: 18;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.26), 14, 0, 0, 3);
+}
+
+.profile-title {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1e293b;
+}
+
+.profile-field-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #64748b;
+}
+
+.profile-field {
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 9 10;
+    -fx-text-fill: #334155;
+}
+
+.profile-field:focused {
+    -fx-border-color: #667eea;
+}
+
+.social-profile-card {
+    -fx-padding: 0 0 18 0;
+}
+
+.social-cover {
+    -fx-background-color: linear-gradient(to right, #667eea, #764ba2);
+    -fx-background-radius: 16 16 0 0;
+    -fx-padding: 12;
+}
+
+.social-cover-actions {
+    -fx-padding: 0 4 0 0;
+}
+
+.social-profile-header {
+    -fx-padding: 14 18 4 18;
+}
+
+.social-avatar-wrap {
+    -fx-min-width: 82;
+    -fx-min-height: 82;
+    -fx-max-width: 82;
+    -fx-max-height: 82;
+}
+
+.social-avatar-circle {
+    -fx-fill: linear-gradient(to bottom right, #4f46e5, #7c3aed);
+    -fx-stroke: white;
+    -fx-stroke-width: 3;
+}
+
+.social-avatar-text {
+    -fx-text-fill: white;
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
+
+.social-name {
+    -fx-text-fill: #0f172a;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+
+.social-headline {
+    -fx-text-fill: #475569;
+    -fx-font-size: 13px;
+}
+
+.social-meta {
+    -fx-text-fill: #64748b;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+}
+
+.social-stats-row {
+    -fx-padding: 4 18 0 18;
+}
+
+.social-stat-pill {
+    -fx-background-color: #eef2ff;
+    -fx-text-fill: #4338ca;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-padding: 5 10;
+    -fx-background-radius: 999;
+}
+
+.profile-panel .profile-title {
+    -fx-padding: 6 18 0 18;
+}
+
+.profile-panel>.hbox {
+    -fx-padding: 0 18 0 18;
+}
+
+.profile-field:disabled,
+.combo-box.profile-field:disabled {
+    -fx-opacity: 1;
+    -fx-background-color: #f1f5f9;
+    -fx-text-fill: #475569;
+}
+
 .column-icon,
 .kanban-column-icon {
     -fx-font-size: 18px;
