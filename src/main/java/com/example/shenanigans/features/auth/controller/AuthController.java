@@ -12,7 +12,8 @@ import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 
 /**
- * Controller for the authentication view. Handles login, registration, and password reset UI
+ * Controller for the authentication view. Handles login, registration, and
+ * password reset UI
  * interactions.
  */
 public class AuthController {
@@ -23,22 +24,38 @@ public class AuthController {
   private final AuthService authService = new AuthService();
 
   // FXML Components - Login
-  @FXML private VBox loginPane;
-  @FXML private TextField loginEmailField;
-  @FXML private PasswordField loginPasswordField;
-  @FXML private Button loginButton;
-  @FXML private Hyperlink forgotPasswordLink;
-  @FXML private Hyperlink createAccountLink;
+  @FXML
+  private VBox loginPane;
+  @FXML
+  private TextField loginEmailField;
+  @FXML
+  private PasswordField loginPasswordField;
+  @FXML
+  private TextField loginPasswordVisibleField;
+  @FXML
+  private Button loginPasswordToggleButton;
+  @FXML
+  private Button loginButton;
+  @FXML
+  private Hyperlink forgotPasswordLink;
+  @FXML
+  private Hyperlink createAccountLink;
 
   // FXML Components - Forgot Password
-  @FXML private VBox forgotPasswordPane;
-  @FXML private TextField resetEmailField;
-  @FXML private Button resetPasswordButton;
-  @FXML private Hyperlink backToLoginFromResetLink;
+  @FXML
+  private VBox forgotPasswordPane;
+  @FXML
+  private TextField resetEmailField;
+  @FXML
+  private Button resetPasswordButton;
+  @FXML
+  private Hyperlink backToLoginFromResetLink;
 
   // FXML Components - Common
-  @FXML private Label statusLabel;
-  @FXML private ProgressIndicator loadingIndicator;
+  @FXML
+  private Label statusLabel;
+  @FXML
+  private ProgressIndicator loadingIndicator;
 
   /** Called automatically after FXML is loaded. */
   @FXML
@@ -51,6 +68,8 @@ public class AuthController {
       loadingIndicator.setVisible(false);
     }
 
+    initializePasswordVisibility();
+
     LOGGER.info("AuthController initialized");
   }
 
@@ -58,7 +77,7 @@ public class AuthController {
   @FXML
   private void handleLogin() {
     String email = loginEmailField.getText().trim();
-    String password = loginPasswordField.getText();
+    String password = getLoginPassword();
 
     // Validate inputs
     if (email.isEmpty() || password.isEmpty()) {
@@ -77,28 +96,25 @@ public class AuthController {
     Task<User> loginTask = authService.signIn(email, password);
 
     loginTask.setOnSucceeded(
-        event ->
-            Platform.runLater(
-                () -> {
-                  setLoading(false);
-                  User user = loginTask.getValue();
-                  showStatus("Welcome, " + user.getDisplayName() + "!", false);
-                  LOGGER.info("User signed in: " + user.getEmail());
-                  // TODO: Navigate to main dashboard
-                  onLoginSuccess(user);
-                }));
+        event -> Platform.runLater(
+            () -> {
+              setLoading(false);
+              User user = loginTask.getValue();
+              showStatus("Welcome, " + user.getDisplayName() + "!", false);
+              LOGGER.info("User signed in: " + user.getEmail());
+              // TODO: Navigate to main dashboard
+              onLoginSuccess(user);
+            }));
 
     loginTask.setOnFailed(
-        event ->
-            Platform.runLater(
-                () -> {
-                  setLoading(false);
-                  Throwable error = loginTask.getException();
-                  String message =
-                      error.getMessage() != null ? error.getMessage() : "Sign in failed";
-                  showStatus(message, true);
-                  LOGGER.log(Level.WARNING, "Login failed", error);
-                }));
+        event -> Platform.runLater(
+            () -> {
+              setLoading(false);
+              Throwable error = loginTask.getException();
+              String message = mapAuthError(error, "Sign in failed");
+              showStatus(message, true);
+              LOGGER.log(Level.WARNING, "Login failed", error);
+            }));
 
     new Thread(loginTask).start();
   }
@@ -124,27 +140,22 @@ public class AuthController {
     Task<Void> resetTask = authService.sendPasswordResetEmail(email);
 
     resetTask.setOnSucceeded(
-        event ->
-            Platform.runLater(
-                () -> {
-                  setLoading(false);
-                  showStatus("Password reset email sent! Check your inbox.", false);
-                  LOGGER.info("Password reset email sent to: " + email);
-                }));
+        event -> Platform.runLater(
+            () -> {
+              setLoading(false);
+              showStatus("Password reset email sent! Check your inbox.", false);
+              LOGGER.info("Password reset email sent to: " + email);
+            }));
 
     resetTask.setOnFailed(
-        event ->
-            Platform.runLater(
-                () -> {
-                  setLoading(false);
-                  Throwable error = resetTask.getException();
-                  String message =
-                      error.getMessage() != null
-                          ? error.getMessage()
-                          : "Failed to send reset email";
-                  showStatus(message, true);
-                  LOGGER.log(Level.WARNING, "Password reset failed", error);
-                }));
+        event -> Platform.runLater(
+            () -> {
+              setLoading(false);
+              Throwable error = resetTask.getException();
+              String message = mapAuthError(error, "Failed to send reset email");
+              showStatus(message, true);
+              LOGGER.log(Level.WARNING, "Password reset failed", error);
+            }));
 
     new Thread(resetTask).start();
   }
@@ -159,7 +170,7 @@ public class AuthController {
     SessionManager.getInstance()
         .setSession(
             user, authService.getCurrentIdToken(), null // Refresh token handling can be added later
-            );
+        );
 
     LOGGER.info("Login successful for: " + user.getDisplayName() + " (" + user.getRole() + ")");
 
@@ -186,10 +197,14 @@ public class AuthController {
   /** Shows the login pane and hides others. */
   @FXML
   private void showLoginPane() {
-    if (loginPane != null) loginPane.setVisible(true);
-    if (loginPane != null) loginPane.setManaged(true);
-    if (forgotPasswordPane != null) forgotPasswordPane.setVisible(false);
-    if (forgotPasswordPane != null) forgotPasswordPane.setManaged(false);
+    if (loginPane != null)
+      loginPane.setVisible(true);
+    if (loginPane != null)
+      loginPane.setManaged(true);
+    if (forgotPasswordPane != null)
+      forgotPasswordPane.setVisible(false);
+    if (forgotPasswordPane != null)
+      forgotPasswordPane.setManaged(false);
     clearStatus();
   }
 
@@ -207,10 +222,14 @@ public class AuthController {
   /** Shows the forgot password pane and hides others. */
   @FXML
   private void showForgotPasswordPane() {
-    if (loginPane != null) loginPane.setVisible(false);
-    if (loginPane != null) loginPane.setManaged(false);
-    if (forgotPasswordPane != null) forgotPasswordPane.setVisible(true);
-    if (forgotPasswordPane != null) forgotPasswordPane.setManaged(true);
+    if (loginPane != null)
+      loginPane.setVisible(false);
+    if (loginPane != null)
+      loginPane.setManaged(false);
+    if (forgotPasswordPane != null)
+      forgotPasswordPane.setVisible(true);
+    if (forgotPasswordPane != null)
+      forgotPasswordPane.setManaged(true);
     clearStatus();
   }
 
@@ -236,8 +255,79 @@ public class AuthController {
     if (loadingIndicator != null) {
       loadingIndicator.setVisible(loading);
     }
-    if (loginButton != null) loginButton.setDisable(loading);
-    if (resetPasswordButton != null) resetPasswordButton.setDisable(loading);
+    if (loginButton != null)
+      loginButton.setDisable(loading);
+    if (resetPasswordButton != null)
+      resetPasswordButton.setDisable(loading);
+    if (loginPasswordToggleButton != null)
+      loginPasswordToggleButton.setDisable(loading);
+    if (loginPasswordVisibleField != null)
+      loginPasswordVisibleField.setDisable(loading);
+  }
+
+  private void initializePasswordVisibility() {
+    if (loginPasswordField == null || loginPasswordVisibleField == null) {
+      return;
+    }
+
+    loginPasswordVisibleField.setManaged(false);
+    loginPasswordVisibleField.setVisible(false);
+    loginPasswordField.setManaged(true);
+    loginPasswordField.setVisible(true);
+
+    loginPasswordField
+        .textProperty()
+        .addListener(
+            (obs, oldValue, newValue) -> {
+              if (!newValue.equals(loginPasswordVisibleField.getText())) {
+                loginPasswordVisibleField.setText(newValue);
+              }
+            });
+    loginPasswordVisibleField
+        .textProperty()
+        .addListener(
+            (obs, oldValue, newValue) -> {
+              if (!newValue.equals(loginPasswordField.getText())) {
+                loginPasswordField.setText(newValue);
+              }
+            });
+  }
+
+  @FXML
+  private void handleToggleLoginPassword() {
+    boolean currentlyObscured = loginPasswordField != null && loginPasswordField.isVisible();
+
+    if (loginPasswordField != null) {
+      loginPasswordField.setVisible(!currentlyObscured);
+      loginPasswordField.setManaged(!currentlyObscured);
+    }
+    if (loginPasswordVisibleField != null) {
+      loginPasswordVisibleField.setVisible(currentlyObscured);
+      loginPasswordVisibleField.setManaged(currentlyObscured);
+    }
+    if (loginPasswordToggleButton != null) {
+      loginPasswordToggleButton.setText(currentlyObscured ? "Hide" : "Show");
+    }
+  }
+
+  private String getLoginPassword() {
+    if (loginPasswordVisibleField != null && loginPasswordVisibleField.isVisible()) {
+      return loginPasswordVisibleField.getText();
+    }
+    return loginPasswordField != null ? loginPasswordField.getText() : "";
+  }
+
+  private String mapAuthError(Throwable error, String fallbackMessage) {
+    if (error == null) {
+      return fallbackMessage;
+    }
+
+    String message = error.getMessage() != null ? error.getMessage() : fallbackMessage;
+    String normalized = message.toLowerCase();
+    if (normalized.contains("network connection to firebase was interrupted")) {
+      return message + " Automatic retry attempts were made.";
+    }
+    return message;
   }
 
   /**
@@ -251,8 +341,7 @@ public class AuthController {
       return false;
     }
     // RFC 5322 compliant email regex pattern
-    String emailRegex =
-        "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$";
+    String emailRegex = "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$";
     return email.matches(emailRegex)
         && email.contains(".")
         && email.indexOf("@") < email.lastIndexOf(".");

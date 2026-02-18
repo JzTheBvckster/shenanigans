@@ -5,34 +5,38 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import javax.net.ssl.SSLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Firebase Authentication REST API client. Handles client-side authentication operations (sign in,
+ * Firebase Authentication REST API client. Handles client-side authentication
+ * operations (sign in,
  * sign up, password reset).
  *
- * <p>This uses Firebase's Identity Toolkit REST API since the Admin SDK doesn't support client-side
+ * <p>
+ * This uses Firebase's Identity Toolkit REST API since the Admin SDK doesn't
+ * support client-side
  * email/password authentication.
  *
- * @see <a href="https://firebase.google.com/docs/reference/rest/auth">Firebase Auth REST API</a>
+ * @see <a href="https://firebase.google.com/docs/reference/rest/auth">Firebase
+ *      Auth REST API</a>
  */
 public class FirebaseAuthClient {
 
   private static final Logger LOGGER = Logger.getLogger(FirebaseAuthClient.class.getName());
 
-  private static final String SIGN_UP_URL =
-      "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=";
-  private static final String SIGN_IN_URL =
-      "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=";
-  private static final String PASSWORD_RESET_URL =
-      "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=";
-  private static final String GET_USER_DATA_URL =
-      "https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=";
-  private static final String UPDATE_PROFILE_URL =
-      "https://identitytoolkit.googleapis.com/v1/accounts:update?key=";
+  private static final String SIGN_UP_URL = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=";
+  private static final String SIGN_IN_URL = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=";
+  private static final String PASSWORD_RESET_URL = "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=";
+  private static final String GET_USER_DATA_URL = "https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=";
+  private static final String UPDATE_PROFILE_URL = "https://identitytoolkit.googleapis.com/v1/accounts:update?key=";
+  private static final int MAX_NETWORK_RETRIES = 2;
+  private static final long RETRY_DELAY_MILLIS = 400L;
 
   private final String apiKey;
 
@@ -41,46 +45,42 @@ public class FirebaseAuthClient {
   }
 
   public AuthResponse signUp(String email, String password) throws FirebaseAuthException {
-    String payload =
-        String.format(
-            "{\"email\":\"%s\",\"password\":\"%s\",\"returnSecureToken\":true}",
-            escapeJson(email), escapeJson(password));
+    String payload = String.format(
+        "{\"email\":\"%s\",\"password\":\"%s\",\"returnSecureToken\":true}",
+        escapeJson(email), escapeJson(password));
 
     return executeAuthRequest(SIGN_UP_URL + apiKey, payload);
   }
 
   public AuthResponse signIn(String email, String password) throws FirebaseAuthException {
-    String payload =
-        String.format(
-            "{\"email\":\"%s\",\"password\":\"%s\",\"returnSecureToken\":true}",
-            escapeJson(email), escapeJson(password));
+    String payload = String.format(
+        "{\"email\":\"%s\",\"password\":\"%s\",\"returnSecureToken\":true}",
+        escapeJson(email), escapeJson(password));
 
     return executeAuthRequest(SIGN_IN_URL + apiKey, payload);
   }
 
   public void sendPasswordResetEmail(String email) throws FirebaseAuthException {
-    String payload =
-        String.format("{\"requestType\":\"PASSWORD_RESET\",\"email\":\"%s\"}", escapeJson(email));
+    String payload = String.format("{\"requestType\":\"PASSWORD_RESET\",\"email\":\"%s\"}", escapeJson(email));
 
     try {
-      String response = sendPostRequest(PASSWORD_RESET_URL + apiKey, payload);
+      sendPostRequestWithRetry(PASSWORD_RESET_URL + apiKey, payload);
       LOGGER.info("Password reset email sent to: " + email);
     } catch (IOException e) {
-      throw new FirebaseAuthException("Failed to send password reset email", e);
+      throw new FirebaseAuthException(mapNetworkErrorMessage(e), e);
     }
   }
 
   public void updateProfile(String idToken, String displayName) throws FirebaseAuthException {
-    String payload =
-        String.format(
-            "{\"idToken\":\"%s\",\"displayName\":\"%s\",\"returnSecureToken\":true}",
-            escapeJson(idToken), escapeJson(displayName));
+    String payload = String.format(
+        "{\"idToken\":\"%s\",\"displayName\":\"%s\",\"returnSecureToken\":true}",
+        escapeJson(idToken), escapeJson(displayName));
 
     try {
-      sendPostRequest(UPDATE_PROFILE_URL + apiKey, payload);
+      sendPostRequestWithRetry(UPDATE_PROFILE_URL + apiKey, payload);
       LOGGER.info("Profile updated successfully");
     } catch (IOException e) {
-      throw new FirebaseAuthException("Failed to update profile", e);
+      throw new FirebaseAuthException(mapNetworkErrorMessage(e), e);
     }
   }
 
@@ -88,19 +88,46 @@ public class FirebaseAuthClient {
     String payload = String.format("{\"idToken\":\"%s\"}", escapeJson(idToken));
 
     try {
-      return sendPostRequest(GET_USER_DATA_URL + apiKey, payload);
+      return sendPostRequestWithRetry(GET_USER_DATA_URL + apiKey, payload);
     } catch (IOException e) {
-      throw new FirebaseAuthException("Failed to get user data", e);
+      throw new FirebaseAuthException(mapNetworkErrorMessage(e), e);
     }
   }
 
   private AuthResponse executeAuthRequest(String url, String payload) throws FirebaseAuthException {
     try {
-      String response = sendPostRequest(url, payload);
+      String response = sendPostRequestWithRetry(url, payload);
       return parseAuthResponse(response);
     } catch (IOException e) {
-      throw new FirebaseAuthException("Authentication request failed", e);
+      throw new FirebaseAuthException(mapNetworkErrorMessage(e), e);
     }
+  }
+
+  private String sendPostRequestWithRetry(String urlString, String payload)
+      throws IOException, FirebaseAuthException {
+    IOException lastException = null;
+    for (int attempt = 1; attempt <= MAX_NETWORK_RETRIES + 1; attempt++) {
+      try {
+        return sendPostRequest(urlString, payload);
+      } catch (IOException ioException) {
+        lastException = ioException;
+        if (!isTransientNetworkError(ioException) || attempt > MAX_NETWORK_RETRIES) {
+          break;
+        }
+
+        LOGGER.log(
+            Level.WARNING,
+            "Transient network error during Firebase auth call, retrying (attempt "
+                + (attempt + 1)
+                + "/"
+                + (MAX_NETWORK_RETRIES + 1)
+                + ")",
+            ioException);
+        sleepQuietly(RETRY_DELAY_MILLIS * attempt);
+      }
+    }
+
+    throw lastException;
   }
 
   private String sendPostRequest(String urlString, String payload)
@@ -111,7 +138,10 @@ public class FirebaseAuthClient {
     try {
       conn.setRequestMethod("POST");
       conn.setRequestProperty("Content-Type", "application/json");
+      conn.setRequestProperty("Accept", "application/json");
+      conn.setRequestProperty("Connection", "close");
       conn.setDoOutput(true);
+      conn.setUseCaches(false);
       conn.setConnectTimeout(10000);
       conn.setReadTimeout(10000);
 
@@ -134,8 +164,8 @@ public class FirebaseAuthClient {
 
   private String readResponse(HttpURLConnection conn) throws IOException {
     StringBuilder response = new StringBuilder();
-    try (BufferedReader reader =
-        new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+    try (BufferedReader reader = new BufferedReader(
+        new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
       String line;
       while ((line = reader.readLine()) != null) {
         response.append(line);
@@ -145,8 +175,8 @@ public class FirebaseAuthClient {
   }
 
   private String readErrorResponse(HttpURLConnection conn) {
-    try (BufferedReader reader =
-        new BufferedReader(new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8))) {
+    try (BufferedReader reader = new BufferedReader(
+        new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8))) {
       StringBuilder response = new StringBuilder();
       String line;
       while ((line = reader.readLine()) != null) {
@@ -203,7 +233,8 @@ public class FirebaseAuthClient {
   private String extractJsonValue(String json, String key) {
     String searchKey = "\"" + key + "\":";
     int keyIndex = json.indexOf(searchKey);
-    if (keyIndex == -1) return null;
+    if (keyIndex == -1)
+      return null;
 
     int valueStart = keyIndex + searchKey.length();
     // Skip whitespace
@@ -211,13 +242,15 @@ public class FirebaseAuthClient {
       valueStart++;
     }
 
-    if (valueStart >= json.length()) return null;
+    if (valueStart >= json.length())
+      return null;
 
     char firstChar = json.charAt(valueStart);
     if (firstChar == '"') {
       // String value
       int valueEnd = json.indexOf('"', valueStart + 1);
-      if (valueEnd == -1) return null;
+      if (valueEnd == -1)
+        return null;
       return json.substring(valueStart + 1, valueEnd);
     } else {
       // Number or boolean
@@ -233,13 +266,49 @@ public class FirebaseAuthClient {
   }
 
   private String escapeJson(String value) {
-    if (value == null) return "";
+    if (value == null)
+      return "";
     return value
         .replace("\\", "\\\\")
         .replace("\"", "\\\"")
         .replace("\n", "\\n")
         .replace("\r", "\\r")
         .replace("\t", "\\t");
+  }
+
+  private boolean isTransientNetworkError(IOException exception) {
+    if (exception instanceof SocketTimeoutException
+        || exception instanceof SocketException
+        || exception instanceof SSLException) {
+      return true;
+    }
+
+    String message = exception.getMessage();
+    if (message == null) {
+      return false;
+    }
+
+    String normalized = message.toLowerCase();
+    return normalized.contains("connection reset")
+        || normalized.contains("timed out")
+        || normalized.contains("broken pipe")
+        || normalized.contains("remote host terminated")
+        || normalized.contains("connection aborted");
+  }
+
+  private String mapNetworkErrorMessage(IOException exception) {
+    if (isTransientNetworkError(exception)) {
+      return "Network connection to Firebase was interrupted. Please check your internet and try again.";
+    }
+    return "Authentication request failed due to a network error.";
+  }
+
+  private void sleepQuietly(long delayMillis) {
+    try {
+      Thread.sleep(delayMillis);
+    } catch (InterruptedException interruptedException) {
+      Thread.currentThread().interrupt();
+    }
   }
 
   /** Response from Firebase authentication operations. */

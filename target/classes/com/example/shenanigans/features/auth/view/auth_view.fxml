@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
@@ -41,7 +41,13 @@
             </VBox>
             <VBox spacing="6">
               <Label styleClass="field-label" text="PASSWORD"/>
-              <PasswordField fx:id="loginPasswordField" promptText="Enter your password" styleClass="auth-field"/>
+              <HBox alignment="CENTER_LEFT" spacing="8">
+                <StackPane HBox.hgrow="ALWAYS">
+                  <PasswordField fx:id="loginPasswordField" promptText="Enter your password" styleClass="auth-field"/>
+                  <TextField fx:id="loginPasswordVisibleField" managed="false" promptText="Enter your password" styleClass="auth-field" visible="false"/>
+                </StackPane>
+                <Button fx:id="loginPasswordToggleButton" mnemonicParsing="false" onAction="#handleToggleLoginPassword" styleClass="password-toggle-button" text="Show"/>
+              </HBox>
             </VBox>
             <HBox alignment="CENTER_RIGHT">
               <Hyperlink fx:id="forgotPasswordLink" onAction="#showForgotPasswordPane" text="Forgot password?"/>

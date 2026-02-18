@@ -12,13 +12,15 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
@@ -30,13 +32,17 @@ import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.SVGPath;
 import javafx.stage.FileChooser;
 
 /** Controller for the finance view. */
 public class FinanceController {
 
     private static final Logger LOGGER = Logger.getLogger(FinanceController.class.getName());
+    private static final DateTimeFormatter INVOICE_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM d, yyyy")
+            .withZone(ZoneId.systemDefault());
 
     private final FinanceService financeService = new FinanceService();
 
@@ -281,18 +287,41 @@ public class FinanceController {
 
     private HBox createInvoiceCard(Invoice inv) {
         HBox root = new HBox();
-        root.getStyleClass().add("invoice-row");
+        root.getStyleClass().addAll("invoice-row", "invoice-card");
         root.setSpacing(12);
-        root.setPadding(new Insets(10));
         root.setAlignment(Pos.CENTER_LEFT);
 
         VBox left = new VBox();
         left.setSpacing(4);
+        left.getStyleClass().add("invoice-main");
+
         Label id = new Label(inv.getId());
-        id.getStyleClass().add("view-title");
+        id.getStyleClass().add("invoice-id");
+
         Label client = new Label(inv.getClient());
-        client.setStyle("-fx-text-fill: #64748b; -fx-font-size: 12px;");
-        left.getChildren().addAll(id, client);
+        client.getStyleClass().add("invoice-client");
+
+        HBox issuedMeta = new HBox();
+        issuedMeta.setSpacing(4);
+        issuedMeta.setAlignment(Pos.CENTER_LEFT);
+        issuedMeta.getStyleClass().add("invoice-issued-row");
+
+        StackPane issuedIconContainer = new StackPane();
+        issuedIconContainer.getStyleClass().add("invoice-issued-icon-container");
+
+        SVGPath issuedIcon = new SVGPath();
+        issuedIcon
+                .setContent(
+                        "M4 2h2v2h4V2h2v2h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2V2zm10 6H4v6h10V8z");
+        issuedIcon.getStyleClass().add("invoice-issued-svg");
+        issuedIconContainer.getChildren().add(issuedIcon);
+
+        Label issuedDate = new Label(formatIssuedDate(inv.getIssuedAt()));
+        issuedDate.getStyleClass().add("invoice-issued");
+
+        issuedMeta.getChildren().addAll(issuedIconContainer, issuedDate);
+
+        left.getChildren().addAll(id, client, issuedMeta);
 
         javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -300,18 +329,18 @@ public class FinanceController {
         VBox right = new VBox();
         right.setSpacing(6);
         right.setAlignment(Pos.CENTER_RIGHT);
+        right.getStyleClass().add("invoice-meta");
 
         Label amount = new Label("$" + String.format("%.2f", inv.getAmount()));
-        amount.getStyleClass().add("stat-value");
+        amount.getStyleClass().add("invoice-amount");
 
         Label status = new Label(inv.isPaid() ? "PAID" : "OUTSTANDING");
-        status.setStyle(
-                inv.isPaid()
-                        ? "-fx-text-fill: #10b981; -fx-font-weight: 700;"
-                        : "-fx-text-fill: #ef4444; -fx-font-weight: 700;");
+        status.getStyleClass().add("invoice-status-badge");
+        applyStatusStyle(status, inv.isPaid());
 
         HBox actions = new HBox();
         actions.setSpacing(8);
+        actions.getStyleClass().add("invoice-actions");
 
         Button togglePaid = new Button(inv.isPaid() ? "Mark Unpaid" : "Mark Paid");
         togglePaid.getStyleClass().add("invoice-toggle-button");
@@ -319,10 +348,7 @@ public class FinanceController {
                 e -> {
                     inv.setPaid(!inv.isPaid());
                     status.setText(inv.isPaid() ? "PAID" : "OUTSTANDING");
-                    status.setStyle(
-                            inv.isPaid()
-                                    ? "-fx-text-fill: #10b981; -fx-font-weight: 700;"
-                                    : "-fx-text-fill: #ef4444; -fx-font-weight: 700;");
+                    applyStatusStyle(status, inv.isPaid());
                     togglePaid.setText(inv.isPaid() ? "Mark Unpaid" : "Mark Paid");
 
                     // Move card between kanban columns on status change
@@ -371,6 +397,18 @@ public class FinanceController {
 
         root.getChildren().addAll(left, spacer, right);
         return root;
+    }
+
+    private void applyStatusStyle(Label statusLabel, boolean paid) {
+        statusLabel.getStyleClass().removeAll("invoice-status-paid", "invoice-status-outstanding");
+        statusLabel.getStyleClass().add(paid ? "invoice-status-paid" : "invoice-status-outstanding");
+    }
+
+    private String formatIssuedDate(long issuedAtEpochMillis) {
+        if (issuedAtEpochMillis <= 0) {
+            return "Issued: N/A";
+        }
+        return "Issued: " + INVOICE_DATE_FORMATTER.format(Instant.ofEpochMilli(issuedAtEpochMillis));
     }
 
     private void redirectToLogin() {

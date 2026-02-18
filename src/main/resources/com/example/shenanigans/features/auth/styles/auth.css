@@ -87,6 +87,28 @@
     -fx-border-color: transparent;
 }
 
+.password-toggle-button {
+    -fx-background-color: #eef2ff;
+    -fx-border-color: #c7d2fe;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-text-fill: #4f46e5;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 8px 10px;
+    -fx-cursor: hand;
+}
+
+.password-toggle-button:hover {
+    -fx-background-color: #e0e7ff;
+    -fx-border-color: #a5b4fc;
+}
+
+.password-toggle-button:pressed {
+    -fx-background-color: #c7d2fe;
+}
+
 /* ===== Gradient Primary Button ===== */
 .primary-button {
     -fx-background-color: linear-gradient(to right, #667eea, #764ba2);

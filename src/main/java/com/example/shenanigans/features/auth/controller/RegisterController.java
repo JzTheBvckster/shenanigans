@@ -12,7 +12,10 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 
-/** Controller for the registration view. Handles user registration UI interactions. */
+/**
+ * Controller for the registration view. Handles user registration UI
+ * interactions.
+ */
 public class RegisterController {
 
   private static final Logger LOGGER = Logger.getLogger(RegisterController.class.getName());
@@ -21,24 +24,46 @@ public class RegisterController {
   private final AuthService authService = new AuthService();
 
   // FXML Components - Register
-  @FXML private VBox registerPane;
-  @FXML private TextField registerEmailField;
-  @FXML private PasswordField registerPasswordField;
-  @FXML private PasswordField confirmPasswordField;
-  @FXML private TextField displayNameField;
-  @FXML private ComboBox<String> roleComboBox;
-  @FXML private Button registerButton;
-  @FXML private Hyperlink backToLoginLink;
+  @FXML
+  private VBox registerPane;
+  @FXML
+  private TextField registerEmailField;
+  @FXML
+  private PasswordField registerPasswordField;
+  @FXML
+  private TextField registerPasswordVisibleField;
+  @FXML
+  private Button registerPasswordToggleButton;
+  @FXML
+  private PasswordField confirmPasswordField;
+  @FXML
+  private TextField confirmPasswordVisibleField;
+  @FXML
+  private Button confirmPasswordToggleButton;
+  @FXML
+  private TextField displayNameField;
+  @FXML
+  private ComboBox<String> roleComboBox;
+  @FXML
+  private Button registerButton;
+  @FXML
+  private Hyperlink backToLoginLink;
 
   // FXML Components - Common
-  @FXML private Label statusLabel;
-  @FXML private ProgressIndicator loadingIndicator;
+  @FXML
+  private Label statusLabel;
+  @FXML
+  private ProgressIndicator loadingIndicator;
 
   // FXML Components - Field Error Labels
-  @FXML private Label nameErrorLabel;
-  @FXML private Label emailErrorLabel;
-  @FXML private Label passwordErrorLabel;
-  @FXML private Label confirmPasswordErrorLabel;
+  @FXML
+  private Label nameErrorLabel;
+  @FXML
+  private Label emailErrorLabel;
+  @FXML
+  private Label passwordErrorLabel;
+  @FXML
+  private Label confirmPasswordErrorLabel;
 
   /** Called automatically after FXML is loaded. */
   @FXML
@@ -57,6 +82,8 @@ public class RegisterController {
     // Clear status initially
     clearStatus();
 
+    initializePasswordVisibilityToggles();
+
     // Setup real-time validation listeners
     setupValidationListeners();
 
@@ -64,7 +91,8 @@ public class RegisterController {
   }
 
   /**
-   * Sets up real-time validation listeners for form fields. Validates when user finishes typing (on
+   * Sets up real-time validation listeners for form fields. Validates when user
+   * finishes typing (on
    * focus lost).
    */
   private void setupValidationListeners() {
@@ -165,7 +193,7 @@ public class RegisterController {
    * @return true if valid
    */
   private boolean validatePasswordField() {
-    String password = registerPasswordField.getText();
+    String password = getRegisterPassword();
     if (password.isEmpty()) {
       showFieldError(registerPasswordField, passwordErrorLabel, "Password is required");
       return false;
@@ -186,8 +214,8 @@ public class RegisterController {
    * @return true if valid
    */
   private boolean validateConfirmPasswordField() {
-    String password = registerPasswordField.getText();
-    String confirmPassword = confirmPasswordField.getText();
+    String password = getRegisterPassword();
+    String confirmPassword = getConfirmPassword();
     if (confirmPassword.isEmpty()) {
       showFieldError(
           confirmPasswordField, confirmPasswordErrorLabel, "Please confirm your password");
@@ -232,7 +260,7 @@ public class RegisterController {
   private void handleRegister() {
     String displayName = displayNameField.getText().trim();
     String email = registerEmailField.getText().trim();
-    String password = registerPasswordField.getText();
+    String password = getRegisterPassword();
     String selectedRole = roleComboBox.getValue();
 
     // Run all validations
@@ -253,13 +281,12 @@ public class RegisterController {
     }
 
     // Convert display role to system role
-    String role =
-        switch (selectedRole) {
-          case "Employee" -> "EMPLOYEE";
-          case "Project Manager" -> "PROJECT_MANAGER";
-          case "Managing Director" -> "MANAGING_DIRECTOR";
-          default -> "EMPLOYEE";
-        };
+    String role = switch (selectedRole) {
+      case "Employee" -> "EMPLOYEE";
+      case "Project Manager" -> "PROJECT_MANAGER";
+      case "Managing Director" -> "MANAGING_DIRECTOR";
+      default -> "EMPLOYEE";
+    };
 
     setLoading(true);
     showStatus("Creating account...", false);
@@ -267,34 +294,32 @@ public class RegisterController {
     Task<User> signUpTask = authService.signUp(email, password, displayName, role);
 
     signUpTask.setOnSucceeded(
-        event ->
-            Platform.runLater(
-                () -> {
-                  setLoading(false);
-                  User user = signUpTask.getValue();
-                  LOGGER.info("User registered: " + user.getEmail());
+        event -> Platform.runLater(
+            () -> {
+              setLoading(false);
+              User user = signUpTask.getValue();
+              LOGGER.info("User registered: " + user.getEmail());
 
-                  // Auto-login after successful registration
-                  onRegistrationSuccess(user);
-                }));
+              // Auto-login after successful registration
+              onRegistrationSuccess(user);
+            }));
 
     signUpTask.setOnFailed(
-        event ->
-            Platform.runLater(
-                () -> {
-                  setLoading(false);
-                  Throwable error = signUpTask.getException();
-                  String message =
-                      error.getMessage() != null ? error.getMessage() : "Registration failed";
-                  showStatus(message, true);
-                  LOGGER.log(Level.SEVERE, "Registration failed", error);
-                }));
+        event -> Platform.runLater(
+            () -> {
+              setLoading(false);
+              Throwable error = signUpTask.getException();
+              String message = error.getMessage() != null ? error.getMessage() : "Registration failed";
+              showStatus(message, true);
+              LOGGER.log(Level.SEVERE, "Registration failed", error);
+            }));
 
     new Thread(signUpTask).start();
   }
 
   /**
-   * Called when registration is successful. Stores session and navigates to dashboard.
+   * Called when registration is successful. Stores session and navigates to
+   * dashboard.
    *
    * @param user The newly registered user
    */
@@ -303,7 +328,7 @@ public class RegisterController {
     SessionManager.getInstance()
         .setSession(
             user, authService.getCurrentIdToken(), null // Refresh token handling can be added later
-            );
+        );
 
     LOGGER.info(
         "Registration successful for: " + user.getDisplayName() + " (" + user.getRole() + ")");
@@ -386,12 +411,106 @@ public class RegisterController {
     if (registerPasswordField != null) {
       registerPasswordField.setDisable(loading);
     }
+    if (registerPasswordVisibleField != null) {
+      registerPasswordVisibleField.setDisable(loading);
+    }
+    if (registerPasswordToggleButton != null) {
+      registerPasswordToggleButton.setDisable(loading);
+    }
     if (confirmPasswordField != null) {
       confirmPasswordField.setDisable(loading);
+    }
+    if (confirmPasswordVisibleField != null) {
+      confirmPasswordVisibleField.setDisable(loading);
+    }
+    if (confirmPasswordToggleButton != null) {
+      confirmPasswordToggleButton.setDisable(loading);
     }
     if (roleComboBox != null) {
       roleComboBox.setDisable(loading);
     }
+  }
+
+  private void initializePasswordVisibilityToggles() {
+    setupPasswordToggle(
+        registerPasswordField, registerPasswordVisibleField, registerPasswordToggleButton);
+    setupPasswordToggle(confirmPasswordField, confirmPasswordVisibleField, confirmPasswordToggleButton);
+  }
+
+  private void setupPasswordToggle(
+      PasswordField obscuredField, TextField visibleField, Button toggleButton) {
+    if (obscuredField == null || visibleField == null) {
+      return;
+    }
+
+    visibleField.setManaged(false);
+    visibleField.setVisible(false);
+    obscuredField.setManaged(true);
+    obscuredField.setVisible(true);
+
+    obscuredField
+        .textProperty()
+        .addListener(
+            (obs, oldValue, newValue) -> {
+              if (!newValue.equals(visibleField.getText())) {
+                visibleField.setText(newValue);
+              }
+            });
+    visibleField
+        .textProperty()
+        .addListener(
+            (obs, oldValue, newValue) -> {
+              if (!newValue.equals(obscuredField.getText())) {
+                obscuredField.setText(newValue);
+              }
+            });
+
+    if (toggleButton != null) {
+      toggleButton.setText("Show");
+    }
+  }
+
+  @FXML
+  private void handleToggleRegisterPassword() {
+    togglePasswordVisibility(
+        registerPasswordField, registerPasswordVisibleField, registerPasswordToggleButton);
+  }
+
+  @FXML
+  private void handleToggleConfirmPassword() {
+    togglePasswordVisibility(
+        confirmPasswordField, confirmPasswordVisibleField, confirmPasswordToggleButton);
+  }
+
+  private void togglePasswordVisibility(
+      PasswordField obscuredField, TextField visibleField, Button toggleButton) {
+    if (obscuredField == null || visibleField == null) {
+      return;
+    }
+
+    boolean currentlyObscured = obscuredField.isVisible();
+    obscuredField.setVisible(!currentlyObscured);
+    obscuredField.setManaged(!currentlyObscured);
+    visibleField.setVisible(currentlyObscured);
+    visibleField.setManaged(currentlyObscured);
+
+    if (toggleButton != null) {
+      toggleButton.setText(currentlyObscured ? "Hide" : "Show");
+    }
+  }
+
+  private String getRegisterPassword() {
+    if (registerPasswordVisibleField != null && registerPasswordVisibleField.isVisible()) {
+      return registerPasswordVisibleField.getText();
+    }
+    return registerPasswordField != null ? registerPasswordField.getText() : "";
+  }
+
+  private String getConfirmPassword() {
+    if (confirmPasswordVisibleField != null && confirmPasswordVisibleField.isVisible()) {
+      return confirmPasswordVisibleField.getText();
+    }
+    return confirmPasswordField != null ? confirmPasswordField.getText() : "";
   }
 
   /**
@@ -405,16 +524,17 @@ public class RegisterController {
       return false;
     }
     // RFC 5322 compliant email regex pattern
-    String emailRegex =
-        "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$";
+    String emailRegex = "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$";
     return email.matches(emailRegex)
         && email.contains(".")
         && email.indexOf("@") < email.lastIndexOf(".");
   }
 
   /**
-   * Validates password strength according to modern security standards. Requirements: - Minimum 8
-   * characters - At least one uppercase letter - At least one lowercase letter - At least one digit
+   * Validates password strength according to modern security standards.
+   * Requirements: - Minimum 8
+   * characters - At least one uppercase letter - At least one lowercase letter -
+   * At least one digit
    * - At least one special character
    *
    * @param password The password to validate
