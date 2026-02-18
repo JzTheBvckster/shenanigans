@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
-
+<?xml version="1.0" encoding="utf-8"?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
@@ -12,92 +11,89 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.Circle?>
-
 <BorderPane styleClass="project-root" stylesheets="@../styles/project.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.shenanigans.features.projects.controller.ProjectController">
   <!-- Modern Header -->
   <top>
     <VBox styleClass="header-container">
       <HBox alignment="CENTER_LEFT" spacing="16" styleClass="header">
         <padding>
-          <Insets bottom="16" left="24" right="24" top="16"/>
+          <Insets bottom="16" left="24" right="24" top="16" />
         </padding>
         <!-- Logo/Brand -->
         <HBox alignment="CENTER_LEFT" spacing="12">
           <StackPane styleClass="logo-container">
-            <Circle radius="20" styleClass="logo-circle"/>
-            <Label styleClass="logo-letter" text="S"/>
+            <Circle radius="20" styleClass="logo-circle" />
+            <Label styleClass="logo-letter" text="S" />
           </StackPane>
           <VBox spacing="2">
-            <Label styleClass="app-title" text="Shenanigans"/>
-            <Label styleClass="app-subtitle" text="Project Management"/>
+            <Label styleClass="app-title" text="Shenanigans" />
+            <Label styleClass="app-subtitle" text="Project Management" />
           </VBox>
         </HBox>
-        <Region HBox.hgrow="ALWAYS"/>
+        <Region HBox.hgrow="ALWAYS" />
         <!-- Search -->
         <HBox alignment="CENTER_LEFT" spacing="8" styleClass="header-search-container">
-          <Label styleClass="search-icon" text="🔍"/>
-          <TextField fx:id="searchField" prefWidth="250" promptText="Search projects..." styleClass="header-search-field"/>
+          <Label styleClass="search-icon" text="🔍" />
+          <TextField fx:id="searchField" prefWidth="250" promptText="Search projects..." styleClass="header-search-field" />
         </HBox>
         <!-- Actions -->
-        <Button fx:id="refreshButton" onAction="#loadProjects" styleClass="header-icon-button" text="↻"/>
-        <Button fx:id="addButton" onAction="#handleAddProject" styleClass="header-primary-button" text="+ New Project"/>
+        <Button fx:id="refreshButton" onAction="#loadProjects" styleClass="header-icon-button" text="↻" />
+        <Button fx:id="addButton" onAction="#handleAddProject" styleClass="header-primary-button" text="+ New Project" />
         <!-- Loading and Status -->
         <HBox alignment="CENTER" spacing="12">
-          <ProgressIndicator fx:id="loadingIndicator" maxHeight="20" maxWidth="20" visible="false"/>
-          <Label fx:id="statusLabel" styleClass="status-label" text=""/>
+          <ProgressIndicator fx:id="loadingIndicator" maxHeight="20" maxWidth="20" visible="false" />
+          <Label fx:id="statusLabel" styleClass="status-label" text="" />
         </HBox>
       </HBox>
     </VBox>
   </top>
-
   <!-- Sidebar -->
   <left>
     <VBox fx:id="sidebarContent" spacing="8" styleClass="sidebar">
       <padding>
-        <Insets bottom="24" left="20" right="20" top="12"/>
+        <Insets bottom="24" left="20" right="20" top="12" />
       </padding>
       <!-- Sidebar Toggle (match dashboard) -->
       <HBox alignment="CENTER" spacing="0" style="-fx-padding:0 0 8 0;">
         <children>
-          <Button fx:id="sidebarToggleButton" ellipsisString="+" mnemonicParsing="false" onAction="#handleSidebarToggle" prefHeight="28.0" prefWidth="239.0" styleClass="sidebar-toggle-button,sidebar-toggle-large" text="collapse"/>
+          <Button fx:id="sidebarToggleButton" ellipsisString="+" mnemonicParsing="false" onAction="#handleSidebarToggle" prefHeight="28.0" prefWidth="239.0" styleClass="sidebar-toggle-button,sidebar-toggle-large" text="collapse" />
         </children>
       </HBox>
       <!-- Navigation Section -->
-      <Label fx:id="menuHeaderLabel" styleClass="menu-header" text="MAIN MENU"/>
+      <Label fx:id="menuHeaderLabel" styleClass="menu-header" text="MAIN MENU" />
       <VBox fx:id="mainMenuSection" spacing="6" styleClass="menu-section">
-        <Button fx:id="dashboardButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleDashboard" styleClass="menu-button" text="🏠 Dashboard"/>
-        <Button fx:id="employeesButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleEmployees" styleClass="menu-button" text="👥 Employees"/>
-        <Button fx:id="projectsButton" graphicTextGap="14" maxWidth="Infinity" styleClass="menu-button,menu-button-active" text="📋 Projects"/>
-        <Button fx:id="financeButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleFinance" styleClass="menu-button" text="💰 Finance"/>
+        <Button fx:id="dashboardButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleDashboard" styleClass="menu-button" text="🏠 Dashboard" />
+        <Button fx:id="employeesButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleEmployees" styleClass="menu-button" text="👥 Employees" />
+        <Button fx:id="projectsButton" graphicTextGap="14" maxWidth="Infinity" styleClass="menu-button,menu-button-active" text="📋 Projects" />
+        <Button fx:id="financeButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleFinance" styleClass="menu-button" text="💰 Finance" />
       </VBox>
-      <Region prefHeight="20"/>
-      <Label fx:id="settingsHeaderLabel" styleClass="menu-header" text="SETTINGS"/>
+      <Region prefHeight="20" />
+      <Label fx:id="settingsHeaderLabel" styleClass="menu-header" text="SETTINGS" />
       <VBox fx:id="settingsSection" spacing="6">
         <Button fx:id="settingsButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleSettings" styleClass="menu-button,menu-button-secondary" text="Settings">
           <graphic>
-            <Label styleClass="menu-icon" text="⚙️"/>
+            <Label styleClass="menu-icon" text="⚙️" />
           </graphic>
         </Button>
       </VBox>
-      <Region VBox.vgrow="ALWAYS"/>
+      <Region VBox.vgrow="ALWAYS" />
       <!-- System Info -->
       <VBox fx:id="systemInfoCard" spacing="8" styleClass="system-info-card">
-        <Label fx:id="systemInfoTitle" styleClass="system-info-title" text="System Status"/>
+        <Label fx:id="systemInfoTitle" styleClass="system-info-title" text="System Status" />
         <HBox alignment="CENTER_LEFT" spacing="8">
-          <StackPane styleClass="status-dot,status-dot-online"/>
-          <Label fx:id="systemInfoText" styleClass="system-info-text" text="All systems operational"/>
+          <StackPane styleClass="status-dot,status-dot-online" />
+          <Label fx:id="systemInfoText" styleClass="system-info-text" text="All systems operational" />
         </HBox>
       </VBox>
-      <Region layoutX="30.0" layoutY="491.0"/>
+      <Region layoutX="30.0" layoutY="491.0" />
     </VBox>
   </left>
-
   <!-- Main Content - Kanban Board -->
   <center>
     <ScrollPane fitToHeight="true" fitToWidth="true" styleClass="content-scroll">
       <VBox spacing="24" styleClass="content-area">
         <padding>
-          <Insets bottom="24" left="24" right="24" top="24"/>
+          <Insets bottom="24" left="24" right="24" top="24" />
         </padding>
         <!-- Kanban Board -->
         <HBox spacing="20" styleClass="kanban-board" VBox.vgrow="ALWAYS">
@@ -106,27 +102,27 @@
             <HBox alignment="CENTER_LEFT" spacing="2.0" styleClass="kanban-column-header,kanban-header,kanban-header-new">
               <Label styleClass="kanban-column-icon" text="✨" textFill="WHITE">
                 <padding>
-                  <Insets left="8.0" top="4.0"/>
+                  <Insets left="8.0" top="4.0" />
                 </padding>
               </Label>
               <Label styleClass="kanban-column-title" text="New / Planning" textFill="#5978eb">
                 <padding>
-                  <Insets left="8.0" top="4.0"/>
+                  <Insets left="8.0" top="4.0" />
                 </padding>
               </Label>
-              <Region HBox.hgrow="ALWAYS"/>
-              <Label fx:id="newColumnCount" styleClass="kanban-column-count" text="0"/>
+              <Region HBox.hgrow="ALWAYS" />
+              <Label fx:id="newColumnCount" styleClass="kanban-column-count" text="0" />
               <VBox.margin>
-                <Insets/>
+                <Insets />
               </VBox.margin>
               <padding>
-                <Insets bottom="8.0" left="8.0" right="8.0" top="8.0"/>
+                <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
               </padding>
             </HBox>
             <ScrollPane fitToWidth="true" styleClass="kanban-scroll" VBox.vgrow="ALWAYS">
               <VBox fx:id="newProjectsContainer" spacing="12" styleClass="kanban-cards-container">
                 <padding>
-                  <Insets bottom="16" left="16" right="16" top="16"/>
+                  <Insets bottom="16" left="16" right="16" top="16" />
                 </padding>
               </VBox>
             </ScrollPane>
@@ -136,27 +132,27 @@
             <HBox alignment="CENTER_LEFT" spacing="2.0" styleClass="kanban-column-header,kanban-header,kanban-header-pending">
               <Label styleClass="kanban-column-icon" text="⏳" textFill="WHITE">
                 <padding>
-                  <Insets left="8.0" top="4.0"/>
+                  <Insets left="8.0" top="4.0" />
                 </padding>
               </Label>
               <Label styleClass="kanban-column-title" text="In Progress" textFill="WHITE">
                 <padding>
-                  <Insets left="8.0" top="4.0"/>
+                  <Insets left="8.0" top="4.0" />
                 </padding>
               </Label>
-              <Region HBox.hgrow="ALWAYS"/>
-              <Label fx:id="pendingColumnCount" styleClass="kanban-column-count" text="0"/>
+              <Region HBox.hgrow="ALWAYS" />
+              <Label fx:id="pendingColumnCount" styleClass="kanban-column-count" text="0" />
               <VBox.margin>
-                <Insets/>
+                <Insets />
               </VBox.margin>
               <padding>
-                <Insets bottom="8.0" left="8.0" right="8.0" top="8.0"/>
+                <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
               </padding>
             </HBox>
             <ScrollPane fitToWidth="true" styleClass="kanban-scroll" VBox.vgrow="ALWAYS">
               <VBox fx:id="pendingProjectsContainer" spacing="12" styleClass="kanban-cards-container">
                 <padding>
-                  <Insets bottom="16" left="16" right="16" top="16"/>
+                  <Insets bottom="16" left="16" right="16" top="16" />
                 </padding>
               </VBox>
             </ScrollPane>
@@ -164,18 +160,18 @@
           <!-- Completed Column -->
           <VBox spacing="0" styleClass="kanban-column" HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT" prefHeight="47.0" prefWidth="350.0" spacing="2.0" styleClass="kanban-column-header,kanban-header,kanban-header-completed">
-              <Label styleClass="kanban-column-icon" text="✓"/>
-              <Label styleClass="kanban-column-title" text="Completed"/>
-              <Region HBox.hgrow="ALWAYS"/>
-              <Label fx:id="completedColumnCount" styleClass="kanban-column-count" text="0"/>
+              <Label styleClass="kanban-column-icon" text="✓" />
+              <Label styleClass="kanban-column-title" text="Completed" />
+              <Region HBox.hgrow="ALWAYS" />
+              <Label fx:id="completedColumnCount" styleClass="kanban-column-count" text="0" />
               <padding>
-                <Insets bottom="8.0" left="8.0" right="8.0" top="8.0"/>
+                <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
               </padding>
             </HBox>
             <ScrollPane fitToWidth="true" styleClass="kanban-scroll" VBox.vgrow="ALWAYS">
               <VBox fx:id="completedProjectsContainer" spacing="12" styleClass="kanban-cards-container">
                 <padding>
-                  <Insets bottom="16" left="16" right="16" top="16"/>
+                  <Insets bottom="16" left="16" right="16" top="16" />
                 </padding>
               </VBox>
             </ScrollPane>
