@@ -12,6 +12,7 @@ import com.example.shenanigans.features.finance.service.FinanceService;
 import com.example.shenanigans.features.projects.model.Project;
 import com.example.shenanigans.features.projects.service.ProjectService;
 import java.text.NumberFormat;
+import java.time.YearMonth;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -20,16 +21,26 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.PieChart;
+import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ProgressIndicator;
@@ -136,6 +147,72 @@ public class DashboardController {
     @FXML
     private VBox activityContainer;
 
+    @FXML
+    private Label portfolioHealthLabel;
+
+    @FXML
+    private Label collectionRateLabel;
+
+    @FXML
+    private Label overdueProjectsLabel;
+
+    @FXML
+    private Label avgProjectProgressLabel;
+
+    @FXML
+    private Label lastSyncLabel;
+
+    @FXML
+    private ProgressBar portfolioProgressBar;
+
+    @FXML
+    private Label onTrackProjectsLabel;
+
+    @FXML
+    private Label atRiskProjectsLabel;
+
+    @FXML
+    private Label openInvoicesLabel;
+
+    @FXML
+    private LineChart<String, Number> revenueTrendChart;
+
+    @FXML
+    private CategoryAxis revenueTrendXAxis;
+
+    @FXML
+    private NumberAxis revenueTrendYAxis;
+
+    @FXML
+    private PieChart projectStatusChart;
+
+    @FXML
+    private ComboBox<String> chartRangeFilter;
+
+    @FXML
+    private ComboBox<String> revenueModeFilter;
+
+    @FXML
+    private Label insightSelectionLabel;
+
+    @FXML
+    private Label insightSummaryLabel;
+
+    @FXML
+    private Label insightRevenueValueLabel;
+
+    @FXML
+    private Label insightInvoiceCountLabel;
+
+    @FXML
+    private Label insightProjectCountLabel;
+
+    @FXML
+    private VBox insightHighlightsContainer;
+
+    private List<Project> latestProjects = List.of();
+    private List<Invoice> latestInvoices = List.of();
+
     /** Called automatically after FXML is loaded. */
     @FXML
     public void initialize() {
@@ -160,6 +237,7 @@ public class DashboardController {
         // Configure menu based on user role
         configureMenuForRole(user);
         initializeSidebarComponent();
+        initializeAnalyticsFilters();
 
         // Load dashboard data
         loadDashboardData();
@@ -222,6 +300,40 @@ public class DashboardController {
         if (revenueLabel != null) {
             revenueLabel.setText(CURRENCY_FORMATTER.format(0));
         }
+        if (portfolioHealthLabel != null) {
+            portfolioHealthLabel.setText("0%");
+        }
+        if (collectionRateLabel != null) {
+            collectionRateLabel.setText("0%");
+        }
+        if (overdueProjectsLabel != null) {
+            overdueProjectsLabel.setText("0");
+        }
+        if (avgProjectProgressLabel != null) {
+            avgProjectProgressLabel.setText("0%");
+        }
+        if (portfolioProgressBar != null) {
+            portfolioProgressBar.setProgress(0);
+        }
+        if (lastSyncLabel != null) {
+            lastSyncLabel.setText("Sync pending");
+        }
+        if (onTrackProjectsLabel != null) {
+            onTrackProjectsLabel.setText("0");
+        }
+        if (atRiskProjectsLabel != null) {
+            atRiskProjectsLabel.setText("0");
+        }
+        if (openInvoicesLabel != null) {
+            openInvoicesLabel.setText("0");
+        }
+        if (revenueTrendChart != null) {
+            revenueTrendChart.getData().clear();
+        }
+        if (projectStatusChart != null) {
+            projectStatusChart.setData(FXCollections.observableArrayList());
+        }
+        resetDrilldownPanel();
         loadProjectsOverview(List.of());
         loadRecentActivity(List.of(), List.of(), List.of());
     }
@@ -230,6 +342,9 @@ public class DashboardController {
         List<Project> projects = safeList(data.projects());
         List<Employee> employees = safeList(data.employees());
         List<Invoice> invoices = safeList(data.invoices());
+
+        latestProjects = projects;
+        latestInvoices = invoices;
 
         if (projectsCountLabel != null) {
             long activeProjects = projects.stream().filter(Objects::nonNull).filter(Project::isActive).count();
@@ -253,8 +368,435 @@ public class DashboardController {
             revenueLabel.setText(CURRENCY_FORMATTER.format(paidRevenue));
         }
 
+        applyModernInsights(projects, invoices);
+        applyAnalyticsCharts(projects, invoices);
+
         loadProjectsOverview(projects);
         loadRecentActivity(projects, employees, invoices);
+    }
+
+    private void applyModernInsights(List<Project> projects, List<Invoice> invoices) {
+        long projectCount = safeList(projects).stream().filter(Objects::nonNull).count();
+        long completedProjects = safeList(projects).stream()
+                .filter(Objects::nonNull)
+                .filter(Project::isCompleted)
+                .count();
+        long overdueProjects = safeList(projects).stream()
+                .filter(Objects::nonNull)
+                .filter(Project::isOverdue)
+                .count();
+
+        int avgProgressPercent = projectCount == 0
+                ? 0
+                : (int) Math.round(
+                        safeList(projects).stream()
+                                .filter(Objects::nonNull)
+                                .mapToInt(Project::getCompletionPercentage)
+                                .average()
+                                .orElse(0));
+
+        double totalInvoiceAmount = safeList(invoices).stream()
+                .filter(Objects::nonNull)
+                .mapToDouble(Invoice::getAmount)
+                .sum();
+        double paidInvoiceAmount = safeList(invoices).stream()
+                .filter(Objects::nonNull)
+                .filter(Invoice::isPaid)
+                .mapToDouble(Invoice::getAmount)
+                .sum();
+        int collectionRate = totalInvoiceAmount <= 0
+                ? 0
+                : (int) Math.round((paidInvoiceAmount / totalInvoiceAmount) * 100);
+
+        int portfolioHealth = projectCount == 0
+                ? 0
+                : (int) Math.round((completedProjects * 100.0) / projectCount);
+
+        if (portfolioHealthLabel != null) {
+            portfolioHealthLabel.setText(portfolioHealth + "%");
+        }
+        if (collectionRateLabel != null) {
+            collectionRateLabel.setText(collectionRate + "%");
+        }
+        if (overdueProjectsLabel != null) {
+            overdueProjectsLabel.setText(String.valueOf(overdueProjects));
+        }
+        if (avgProjectProgressLabel != null) {
+            avgProjectProgressLabel.setText(avgProgressPercent + "%");
+        }
+        if (portfolioProgressBar != null) {
+            portfolioProgressBar.setProgress(Math.max(0, Math.min(1, avgProgressPercent / 100.0)));
+        }
+        if (lastSyncLabel != null) {
+            lastSyncLabel.setText("Synced " + formatRelativeTime(System.currentTimeMillis()));
+        }
+
+        long onTrackProjects = safeList(projects).stream()
+                .filter(Objects::nonNull)
+                .filter(project -> !project.isCompleted())
+                .filter(project -> !project.isOverdue())
+                .count();
+        long atRiskProjects = safeList(projects).stream()
+                .filter(Objects::nonNull)
+                .filter(project -> project.isOverdue() || project.getCompletionPercentage() < 35)
+                .count();
+        long openInvoices = safeList(invoices).stream()
+                .filter(Objects::nonNull)
+                .filter(invoice -> !invoice.isPaid())
+                .count();
+
+        if (onTrackProjectsLabel != null) {
+            onTrackProjectsLabel.setText(String.valueOf(onTrackProjects));
+        }
+        if (atRiskProjectsLabel != null) {
+            atRiskProjectsLabel.setText(String.valueOf(atRiskProjects));
+        }
+        if (openInvoicesLabel != null) {
+            openInvoicesLabel.setText(String.valueOf(openInvoices));
+        }
+    }
+
+    private void applyAnalyticsCharts(List<Project> projects, List<Invoice> invoices) {
+        updateRevenueTrendChart(invoices);
+        updateProjectStatusChart(projects);
+        showOverviewDrilldown(projects, invoices);
+    }
+
+    private void initializeAnalyticsFilters() {
+        if (chartRangeFilter != null) {
+            chartRangeFilter.setItems(FXCollections.observableArrayList("3M", "6M", "12M"));
+            chartRangeFilter.setValue("6M");
+        }
+
+        if (revenueModeFilter != null) {
+            revenueModeFilter.setItems(FXCollections.observableArrayList("Paid", "Total"));
+            revenueModeFilter.setValue("Paid");
+        }
+    }
+
+    @FXML
+    private void handleAnalyticsFilterChange() {
+        applyAnalyticsCharts(safeList(latestProjects), safeList(latestInvoices));
+    }
+
+    private void updateRevenueTrendChart(List<Invoice> invoices) {
+        if (revenueTrendChart == null) {
+            return;
+        }
+
+        Map<YearMonth, Double> monthlyRevenue = new LinkedHashMap<>();
+        YearMonth currentMonth = YearMonth.now();
+        int monthWindow = resolveChartRangeMonths();
+        for (int index = monthWindow - 1; index >= 0; index--) {
+            monthlyRevenue.put(currentMonth.minusMonths(index), 0.0);
+        }
+
+        boolean paidOnly = isPaidRevenueMode();
+        safeList(invoices).stream()
+                .filter(Objects::nonNull)
+                .filter(invoice -> !paidOnly || invoice.isPaid())
+                .filter(invoice -> invoice.getIssuedAt() > 0)
+                .forEach(invoice -> {
+                    YearMonth month = YearMonth
+                            .from(Instant.ofEpochMilli(invoice.getIssuedAt()).atZone(ZoneId.systemDefault()));
+                    if (monthlyRevenue.containsKey(month)) {
+                        monthlyRevenue.put(month, monthlyRevenue.get(month) + Math.max(0, invoice.getAmount()));
+                    }
+                });
+
+        XYChart.Series<String, Number> series = new XYChart.Series<>();
+        monthlyRevenue.forEach(
+                (month, amount) -> {
+                    XYChart.Data<String, Number> point = new XYChart.Data<>(
+                            month.format(DateTimeFormatter.ofPattern("MMM")), amount);
+                    point.setExtraValue(month);
+                    series.getData().add(point);
+                });
+
+        revenueTrendChart.getData().clear();
+        revenueTrendChart.getData().add(series);
+        if (revenueTrendXAxis != null) {
+            revenueTrendXAxis.setLabel("Month");
+        }
+        if (revenueTrendYAxis != null) {
+            revenueTrendYAxis.setLabel(paidOnly ? "Collected Revenue" : "Issued Revenue");
+            revenueTrendYAxis.setForceZeroInRange(true);
+        }
+
+        attachRevenuePointHandlers(series);
+    }
+
+    private int resolveChartRangeMonths() {
+        if (chartRangeFilter == null || chartRangeFilter.getValue() == null) {
+            return 6;
+        }
+
+        return switch (chartRangeFilter.getValue()) {
+            case "3M" -> 3;
+            case "12M" -> 12;
+            default -> 6;
+        };
+    }
+
+    private boolean isPaidRevenueMode() {
+        return revenueModeFilter == null || revenueModeFilter.getValue() == null
+                || "Paid".equalsIgnoreCase(revenueModeFilter.getValue());
+    }
+
+    private void updateProjectStatusChart(List<Project> projects) {
+        if (projectStatusChart == null) {
+            return;
+        }
+
+        Map<String, Integer> statusCounts = new LinkedHashMap<>();
+        statusCounts.put("In Progress", 0);
+        statusCounts.put("Completed", 0);
+        statusCounts.put("Planning", 0);
+        statusCounts.put("At Risk", 0);
+
+        safeList(projects).stream()
+                .filter(Objects::nonNull)
+                .forEach(project -> {
+                    if (project.isOverdue()) {
+                        statusCounts.put("At Risk", statusCounts.get("At Risk") + 1);
+                        return;
+                    }
+
+                    String status = project.getStatus() == null ? "" : project.getStatus().trim();
+                    switch (status) {
+                        case "COMPLETED" -> statusCounts.put("Completed", statusCounts.get("Completed") + 1);
+                        case "IN_PROGRESS" -> statusCounts.put("In Progress", statusCounts.get("In Progress") + 1);
+                        default -> statusCounts.put("Planning", statusCounts.get("Planning") + 1);
+                    }
+                });
+
+        List<PieChart.Data> pieData = new ArrayList<>();
+        statusCounts.forEach((label, value) -> {
+            if (value > 0) {
+                pieData.add(new PieChart.Data(label, value));
+            }
+        });
+
+        if (pieData.isEmpty()) {
+            pieData.add(new PieChart.Data("No Data", 1));
+        }
+
+        projectStatusChart.setData(FXCollections.observableArrayList(pieData));
+        attachProjectStatusHandlers();
+    }
+
+    private void attachRevenuePointHandlers(XYChart.Series<String, Number> series) {
+        Platform.runLater(
+                () -> {
+                    for (XYChart.Data<String, Number> dataPoint : series.getData()) {
+                        Node node = dataPoint.getNode();
+                        if (node == null) {
+                            continue;
+                        }
+
+                        node.setOnMouseClicked(
+                                event -> {
+                                    Object rawMonth = dataPoint.getExtraValue();
+                                    if (rawMonth instanceof YearMonth month) {
+                                        showMonthDrilldown(month);
+                                    }
+                                });
+                    }
+                });
+    }
+
+    private void attachProjectStatusHandlers() {
+        if (projectStatusChart == null) {
+            return;
+        }
+
+        Platform.runLater(
+                () -> {
+                    for (PieChart.Data slice : projectStatusChart.getData()) {
+                        Node node = slice.getNode();
+                        if (node == null) {
+                            continue;
+                        }
+
+                        node.setOnMouseClicked(event -> showStatusDrilldown(slice.getName()));
+                    }
+                });
+    }
+
+    private void showOverviewDrilldown(List<Project> projects, List<Invoice> invoices) {
+        if (insightSelectionLabel != null) {
+            insightSelectionLabel.setText("Overview");
+        }
+
+        double totalRevenue = safeList(invoices).stream()
+                .filter(Objects::nonNull)
+                .mapToDouble(Invoice::getAmount)
+                .sum();
+        int invoiceCount = safeList(invoices).size();
+        int projectCount = safeList(projects).size();
+
+        if (insightSummaryLabel != null) {
+            insightSummaryLabel.setText("Summary of current data scope across projects and invoices.");
+        }
+        if (insightRevenueValueLabel != null) {
+            insightRevenueValueLabel.setText(CURRENCY_FORMATTER.format(totalRevenue));
+        }
+        if (insightInvoiceCountLabel != null) {
+            insightInvoiceCountLabel.setText(String.valueOf(invoiceCount));
+        }
+        if (insightProjectCountLabel != null) {
+            insightProjectCountLabel.setText(String.valueOf(projectCount));
+        }
+
+        setInsightHighlights(
+                List.of(
+                        "• Click a revenue point to inspect that month.",
+                        "• Click a status slice to inspect related projects.",
+                        "• Use range/revenue filters for deeper analysis."));
+    }
+
+    private void showMonthDrilldown(YearMonth month) {
+        List<Invoice> monthInvoices = safeList(latestInvoices).stream()
+                .filter(Objects::nonNull)
+                .filter(invoice -> invoice.getIssuedAt() > 0)
+                .filter(invoice -> YearMonth
+                        .from(Instant.ofEpochMilli(invoice.getIssuedAt()).atZone(ZoneId.systemDefault()))
+                        .equals(month))
+                .toList();
+
+        double monthRevenue = monthInvoices.stream().mapToDouble(Invoice::getAmount).sum();
+        long paidCount = monthInvoices.stream().filter(Invoice::isPaid).count();
+        List<Project> monthProjects = safeList(latestProjects).stream()
+                .filter(Objects::nonNull)
+                .filter(project -> wasProjectActiveInMonth(project, month))
+                .toList();
+
+        if (insightSelectionLabel != null) {
+            insightSelectionLabel.setText(month.format(DateTimeFormatter.ofPattern("MMM yyyy")));
+        }
+        if (insightSummaryLabel != null) {
+            insightSummaryLabel.setText("Monthly breakdown for selected revenue data point.");
+        }
+        if (insightRevenueValueLabel != null) {
+            insightRevenueValueLabel.setText(CURRENCY_FORMATTER.format(monthRevenue));
+        }
+        if (insightInvoiceCountLabel != null) {
+            insightInvoiceCountLabel.setText(monthInvoices.size() + " (" + paidCount + " paid)");
+        }
+        if (insightProjectCountLabel != null) {
+            insightProjectCountLabel.setText(String.valueOf(monthProjects.size()));
+        }
+
+        List<String> highlights = new ArrayList<>();
+        monthInvoices.stream().limit(3).forEach(invoice -> highlights
+                .add("• " + safeInvoiceId(invoice) + " • " + CURRENCY_FORMATTER.format(invoice.getAmount())));
+        if (highlights.isEmpty()) {
+            highlights.add("• No invoice records for this month.");
+        }
+        setInsightHighlights(highlights);
+    }
+
+    private void showStatusDrilldown(String statusLabel) {
+        List<Project> statusProjects = safeList(latestProjects).stream()
+                .filter(Objects::nonNull)
+                .filter(project -> matchesStatusBucket(project, statusLabel))
+                .toList();
+
+        double avgProgress = statusProjects.stream()
+                .mapToInt(Project::getCompletionPercentage)
+                .average()
+                .orElse(0);
+
+        if (insightSelectionLabel != null) {
+            insightSelectionLabel.setText(statusLabel);
+        }
+        if (insightSummaryLabel != null) {
+            insightSummaryLabel.setText("Project segment details for selected status slice.");
+        }
+        if (insightRevenueValueLabel != null) {
+            insightRevenueValueLabel.setText(String.format("Avg %,.0f%%", avgProgress));
+        }
+        if (insightInvoiceCountLabel != null) {
+            insightInvoiceCountLabel.setText("-");
+        }
+        if (insightProjectCountLabel != null) {
+            insightProjectCountLabel.setText(String.valueOf(statusProjects.size()));
+        }
+
+        List<String> highlights = new ArrayList<>();
+        statusProjects.stream().limit(3).forEach(project -> highlights.add("• " + safeProjectName(project)
+                + " • " + project.getCompletionPercentage() + "%"));
+        if (highlights.isEmpty()) {
+            highlights.add("• No projects in this segment.");
+        }
+        setInsightHighlights(highlights);
+    }
+
+    private boolean matchesStatusBucket(Project project, String statusLabel) {
+        return switch (statusLabel) {
+            case "At Risk" -> project.isOverdue();
+            case "Completed" -> project.isCompleted();
+            case "In Progress" -> "IN_PROGRESS".equals(project.getStatus()) && !project.isOverdue();
+            case "Planning" -> !project.isOverdue()
+                    && !project.isCompleted()
+                    && !"IN_PROGRESS".equals(project.getStatus());
+            default -> false;
+        };
+    }
+
+    private boolean wasProjectActiveInMonth(Project project, YearMonth month) {
+        long updatedAt = project.getUpdatedAt() > 0 ? project.getUpdatedAt() : project.getCreatedAt();
+        if (updatedAt <= 0) {
+            return false;
+        }
+        YearMonth projectMonth = YearMonth.from(Instant.ofEpochMilli(updatedAt).atZone(ZoneId.systemDefault()));
+        return projectMonth.equals(month);
+    }
+
+    private void setInsightHighlights(List<String> items) {
+        if (insightHighlightsContainer == null) {
+            return;
+        }
+
+        insightHighlightsContainer.getChildren().clear();
+        for (String item : items) {
+            Label label = new Label(item);
+            label.getStyleClass().add("insight-highlight-item");
+            insightHighlightsContainer.getChildren().add(label);
+        }
+    }
+
+    private String safeInvoiceId(Invoice invoice) {
+        if (invoice.getId() == null || invoice.getId().isBlank()) {
+            return "Invoice";
+        }
+        return invoice.getId();
+    }
+
+    private String safeProjectName(Project project) {
+        if (project.getName() == null || project.getName().isBlank()) {
+            return "Untitled Project";
+        }
+        return project.getName();
+    }
+
+    private void resetDrilldownPanel() {
+        if (insightSelectionLabel != null) {
+            insightSelectionLabel.setText("Overview");
+        }
+        if (insightSummaryLabel != null) {
+            insightSummaryLabel.setText("Select a chart point or pie slice to inspect details.");
+        }
+        if (insightRevenueValueLabel != null) {
+            insightRevenueValueLabel.setText(CURRENCY_FORMATTER.format(0));
+        }
+        if (insightInvoiceCountLabel != null) {
+            insightInvoiceCountLabel.setText("0");
+        }
+        if (insightProjectCountLabel != null) {
+            insightProjectCountLabel.setText("0");
+        }
+        setInsightHighlights(List.of("• Waiting for analytics data..."));
     }
 
     /** Loads projects overview data into the container. */

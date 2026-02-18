@@ -385,8 +385,62 @@
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.08), 20, 0, 0, 4);
 }
 
-.quick-actions-card {
+.insights-card {
     -fx-background-color: linear-gradient(to bottom right, #ffffff, #f8fafc);
+}
+
+.insight-sync-text {
+    -fx-font-size: 11px;
+    -fx-text-fill: #94a3b8;
+    -fx-font-weight: 500;
+}
+
+.insight-row {
+    -fx-padding: 10 12;
+    -fx-background-color: #f8fafc;
+    -fx-background-radius: 10;
+}
+
+.insight-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #64748b;
+    -fx-font-weight: 600;
+}
+
+.insight-value {
+    -fx-font-size: 14px;
+    -fx-text-fill: #1e293b;
+    -fx-font-weight: 700;
+}
+
+.insight-value-risk {
+    -fx-text-fill: #dc2626;
+}
+
+.insight-progress-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #64748b;
+    -fx-font-weight: 600;
+}
+
+.insight-progress-value {
+    -fx-font-size: 13px;
+    -fx-text-fill: #1e293b;
+    -fx-font-weight: 700;
+}
+
+.portfolio-progress-bar {
+    -fx-pref-height: 10;
+}
+
+.portfolio-progress-bar .track {
+    -fx-background-color: #e2e8f0;
+    -fx-background-radius: 5;
+}
+
+.portfolio-progress-bar .bar {
+    -fx-background-color: linear-gradient(to right, #22c55e, #14b8a6);
+    -fx-background-radius: 5;
 }
 
 /* === Section Title === */
@@ -496,23 +550,6 @@
     -fx-text-fill: #94a3b8;
 }
 
-/* === Quick Actions === */
-.action-button {
-    -fx-background-color: linear-gradient(to right, #667eea, #764ba2);
-    -fx-text-fill: white;
-    -fx-font-size: 14px;
-    -fx-font-weight: bold;
-    -fx-padding: 14 20;
-    -fx-background-radius: 10;
-    -fx-cursor: hand;
-    -fx-alignment: CENTER;
-}
-
-.action-button:hover {
-    -fx-background-color: linear-gradient(to right, #5a6fd6, #6a4190);
-    -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.4), 12, 0, 0, 4);
-}
-
 /* === Floating Sidebar Toggle / SVG Icon Styles === */
 .sidebar-toggle-button {
     -fx-background-color: white;
@@ -534,4 +571,170 @@
 
 .menu-icon-svg:hover {
     -fx-fill: #1e293b;
+}
+
+/* === Analytics Section === */
+.analytics-section {
+    -fx-padding: 4 0 0 0;
+}
+
+.analytics-card {
+    -fx-background-color: linear-gradient(to bottom right, #ffffff, #fbfdff);
+}
+
+.chart-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #334155;
+}
+
+.kpi-pill {
+    -fx-background-color: #eef2ff;
+    -fx-text-fill: #475569;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-padding: 5 10;
+    -fx-background-radius: 999;
+}
+
+.kpi-pill-success {
+    -fx-background-color: #dcfce7;
+    -fx-text-fill: #166534;
+}
+
+.kpi-pill-warning {
+    -fx-background-color: #fef3c7;
+    -fx-text-fill: #92400e;
+}
+
+.filter-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #64748b;
+}
+
+.analytics-filter {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cbd5e1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #334155;
+}
+
+.analytics-filter:hover {
+    -fx-border-color: #94a3b8;
+}
+
+.analytics-filter:focused {
+    -fx-border-color: #6366f1;
+}
+
+.modern-line-chart {
+    -fx-background-color: transparent;
+}
+
+.modern-line-chart .chart-plot-background {
+    -fx-background-color: #f8fafc;
+    -fx-background-radius: 12;
+}
+
+.modern-line-chart .axis {
+    -fx-tick-label-fill: #64748b;
+}
+
+.modern-line-chart .chart-series-line {
+    -fx-stroke: #6366f1;
+    -fx-stroke-width: 3px;
+}
+
+.modern-line-chart .chart-line-symbol {
+    -fx-background-color: #6366f1, white;
+    -fx-background-radius: 6px;
+    -fx-padding: 4px;
+    -fx-cursor: hand;
+}
+
+.modern-line-chart .chart-vertical-grid-lines,
+.modern-line-chart .chart-horizontal-grid-lines {
+    -fx-stroke: #e2e8f0;
+}
+
+.modern-pie-chart {
+    -fx-background-color: transparent;
+    -fx-label-line-length: 12;
+}
+
+.modern-pie-chart .default-color0.chart-pie {
+    -fx-pie-color: #6366f1;
+}
+
+.modern-pie-chart .default-color1.chart-pie {
+    -fx-pie-color: #22c55e;
+}
+
+.modern-pie-chart .default-color2.chart-pie {
+    -fx-pie-color: #f59e0b;
+}
+
+.modern-pie-chart .default-color3.chart-pie {
+    -fx-pie-color: #ef4444;
+}
+
+.modern-pie-chart .chart-pie {
+    -fx-cursor: hand;
+}
+
+.modern-pie-chart .chart-pie-label {
+    -fx-fill: #334155;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+}
+
+.analytics-drilldown-card {
+    -fx-background-color: linear-gradient(to bottom right, #ffffff, #f8fafc);
+}
+
+.insight-chip {
+    -fx-background-color: #e0e7ff;
+    -fx-text-fill: #4338ca;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-padding: 5 10;
+    -fx-background-radius: 999;
+}
+
+.insight-summary {
+    -fx-font-size: 12px;
+    -fx-text-fill: #64748b;
+}
+
+.insight-metric-box {
+    -fx-padding: 10 12;
+    -fx-background-color: #f8fafc;
+    -fx-background-radius: 10;
+}
+
+.insight-metric-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #64748b;
+}
+
+.insight-metric-value {
+    -fx-font-size: 16px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #1e293b;
+}
+
+.insight-highlights {
+    -fx-background-color: #f8fafc;
+    -fx-background-radius: 10;
+    -fx-padding: 10;
+}
+
+.insight-highlight-item {
+    -fx-font-size: 12px;
+    -fx-text-fill: #334155;
 }
