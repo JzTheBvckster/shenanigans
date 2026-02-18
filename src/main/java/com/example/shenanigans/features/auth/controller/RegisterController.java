@@ -324,6 +324,16 @@ public class RegisterController {
    * @param user The newly registered user
    */
   private void onRegistrationSuccess(User user) {
+    if ((user.isEmployee() || user.isProjectManager()) && !user.isMdApproved()) {
+      LOGGER.info(
+          "Registration successful but pending MD approval for: " + user.getEmail());
+      showAlert(
+          "Registration Submitted",
+          "Your account has been created and is pending Managing Director approval.");
+      navigateToLogin();
+      return;
+    }
+
     // Store session information
     SessionManager.getInstance()
         .setSession(
@@ -361,6 +371,14 @@ public class RegisterController {
       LOGGER.log(Level.SEVERE, "Failed to navigate to dashboard", e);
       showStatus("Failed to load dashboard", true);
     }
+  }
+
+  private void showAlert(String title, String message) {
+    Alert alert = new Alert(Alert.AlertType.INFORMATION);
+    alert.setTitle(title);
+    alert.setHeaderText(null);
+    alert.setContentText(message);
+    alert.showAndWait();
   }
 
   // Helper Methods

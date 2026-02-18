@@ -9,8 +9,10 @@ public class User {
   private String role; // "MANAGING_DIRECTOR" or "PROJECT_MANAGER"
   private String photoUrl;
   private boolean emailVerified;
+  private boolean mdApproved = true;
 
-  public User() {}
+  public User() {
+  }
 
   public User(String uid, String email, String displayName, String role) {
     this.uid = uid;
@@ -67,6 +69,22 @@ public class User {
 
   public void setEmailVerified(boolean emailVerified) {
     this.emailVerified = emailVerified;
+  }
+
+  /**
+   * @return true when the account has been approved by a Managing Director
+   */
+  public boolean isMdApproved() {
+    return mdApproved;
+  }
+
+  /**
+   * Sets whether this account is approved by a Managing Director.
+   *
+   * @param mdApproved approval state
+   */
+  public void setMdApproved(boolean mdApproved) {
+    this.mdApproved = mdApproved;
   }
 
   /**

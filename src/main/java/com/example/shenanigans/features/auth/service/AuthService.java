@@ -17,8 +17,10 @@ import java.util.logging.Logger;
 import javafx.concurrent.Task;
 
 /**
- * Service class for authentication operations. Uses Firebase REST API for client-side auth and
- * Admin SDK for user management. All operations are asynchronous to avoid blocking the UI thread.
+ * Service class for authentication operations. Uses Firebase REST API for
+ * client-side auth and
+ * Admin SDK for user management. All operations are asynchronous to avoid
+ * blocking the UI thread.
  */
 public class AuthService {
 
@@ -44,7 +46,7 @@ public class AuthService {
   /**
    * Signs in a user with email and password.
    *
-   * @param email User's email
+   * @param email    User's email
    * @param password User's password
    * @return Task that completes with the authenticated User
    */
@@ -72,10 +74,13 @@ public class AuthService {
           user.setDisplayName(
               response.displayName != null ? response.displayName : email.split("@")[0]);
           user.setRole("PROJECT_MANAGER"); // Default role
+          user.setMdApproved(false);
 
           // Save to Firestore
           saveUserToFirestore(user);
         }
+
+        enforceManagingDirectorApproval(user);
 
         currentUser = user;
         LOGGER.info("User signed in: " + user.getEmail());
@@ -87,10 +92,10 @@ public class AuthService {
   /**
    * Creates a new user with email and password (sign up).
    *
-   * @param email User's email
-   * @param password User's password
+   * @param email       User's email
+   * @param password    User's password
    * @param displayName User's display name
-   * @param role User's role (MANAGING_DIRECTOR or PROJECT_MANAGER)
+   * @param role        User's role (MANAGING_DIRECTOR or PROJECT_MANAGER)
    * @return Task that completes with the created User
    */
   public Task<User> signUp(String email, String password, String displayName, String role) {
@@ -113,6 +118,7 @@ public class AuthService {
 
         // Create user object
         User user = new User(response.localId, email, displayName, role);
+        user.setMdApproved(!requiresManagingDirectorApproval(role));
 
         // Save to Firestore users collection
         saveUserToFirestore(user);
@@ -168,12 +174,12 @@ public class AuthService {
    */
   private String[] parseDisplayName(String displayName) {
     if (displayName == null || displayName.trim().isEmpty()) {
-      return new String[] {"", ""};
+      return new String[] { "", "" };
     }
 
     String[] parts = displayName.trim().split("\\s+", 2);
     if (parts.length == 1) {
-      return new String[] {parts[0], ""};
+      return new String[] { parts[0], "" };
     }
     return parts;
   }
@@ -231,10 +237,10 @@ public class AuthService {
   /**
    * Creates a new user using Admin SDK (for admin operations).
    *
-   * @param email User's email
-   * @param password User's password
+   * @param email       User's email
+   * @param password    User's password
    * @param displayName User's display name
-   * @param role User's role
+   * @param role        User's role
    * @return Task that completes with the created User
    */
   public Task<User> createUserAdmin(
@@ -244,12 +250,11 @@ public class AuthService {
       protected User call() throws Exception {
         FirebaseAuth auth = FirebaseInitializer.getAuth();
 
-        UserRecord.CreateRequest request =
-            new UserRecord.CreateRequest()
-                .setEmail(email)
-                .setPassword(password)
-                .setDisplayName(displayName)
-                .setEmailVerified(false);
+        UserRecord.CreateRequest request = new UserRecord.CreateRequest()
+            .setEmail(email)
+            .setPassword(password)
+            .setDisplayName(displayName)
+            .setEmailVerified(false);
 
         UserRecord userRecord = auth.createUser(request);
         LOGGER.info("Created user via Admin SDK: " + userRecord.getUid());
@@ -349,6 +354,8 @@ public class AuthService {
     user.setDisplayName(doc.getString("displayName"));
     user.setRole(doc.getString("role"));
     user.setPhotoUrl(doc.getString("photoUrl"));
+    Boolean mdApproved = doc.getBoolean("mdApproved");
+    user.setMdApproved(mdApproved == null ? true : mdApproved);
 
     return user;
   }
@@ -361,10 +368,55 @@ public class AuthService {
     userData.put("email", user.getEmail());
     userData.put("displayName", user.getDisplayName());
     userData.put("role", user.getRole());
+    userData.put("mdApproved", user.isMdApproved());
+    userData.put("approvalStatus", user.isMdApproved() ? "APPROVED" : "PENDING_MD_APPROVAL");
+    userData.put("approvedAt", user.isMdApproved() ? System.currentTimeMillis() : null);
+    userData.put("approvedByUid", user.isMdApproved() ? "SYSTEM" : null);
     userData.put("createdAt", System.currentTimeMillis());
 
     firestore.collection(USERS_COLLECTION).document(user.getUid()).set(userData).get();
 
     LOGGER.info("User saved to Firestore: " + user.getUid());
+  }
+
+  /**
+   * Approves a user account by Managing Director action.
+   *
+   * @param userUid       user to approve
+   * @param approvedByUid managing director user uid performing approval
+   * @return task that completes when approval metadata is updated
+   */
+  public Task<Void> approveUserByManagingDirector(String userUid, String approvedByUid) {
+    return new Task<>() {
+      @Override
+      protected Void call() throws Exception {
+        Firestore firestore = FirebaseInitializer.getFirestore();
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("mdApproved", true);
+        updates.put("approvalStatus", "APPROVED");
+        updates.put("approvedAt", System.currentTimeMillis());
+        updates.put("approvedByUid", approvedByUid);
+        updates.put("updatedAt", System.currentTimeMillis());
+
+        firestore.collection(USERS_COLLECTION).document(userUid).update(updates).get();
+        LOGGER.info("User approved by Managing Director: " + userUid);
+        return null;
+      }
+    };
+  }
+
+  private boolean requiresManagingDirectorApproval(String role) {
+    return "EMPLOYEE".equals(role) || "PROJECT_MANAGER".equals(role);
+  }
+
+  private void enforceManagingDirectorApproval(User user) throws FirebaseAuthException {
+    if (user == null) {
+      return;
+    }
+
+    if (requiresManagingDirectorApproval(user.getRole()) && !user.isMdApproved()) {
+      throw new FirebaseAuthException(
+          "Your account is pending Managing Director approval. Please contact your MD.");
+    }
   }
 }
