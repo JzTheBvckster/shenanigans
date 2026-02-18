@@ -6,3 +6,5 @@ src/main/resources/firebase/firebase.properties
 src/main/resources/firebase/serviceAccountKey.json
 *.json.template
 target/classes/firebase/firebase.properties
+.tools
+.idea

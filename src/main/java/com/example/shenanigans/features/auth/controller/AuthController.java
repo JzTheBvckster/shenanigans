@@ -3,278 +3,258 @@ package com.example.shenanigans.features.auth.controller;
 import com.example.shenanigans.core.session.SessionManager;
 import com.example.shenanigans.features.auth.model.User;
 import com.example.shenanigans.features.auth.service.AuthService;
-
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 /**
- * Controller for the authentication view.
- * Handles login, registration, and password reset UI interactions.
+ * Controller for the authentication view. Handles login, registration, and password reset UI
+ * interactions.
  */
 public class AuthController {
 
-    private static final Logger LOGGER = Logger.getLogger(AuthController.class.getName());
+  private static final Logger LOGGER = Logger.getLogger(AuthController.class.getName());
 
-    // Services
-    private final AuthService authService = new AuthService();
+  // Services
+  private final AuthService authService = new AuthService();
 
-    // FXML Components - Login
-    @FXML
-    private VBox loginPane;
-    @FXML
-    private TextField loginEmailField;
-    @FXML
-    private PasswordField loginPasswordField;
-    @FXML
-    private Button loginButton;
-    @FXML
-    private Hyperlink forgotPasswordLink;
-    @FXML
-    private Hyperlink createAccountLink;
+  // FXML Components - Login
+  @FXML private VBox loginPane;
+  @FXML private TextField loginEmailField;
+  @FXML private PasswordField loginPasswordField;
+  @FXML private Button loginButton;
+  @FXML private Hyperlink forgotPasswordLink;
+  @FXML private Hyperlink createAccountLink;
 
-    // FXML Components - Forgot Password
-    @FXML
-    private VBox forgotPasswordPane;
-    @FXML
-    private TextField resetEmailField;
-    @FXML
-    private Button resetPasswordButton;
-    @FXML
-    private Hyperlink backToLoginFromResetLink;
+  // FXML Components - Forgot Password
+  @FXML private VBox forgotPasswordPane;
+  @FXML private TextField resetEmailField;
+  @FXML private Button resetPasswordButton;
+  @FXML private Hyperlink backToLoginFromResetLink;
 
-    // FXML Components - Common
-    @FXML
-    private Label statusLabel;
-    @FXML
-    private ProgressIndicator loadingIndicator;
+  // FXML Components - Common
+  @FXML private Label statusLabel;
+  @FXML private ProgressIndicator loadingIndicator;
 
-    /**
-     * Called automatically after FXML is loaded.
-     */
-    @FXML
-    public void initialize() {
-        // Show login pane by default
-        showLoginPane();
+  /** Called automatically after FXML is loaded. */
+  @FXML
+  public void initialize() {
+    // Show login pane by default
+    showLoginPane();
 
-        // Hide loading indicator initially
-        if (loadingIndicator != null) {
-            loadingIndicator.setVisible(false);
-        }
-
-        LOGGER.info("AuthController initialized");
+    // Hide loading indicator initially
+    if (loadingIndicator != null) {
+      loadingIndicator.setVisible(false);
     }
 
-    /**
-     * Handles login button click.
-     */
-    @FXML
-    private void handleLogin() {
-        String email = loginEmailField.getText().trim();
-        String password = loginPasswordField.getText();
+    LOGGER.info("AuthController initialized");
+  }
 
-        // Validate inputs
-        if (email.isEmpty() || password.isEmpty()) {
-            showStatus("Please enter email and password", true);
-            return;
-        }
+  /** Handles login button click. */
+  @FXML
+  private void handleLogin() {
+    String email = loginEmailField.getText().trim();
+    String password = loginPasswordField.getText();
 
-        if (!isValidEmail(email)) {
-            showStatus("Please enter a valid email address", true);
-            return;
-        }
-
-        setLoading(true);
-        showStatus("Signing in...", false);
-
-        Task<User> loginTask = authService.signIn(email, password);
-
-        loginTask.setOnSucceeded(event -> Platform.runLater(() -> {
-            setLoading(false);
-            User user = loginTask.getValue();
-            showStatus("Welcome, " + user.getDisplayName() + "!", false);
-            LOGGER.info("User signed in: " + user.getEmail());
-            // TODO: Navigate to main dashboard
-            onLoginSuccess(user);
-        }));
-
-        loginTask.setOnFailed(event -> Platform.runLater(() -> {
-            setLoading(false);
-            Throwable error = loginTask.getException();
-            String message = error.getMessage() != null ? error.getMessage() : "Sign in failed";
-            showStatus(message, true);
-            LOGGER.log(Level.WARNING, "Login failed", error);
-        }));
-
-        new Thread(loginTask).start();
+    // Validate inputs
+    if (email.isEmpty() || password.isEmpty()) {
+      showStatus("Please enter email and password", true);
+      return;
     }
 
-    /**
-     * Handles password reset request.
-     */
-    @FXML
-    private void handlePasswordReset() {
-        String email = resetEmailField.getText().trim();
-
-        if (email.isEmpty()) {
-            showStatus("Please enter your email address", true);
-            return;
-        }
-
-        if (!isValidEmail(email)) {
-            showStatus("Please enter a valid email address", true);
-            return;
-        }
-
-        setLoading(true);
-        showStatus("Sending reset email...", false);
-
-        Task<Void> resetTask = authService.sendPasswordResetEmail(email);
-
-        resetTask.setOnSucceeded(event -> Platform.runLater(() -> {
-            setLoading(false);
-            showStatus("Password reset email sent! Check your inbox.", false);
-            LOGGER.info("Password reset email sent to: " + email);
-        }));
-
-        resetTask.setOnFailed(event -> Platform.runLater(() -> {
-            setLoading(false);
-            Throwable error = resetTask.getException();
-            String message = error.getMessage() != null ? error.getMessage() : "Failed to send reset email";
-            showStatus(message, true);
-            LOGGER.log(Level.WARNING, "Password reset failed", error);
-        }));
-
-        new Thread(resetTask).start();
+    if (!isValidEmail(email)) {
+      showStatus("Please enter a valid email address", true);
+      return;
     }
 
-    /**
-     * Called when login is successful.
-     * Stores session and navigates to dashboard.
-     * 
-     * @param user The authenticated user
-     */
-    protected void onLoginSuccess(User user) {
-        // Store session information
-        SessionManager.getInstance().setSession(
-                user,
-                authService.getCurrentIdToken(),
-                null // Refresh token handling can be added later
-        );
+    setLoading(true);
+    showStatus("Signing in...", false);
 
-        LOGGER.info("Login successful for: " + user.getDisplayName() + " (" + user.getRole() + ")");
+    Task<User> loginTask = authService.signIn(email, password);
 
-        // Navigate to dashboard
-        navigateToDashboard();
+    loginTask.setOnSucceeded(
+        event ->
+            Platform.runLater(
+                () -> {
+                  setLoading(false);
+                  User user = loginTask.getValue();
+                  showStatus("Welcome, " + user.getDisplayName() + "!", false);
+                  LOGGER.info("User signed in: " + user.getEmail());
+                  // TODO: Navigate to main dashboard
+                  onLoginSuccess(user);
+                }));
+
+    loginTask.setOnFailed(
+        event ->
+            Platform.runLater(
+                () -> {
+                  setLoading(false);
+                  Throwable error = loginTask.getException();
+                  String message =
+                      error.getMessage() != null ? error.getMessage() : "Sign in failed";
+                  showStatus(message, true);
+                  LOGGER.log(Level.WARNING, "Login failed", error);
+                }));
+
+    new Thread(loginTask).start();
+  }
+
+  /** Handles password reset request. */
+  @FXML
+  private void handlePasswordReset() {
+    String email = resetEmailField.getText().trim();
+
+    if (email.isEmpty()) {
+      showStatus("Please enter your email address", true);
+      return;
     }
 
-    /**
-     * Navigates to the appropriate dashboard based on user role.
-     */
-    private void navigateToDashboard() {
-        try {
-            User user = SessionManager.getInstance().getCurrentUser();
-            if (user != null && user.isEmployee()) {
-                com.example.shenanigans.App.setRoot("features/employee_dashboard/view/employee_dashboard_view");
-            } else {
-                com.example.shenanigans.App.setRoot("features/dashboard/view/dashboard_view");
-            }
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to navigate to dashboard", e);
-            showStatus("Failed to load dashboard", true);
-        }
+    if (!isValidEmail(email)) {
+      showStatus("Please enter a valid email address", true);
+      return;
     }
 
-    /**
-     * Shows the login pane and hides others.
-     */
-    @FXML
-    private void showLoginPane() {
-        if (loginPane != null)
-            loginPane.setVisible(true);
-        if (loginPane != null)
-            loginPane.setManaged(true);
-        if (forgotPasswordPane != null)
-            forgotPasswordPane.setVisible(false);
-        if (forgotPasswordPane != null)
-            forgotPasswordPane.setManaged(false);
-        clearStatus();
-    }
+    setLoading(true);
+    showStatus("Sending reset email...", false);
 
-    /**
-     * Navigates to the registration page.
-     */
-    @FXML
-    private void showRegisterPane() {
-        try {
-            com.example.shenanigans.App.setRoot("features/auth/view/register_view");
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to navigate to registration", e);
-            showStatus("Failed to load registration page", true);
-        }
-    }
+    Task<Void> resetTask = authService.sendPasswordResetEmail(email);
 
-    /**
-     * Shows the forgot password pane and hides others.
-     */
-    @FXML
-    private void showForgotPasswordPane() {
-        if (loginPane != null)
-            loginPane.setVisible(false);
-        if (loginPane != null)
-            loginPane.setManaged(false);
-        if (forgotPasswordPane != null)
-            forgotPasswordPane.setVisible(true);
-        if (forgotPasswordPane != null)
-            forgotPasswordPane.setManaged(true);
-        clearStatus();
-    }
+    resetTask.setOnSucceeded(
+        event ->
+            Platform.runLater(
+                () -> {
+                  setLoading(false);
+                  showStatus("Password reset email sent! Check your inbox.", false);
+                  LOGGER.info("Password reset email sent to: " + email);
+                }));
 
-    // Helper Methods
+    resetTask.setOnFailed(
+        event ->
+            Platform.runLater(
+                () -> {
+                  setLoading(false);
+                  Throwable error = resetTask.getException();
+                  String message =
+                      error.getMessage() != null
+                          ? error.getMessage()
+                          : "Failed to send reset email";
+                  showStatus(message, true);
+                  LOGGER.log(Level.WARNING, "Password reset failed", error);
+                }));
 
-    private void showStatus(String message, boolean isError) {
-        if (statusLabel != null) {
-            statusLabel.setText(message);
-            statusLabel.getStyleClass().removeAll("status-error", "status-success");
-            statusLabel.getStyleClass().add(isError ? "status-error" : "status-success");
-            statusLabel.setVisible(true);
-        }
-    }
+    new Thread(resetTask).start();
+  }
 
-    private void clearStatus() {
-        if (statusLabel != null) {
-            statusLabel.setText("");
-            statusLabel.setVisible(false);
-        }
-    }
+  /**
+   * Called when login is successful. Stores session and navigates to dashboard.
+   *
+   * @param user The authenticated user
+   */
+  protected void onLoginSuccess(User user) {
+    // Store session information
+    SessionManager.getInstance()
+        .setSession(
+            user, authService.getCurrentIdToken(), null // Refresh token handling can be added later
+            );
 
-    private void setLoading(boolean loading) {
-        if (loadingIndicator != null) {
-            loadingIndicator.setVisible(loading);
-        }
-        if (loginButton != null)
-            loginButton.setDisable(loading);
-        if (resetPasswordButton != null)
-            resetPasswordButton.setDisable(loading);
-    }
+    LOGGER.info("Login successful for: " + user.getDisplayName() + " (" + user.getRole() + ")");
 
-    /**
-     * Validates an email address format using RFC 5322 compliant pattern.
-     * 
-     * @param email The email to validate
-     * @return true if the email format is valid
-     */
-    private boolean isValidEmail(String email) {
-        if (email == null || email.isEmpty()) {
-            return false;
-        }
-        // RFC 5322 compliant email regex pattern
-        String emailRegex = "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$";
-        return email.matches(emailRegex) && email.contains(".") && email.indexOf("@") < email.lastIndexOf(".");
+    // Navigate to dashboard
+    navigateToDashboard();
+  }
+
+  /** Navigates to the appropriate dashboard based on user role. */
+  private void navigateToDashboard() {
+    try {
+      User user = SessionManager.getInstance().getCurrentUser();
+      if (user != null && user.isEmployee()) {
+        com.example.shenanigans.App.setRoot(
+            "features/employee_dashboard/view/employee_dashboard_view");
+      } else {
+        com.example.shenanigans.App.setRoot("features/dashboard/view/dashboard_view");
+      }
+    } catch (Exception e) {
+      LOGGER.log(Level.SEVERE, "Failed to navigate to dashboard", e);
+      showStatus("Failed to load dashboard", true);
     }
+  }
+
+  /** Shows the login pane and hides others. */
+  @FXML
+  private void showLoginPane() {
+    if (loginPane != null) loginPane.setVisible(true);
+    if (loginPane != null) loginPane.setManaged(true);
+    if (forgotPasswordPane != null) forgotPasswordPane.setVisible(false);
+    if (forgotPasswordPane != null) forgotPasswordPane.setManaged(false);
+    clearStatus();
+  }
+
+  /** Navigates to the registration page. */
+  @FXML
+  private void showRegisterPane() {
+    try {
+      com.example.shenanigans.App.setRoot("features/auth/view/register_view");
+    } catch (Exception e) {
+      LOGGER.log(Level.SEVERE, "Failed to navigate to registration", e);
+      showStatus("Failed to load registration page", true);
+    }
+  }
+
+  /** Shows the forgot password pane and hides others. */
+  @FXML
+  private void showForgotPasswordPane() {
+    if (loginPane != null) loginPane.setVisible(false);
+    if (loginPane != null) loginPane.setManaged(false);
+    if (forgotPasswordPane != null) forgotPasswordPane.setVisible(true);
+    if (forgotPasswordPane != null) forgotPasswordPane.setManaged(true);
+    clearStatus();
+  }
+
+  // Helper Methods
+
+  private void showStatus(String message, boolean isError) {
+    if (statusLabel != null) {
+      statusLabel.setText(message);
+      statusLabel.getStyleClass().removeAll("status-error", "status-success");
+      statusLabel.getStyleClass().add(isError ? "status-error" : "status-success");
+      statusLabel.setVisible(true);
+    }
+  }
+
+  private void clearStatus() {
+    if (statusLabel != null) {
+      statusLabel.setText("");
+      statusLabel.setVisible(false);
+    }
+  }
+
+  private void setLoading(boolean loading) {
+    if (loadingIndicator != null) {
+      loadingIndicator.setVisible(loading);
+    }
+    if (loginButton != null) loginButton.setDisable(loading);
+    if (resetPasswordButton != null) resetPasswordButton.setDisable(loading);
+  }
+
+  /**
+   * Validates an email address format using RFC 5322 compliant pattern.
+   *
+   * @param email The email to validate
+   * @return true if the email format is valid
+   */
+  private boolean isValidEmail(String email) {
+    if (email == null || email.isEmpty()) {
+      return false;
+    }
+    // RFC 5322 compliant email regex pattern
+    String emailRegex =
+        "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$";
+    return email.matches(emailRegex)
+        && email.contains(".")
+        && email.indexOf("@") < email.lastIndexOf(".");
+  }
 }

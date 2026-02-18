@@ -1,38 +1,47 @@
 package com.example.shenanigans.core.navigation;
 
 /**
- * Singleton class to manage sidebar accordion state across page navigation.
- * Remembers which accordion pane is expanded.
+ * Holds sidebar accordion state across page navigation. Remembers which accordion pane is currently
+ * expanded.
  */
 public class SidebarState {
 
-    private static SidebarState instance;
+  private static final String DEFAULT_EXPANDED_PANE = "MAIN MENU";
+  private static final SidebarState INSTANCE = new SidebarState();
 
-    private String expandedPane = "MAIN MENU"; // Default expanded pane
+  private String expandedPane = DEFAULT_EXPANDED_PANE;
 
-    private SidebarState() {
-    }
+  private SidebarState() {}
 
-    
-    public static SidebarState getInstance() {
-        if (instance == null) {
-            instance = new SidebarState();
-        }
-        return instance;
-    }
+  /**
+   * Returns the shared sidebar state instance.
+   *
+   * @return singleton sidebar state
+   */
+  public static SidebarState getInstance() {
+    return INSTANCE;
+  }
 
-    
-    public String getExpandedPane() {
-        return expandedPane;
-    }
+  /**
+   * Returns the currently expanded accordion pane title.
+   *
+   * @return expanded pane title
+   */
+  public String getExpandedPane() {
+    return expandedPane;
+  }
 
-    
-    public void setExpandedPane(String paneTitle) {
-        this.expandedPane = paneTitle;
-    }
+  /**
+   * Updates the expanded accordion pane title.
+   *
+   * @param paneTitle pane title to store
+   */
+  public void setExpandedPane(String paneTitle) {
+    this.expandedPane = paneTitle;
+  }
 
-    
-    public void reset() {
-        this.expandedPane = "MAIN MENU";
-    }
+  /** Restores the default expanded pane. */
+  public void reset() {
+    this.expandedPane = DEFAULT_EXPANDED_PANE;
+  }
 }
