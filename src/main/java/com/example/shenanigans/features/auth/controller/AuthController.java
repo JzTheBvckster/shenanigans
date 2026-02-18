@@ -5,11 +5,13 @@ import com.example.shenanigans.features.auth.model.User;
 import com.example.shenanigans.features.auth.service.AuthService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
+import javafx.util.Duration;
 
 /**
  * Controller for the authentication view. Handles login, registration, and
@@ -19,6 +21,7 @@ import javafx.scene.layout.VBox;
 public class AuthController {
 
   private static final Logger LOGGER = Logger.getLogger(AuthController.class.getName());
+  private static final int NETWORK_FAILURE_COOLDOWN_SECONDS = 3;
 
   // Services
   private final AuthService authService = new AuthService();
@@ -56,6 +59,8 @@ public class AuthController {
   private Label statusLabel;
   @FXML
   private ProgressIndicator loadingIndicator;
+
+  private boolean authCooldownActive;
 
   /** Called automatically after FXML is loaded. */
   @FXML
@@ -113,6 +118,9 @@ public class AuthController {
               Throwable error = loginTask.getException();
               String message = mapAuthError(error, "Sign in failed");
               showStatus(message, true);
+              if (isTransientNetworkAuthFailure(error)) {
+                startAuthFailureCooldown();
+              }
               LOGGER.log(Level.WARNING, "Login failed", error);
             }));
 
@@ -154,6 +162,9 @@ public class AuthController {
               Throwable error = resetTask.getException();
               String message = mapAuthError(error, "Failed to send reset email");
               showStatus(message, true);
+              if (isTransientNetworkAuthFailure(error)) {
+                startAuthFailureCooldown();
+              }
               LOGGER.log(Level.WARNING, "Password reset failed", error);
             }));
 
@@ -256,13 +267,41 @@ public class AuthController {
       loadingIndicator.setVisible(loading);
     }
     if (loginButton != null)
-      loginButton.setDisable(loading);
+      loginButton.setDisable(loading || authCooldownActive);
     if (resetPasswordButton != null)
-      resetPasswordButton.setDisable(loading);
+      resetPasswordButton.setDisable(loading || authCooldownActive);
     if (loginPasswordToggleButton != null)
-      loginPasswordToggleButton.setDisable(loading);
+      loginPasswordToggleButton.setDisable(loading || authCooldownActive);
+    if (loginEmailField != null)
+      loginEmailField.setDisable(loading || authCooldownActive);
+    if (loginPasswordField != null)
+      loginPasswordField.setDisable(loading || authCooldownActive);
     if (loginPasswordVisibleField != null)
-      loginPasswordVisibleField.setDisable(loading);
+      loginPasswordVisibleField.setDisable(loading || authCooldownActive);
+    if (resetEmailField != null)
+      resetEmailField.setDisable(loading || authCooldownActive);
+  }
+
+  private void startAuthFailureCooldown() {
+    if (authCooldownActive) {
+      return;
+    }
+
+    authCooldownActive = true;
+    setLoading(false);
+    showStatus(
+        "Network instability detected. Please wait "
+            + NETWORK_FAILURE_COOLDOWN_SECONDS
+            + "s before retrying.",
+        true);
+
+    PauseTransition cooldownTimer = new PauseTransition(Duration.seconds(NETWORK_FAILURE_COOLDOWN_SECONDS));
+    cooldownTimer.setOnFinished(
+        evt -> {
+          authCooldownActive = false;
+          setLoading(false);
+        });
+    cooldownTimer.play();
   }
 
   private void initializePasswordVisibility() {
@@ -328,6 +367,26 @@ public class AuthController {
       return message + " Automatic retry attempts were made.";
     }
     return message;
+  }
+
+  private boolean isTransientNetworkAuthFailure(Throwable error) {
+    Throwable current = error;
+    while (current != null) {
+      String message = current.getMessage();
+      if (message != null) {
+        String normalized = message.toLowerCase();
+        if (normalized.contains("network connection to firebase was interrupted")
+            || normalized.contains("connection reset")
+            || normalized.contains("timed out")
+            || normalized.contains("broken pipe")
+            || normalized.contains("connection aborted")
+            || normalized.contains("ssl")) {
+          return true;
+        }
+      }
+      current = current.getCause();
+    }
+    return false;
   }
 
   /**
