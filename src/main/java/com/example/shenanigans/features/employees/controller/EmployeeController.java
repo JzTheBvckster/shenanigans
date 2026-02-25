@@ -3,7 +3,6 @@ package com.example.shenanigans.features.employees.controller;
 import com.example.shenanigans.core.navigation.SidebarComponent;
 import com.example.shenanigans.core.navigation.ViewNavigator;
 import com.example.shenanigans.core.session.SessionManager;
-import com.example.shenanigans.core.theme.ThemeSettingsDialogComponent;
 import com.example.shenanigans.features.employees.model.Employee;
 import com.example.shenanigans.features.employees.service.EmployeeService;
 import java.text.SimpleDateFormat;
@@ -603,12 +602,7 @@ public class EmployeeController {
 
     @FXML
     private void handleSettings() {
-        ThemeSettingsDialogComponent.showDarkModeDialog(
-                () -> {
-                    if (sidebarComponent != null) {
-                        sidebarComponent.refreshIconsForTheme();
-                    }
-                });
+        navigateTo("features/settings/view/settings_view");
     }
 
     private void initializeSidebarComponent() {

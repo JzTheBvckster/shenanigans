@@ -1,0 +1,193 @@
+.settings-root {
+    -fx-background-color: linear-gradient(to bottom right, #f8fafc, #f1f5f9);
+}
+
+.top-bar {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 0 0 1 0;
+}
+
+.view-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #0f172a;
+}
+
+.page-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #0f172a;
+}
+
+.page-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: #64748b;
+}
+
+.sidebar {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 0 1 0 0;
+    -fx-min-width: 70;
+}
+
+.sidebar-toggle-button {
+    -fx-background-color: white;
+    -fx-border-color: rgba(15, 23, 42, 0.06);
+    -fx-effect: dropshadow(gaussian, rgba(2, 6, 23, 0.12), 8, 0, 0, 2);
+    -fx-padding: 6;
+    -fx-cursor: hand;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+}
+
+.sidebar-toggle-large {
+    -fx-pref-width: 240px;
+    -fx-pref-height: 32px;
+    -fx-background-color: linear-gradient(to right, #ffffff, #f8fafc);
+    -fx-text-fill: #0f172a;
+    -fx-font-weight: 600;
+    -fx-font-size: 13px;
+    -fx-border-color: rgba(15, 23, 42, 0.06);
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 6 14;
+}
+
+.menu-header {
+    -fx-font-size: 11px;
+    -fx-text-fill: #94a3b8;
+    -fx-font-weight: bold;
+    -fx-padding: 16 8 8 8;
+}
+
+.menu-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #475569;
+    -fx-font-size: 14px;
+    -fx-padding: 14 18;
+    -fx-alignment: CENTER_LEFT;
+    -fx-background-radius: 12;
+    -fx-cursor: hand;
+    -fx-font-weight: 500;
+}
+
+.menu-button:hover {
+    -fx-background-color: #f1f5f9;
+    -fx-text-fill: #1e293b;
+}
+
+.menu-button-active {
+    -fx-background-color: linear-gradient(to right, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.1));
+    -fx-text-fill: #667eea;
+    -fx-font-weight: 600;
+}
+
+.system-info-card {
+    -fx-background-color: #f8fafc;
+    -fx-background-radius: 12;
+    -fx-padding: 16;
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 12;
+}
+
+.system-info-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #64748b;
+}
+
+.system-info-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: #10b981;
+}
+
+.content-scroll {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+}
+
+.content-scroll>.viewport {
+    -fx-background-color: transparent;
+}
+
+.settings-card {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 14;
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 14;
+    -fx-padding: 18;
+    -fx-effect: dropshadow(gaussian, rgba(2, 6, 23, 0.04), 8, 0, 0, 2);
+}
+
+.card-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #0f172a;
+}
+
+.field-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #64748b;
+}
+
+.field-value {
+    -fx-font-size: 13px;
+    -fx-text-fill: #1e293b;
+}
+
+.settings-checkbox {
+    -fx-font-size: 13px;
+    -fx-text-fill: #1e293b;
+}
+
+.settings-choice {
+    -fx-background-radius: 8;
+}
+
+.action-button {
+    -fx-background-color: #eef2ff;
+    -fx-text-fill: #4338ca;
+    -fx-background-radius: 10;
+    -fx-font-weight: 600;
+    -fx-cursor: hand;
+    -fx-padding: 10 12;
+}
+
+.action-button:hover {
+    -fx-background-color: #e0e7ff;
+}
+
+.save-button {
+    -fx-background-color: linear-gradient(to right, #667eea, #764ba2);
+    -fx-text-fill: #ffffff;
+    -fx-background-radius: 10;
+    -fx-font-weight: 700;
+    -fx-cursor: hand;
+    -fx-padding: 11 14;
+}
+
+.save-button:hover {
+    -fx-opacity: 0.95;
+}
+
+.save-status {
+    -fx-font-size: 12px;
+    -fx-text-fill: #059669;
+}
+
+.logout-button {
+    -fx-background-color: #eef2ff;
+    -fx-text-fill: #4338ca;
+    -fx-background-radius: 10;
+    -fx-border-color: #c7d2fe;
+    -fx-border-radius: 10;
+    -fx-cursor: hand;
+    -fx-padding: 8 16;
+}
+
+.logout-button:hover {
+    -fx-background-color: #e0e7ff;
+}

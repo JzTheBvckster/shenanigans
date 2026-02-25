@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane fx:controller="com.example.shenanigans.features.settings.controller.SettingsController" styleClass="settings-root" stylesheets="@../styles/settings.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+  <top>
+    <HBox alignment="CENTER_LEFT" spacing="12" styleClass="top-bar">
+      <padding>
+        <Insets bottom="16" left="28" right="28" top="16"/>
+      </padding>
+      <Label styleClass="view-title" text="Settings"/>
+      <Region HBox.hgrow="ALWAYS"/>
+      <Button onAction="#handleLogout" styleClass="logout-button" text="Sign Out"/>
+    </HBox>
+  </top>
+
+  <left>
+    <VBox fx:id="sidebarContent" prefWidth="277.0" spacing="8" styleClass="sidebar">
+      <padding>
+        <Insets bottom="24" left="20" right="20" top="12"/>
+      </padding>
+      <HBox alignment="CENTER" spacing="0">
+        <children>
+          <Button fx:id="sidebarToggleButton" ellipsisString="+" mnemonicParsing="false" onAction="#handleSidebarToggle" prefHeight="28.0" prefWidth="239.0" styleClass="sidebar-toggle-button,sidebar-toggle-large" text="collapse"/>
+        </children>
+      </HBox>
+      <Label fx:id="menuHeaderLabel" styleClass="menu-header" text="MAIN MENU"/>
+      <VBox spacing="6" styleClass="menu-section">
+        <Button fx:id="dashboardButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleDashboard" styleClass="menu-button" text="🏠 Dashboard"/>
+        <Button fx:id="employeesButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleEmployees" styleClass="menu-button" text="👥 Employees"/>
+        <Button fx:id="projectsButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleProjects" styleClass="menu-button" text="📋 Projects"/>
+        <Button fx:id="financeButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleFinance" styleClass="menu-button" text="💰 Finance"/>
+      </VBox>
+      <Region prefHeight="20"/>
+      <Label fx:id="settingsHeaderLabel" styleClass="menu-header" text="SETTINGS"/>
+      <VBox spacing="6">
+        <Button fx:id="settingsButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleSettings" styleClass="menu-button,menu-button-active" text="Settings"/>
+      </VBox>
+      <Region VBox.vgrow="ALWAYS"/>
+      <VBox fx:id="systemInfoCard" spacing="8" styleClass="system-info-card">
+        <padding>
+          <Insets bottom="12" left="12" right="12" top="12"/>
+        </padding>
+        <Label styleClass="system-info-title" text="System Status"/>
+        <Label styleClass="system-info-text" text="All systems operational"/>
+      </VBox>
+    </VBox>
+  </left>
+
+  <center>
+    <ScrollPane fitToHeight="true" fitToWidth="true" styleClass="content-scroll">
+      <VBox spacing="20" styleClass="content-area">
+        <padding>
+          <Insets bottom="28" left="28" right="28" top="28"/>
+        </padding>
+        <VBox spacing="6">
+          <Label styleClass="page-title" text="Workspace Settings"/>
+          <Label styleClass="page-subtitle" text="Manage appearance, productivity, and account preferences."/>
+        </VBox>
+        <HBox spacing="18">
+          <VBox spacing="14" styleClass="settings-card" HBox.hgrow="ALWAYS">
+            <Label styleClass="card-title" text="Appearance"/>
+            <CheckBox fx:id="darkModeToggle" styleClass="settings-checkbox" text="Enable dark mode"/>
+            <CheckBox fx:id="sidebarExpandedToggle" styleClass="settings-checkbox" text="Keep sidebar expanded"/>
+          </VBox>
+          <VBox spacing="14" styleClass="settings-card" HBox.hgrow="ALWAYS">
+            <Label styleClass="card-title" text="Notifications"/>
+            <CheckBox fx:id="emailNotificationsToggle" styleClass="settings-checkbox" text="Email notifications"/>
+            <CheckBox fx:id="desktopAlertsToggle" styleClass="settings-checkbox" text="Desktop alerts"/>
+            <HBox alignment="CENTER_LEFT" spacing="8">
+              <Label styleClass="field-label" text="Auto-refresh (mins)"/>
+              <ChoiceBox fx:id="autoRefreshChoice" prefWidth="120" styleClass="settings-choice"/>
+            </HBox>
+          </VBox>
+        </HBox>
+        <HBox spacing="18">
+          <VBox spacing="12" styleClass="settings-card" HBox.hgrow="ALWAYS">
+            <Label styleClass="card-title" text="Account"/>
+            <GridPane hgap="10" vgap="8">
+              <Label styleClass="field-label" text="Name" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+              <Label fx:id="accountNameLabel" styleClass="field-value" text="-" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+              <Label styleClass="field-label" text="Email" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+              <Label fx:id="accountEmailLabel" styleClass="field-value" text="-" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+              <Label styleClass="field-label" text="Role" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+              <Label fx:id="accountRoleLabel" styleClass="field-value" text="-" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+              <Label styleClass="field-label" text="Approval" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+              <Label fx:id="accountApprovalLabel" styleClass="field-value" text="-" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+            </GridPane>
+          </VBox>
+          <VBox spacing="12" styleClass="settings-card" HBox.hgrow="ALWAYS">
+            <Label styleClass="card-title" text="Session"/>
+            <Button onAction="#handleResetSidebarState" styleClass="action-button" text="Reset sidebar layout"/>
+            <Button onAction="#handleClearEmployeeContext" styleClass="action-button" text="Clear selected employee context"/>
+            <Region VBox.vgrow="ALWAYS"/>
+            <Button onAction="#handleSaveSettings" styleClass="save-button" text="Save settings"/>
+            <Label fx:id="saveStatusLabel" styleClass="save-status" text=""/>
+          </VBox>
+        </HBox>
+      </VBox>
+    </ScrollPane>
+  </center>
+</BorderPane>

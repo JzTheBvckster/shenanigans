@@ -3,7 +3,6 @@ package com.example.shenanigans.features.dashboard.controller;
 import com.example.shenanigans.core.navigation.SidebarComponent;
 import com.example.shenanigans.core.navigation.ViewNavigator;
 import com.example.shenanigans.core.session.SessionManager;
-import com.example.shenanigans.core.theme.ThemeSettingsDialogComponent;
 import com.example.shenanigans.features.auth.model.User;
 import com.example.shenanigans.features.auth.service.AuthService;
 import com.example.shenanigans.features.employees.model.Employee;
@@ -1333,13 +1332,7 @@ public class DashboardController {
     private void handleSettings() {
         if (!checkAuth())
             return;
-
-        ThemeSettingsDialogComponent.showDarkModeDialog(
-                () -> {
-                    if (sidebarComponent != null) {
-                        sidebarComponent.refreshIconsForTheme();
-                    }
-                });
+        navigateTo("features/settings/view/settings_view");
     }
 
     private void initializeSidebarComponent() {

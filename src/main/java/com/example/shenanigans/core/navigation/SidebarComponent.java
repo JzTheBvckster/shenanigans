@@ -153,8 +153,8 @@ public class SidebarComponent {
             menuHeaderLabel.setManaged(!collapsed);
         }
         if (settingsHeaderLabel != null) {
-            settingsHeaderLabel.setVisible(!collapsed);
-            settingsHeaderLabel.setManaged(!collapsed);
+            settingsHeaderLabel.setVisible(false);
+            settingsHeaderLabel.setManaged(false);
         }
         if (systemInfoCard != null) {
             systemInfoCard.setVisible(!collapsed);
