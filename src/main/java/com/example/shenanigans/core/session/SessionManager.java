@@ -18,6 +18,7 @@ public final class SessionManager {
   private String idToken;
   private String refreshToken;
   private String selectedEmployeeId;
+  private String selectedEmployeeSection;
   private boolean sidebarExpanded = true;
   // Theme preference for the current session: false = light, true = dark
   private boolean darkMode = false;
@@ -59,6 +60,7 @@ public final class SessionManager {
     this.idToken = null;
     this.refreshToken = null;
     this.selectedEmployeeId = null;
+    this.selectedEmployeeSection = null;
     LOGGER.info("Session cleared for: " + email);
   }
 
@@ -134,6 +136,29 @@ public final class SessionManager {
   /** Clears selected employee navigation context. */
   public void clearSelectedEmployeeId() {
     this.selectedEmployeeId = null;
+  }
+
+  /**
+   * Stores current employee workspace section for employee portal navigation.
+   *
+   * @param section section key to persist (e.g., MY_TASKS)
+   */
+  public void setSelectedEmployeeSection(String section) {
+    this.selectedEmployeeSection = section;
+  }
+
+  /**
+   * Returns currently selected employee workspace section.
+   *
+   * @return section key or null
+   */
+  public String getSelectedEmployeeSection() {
+    return selectedEmployeeSection;
+  }
+
+  /** Clears selected employee workspace section. */
+  public void clearSelectedEmployeeSection() {
+    this.selectedEmployeeSection = null;
   }
 
   /**

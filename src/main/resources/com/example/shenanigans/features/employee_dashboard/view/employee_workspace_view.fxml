@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.example.shenanigans.features.employee_dashboard.controller.EmployeeWorkspaceController"
+    stylesheets="@../styles/employee_workspace.css" styleClass="workspace-root">
+  <top>
+    <HBox alignment="CENTER_LEFT" spacing="16" styleClass="workspace-header">
+      <padding>
+        <Insets top="16" right="24" bottom="16" left="24"/>
+      </padding>
+      <HBox alignment="CENTER_LEFT" spacing="12">
+        <StackPane styleClass="logo-container">
+          <Circle radius="20" styleClass="logo-circle"/>
+          <Label styleClass="logo-letter" text="S"/>
+        </StackPane>
+        <VBox spacing="2">
+          <Label text="Shenanigans" styleClass="app-title"/>
+          <Label text="Employee Workspace" styleClass="app-subtitle"/>
+        </VBox>
+      </HBox>
+      <Region HBox.hgrow="ALWAYS"/>
+      <VBox alignment="CENTER_RIGHT" spacing="2">
+        <Label fx:id="welcomeLabel" styleClass="welcome-text" text="Welcome!"/>
+        <Label fx:id="emailLabel" styleClass="email-text" text=""/>
+      </VBox>
+      <StackPane styleClass="avatar-container">
+        <Circle radius="22" styleClass="avatar-circle"/>
+        <Label fx:id="avatarLabel" styleClass="avatar-letter" text="E"/>
+      </StackPane>
+      <Button text="Sign Out" styleClass="logout-button" onAction="#handleLogout"/>
+    </HBox>
+  </top>
+
+  <left>
+    <VBox prefWidth="260" spacing="8" styleClass="workspace-sidebar">
+      <padding>
+        <Insets top="24" right="16" bottom="24" left="16"/>
+      </padding>
+      <HBox alignment="CENTER">
+        <Label styleClass="role-badge" text="👤 EMPLOYEE"/>
+      </HBox>
+      <Region prefHeight="16"/>
+      <Label styleClass="menu-header" text="MY WORKSPACE"/>
+      <VBox spacing="4" styleClass="menu-section">
+        <Button fx:id="myTasksButton" maxWidth="Infinity" styleClass="menu-button,menu-button-active"
+                                        text="📋 My Tasks" onAction="#handleMyTasks" />
+        <Button fx:id="myProjectsButton" maxWidth="Infinity" styleClass="menu-button"
+                                        text="📁 My Projects" onAction="#handleMyProjects" />
+        <Button fx:id="timeSheetButton" maxWidth="Infinity" styleClass="menu-button"
+                                        text="⏱️ Time Sheet" onAction="#handleTimeSheet" />
+        <Button fx:id="requestsButton" maxWidth="Infinity" styleClass="menu-button"
+                                        text="📅 Leave Requests" onAction="#handleRequests" />
+      </VBox>
+      <Region prefHeight="16"/>
+      <Label styleClass="menu-header" text="RESOURCES"/>
+      <VBox spacing="4" styleClass="menu-section">
+        <Button fx:id="documentsButton" maxWidth="Infinity" styleClass="menu-button"
+                                        text="📄 Documents" onAction="#handleDocuments" />
+        <Button fx:id="teamButton" maxWidth="Infinity" styleClass="menu-button"
+                                        text="👥 My Team" onAction="#handleTeam" />
+      </VBox>
+      <Region VBox.vgrow="ALWAYS"/>
+      <VBox spacing="8" styleClass="work-status-card">
+        <Label styleClass="work-status-title" text="WORK STATUS"/>
+        <HBox alignment="CENTER_LEFT" spacing="8">
+          <Region fx:id="workStatusDot" styleClass="status-dot,status-dot-online"/>
+          <Label fx:id="workStatusTextLabel" styleClass="work-status-text" text="Clocked In"/>
+        </HBox>
+        <Label fx:id="workStatusTimeLabel" styleClass="work-status-time" text="Started: 9:00 AM"/>
+      </VBox>
+      <Region prefHeight="8"/>
+      <VBox spacing="4">
+        <Button fx:id="profileButton" maxWidth="Infinity" styleClass="menu-button,menu-button-secondary"
+                                        text="⚙️ My Profile" onAction="#handleProfile" />
+      </VBox>
+      <Button fx:id="backToDashboardButton" text="← Back to Dashboard" maxWidth="Infinity" styleClass="back-button"
+                                  onAction="#handleBackToDashboard" />
+    </VBox>
+  </left>
+
+  <center>
+    <ScrollPane fitToHeight="true" fitToWidth="true" styleClass="workspace-scroll">
+      <VBox spacing="20" styleClass="workspace-content">
+        <padding>
+          <Insets top="28" right="28" bottom="28" left="28"/>
+        </padding>
+        <HBox alignment="CENTER_LEFT" spacing="12">
+          <VBox spacing="6" HBox.hgrow="ALWAYS">
+            <Label fx:id="sectionTitleLabel" styleClass="section-title" text="My Tasks"/>
+            <Label fx:id="sectionSubtitleLabel" styleClass="section-subtitle"
+                                                                text="Track your employee workspace data." />
+          </VBox>
+          <ProgressIndicator fx:id="loadingIndicator" visible="false" maxWidth="22" maxHeight="22"/>
+        </HBox>
+        <HBox fx:id="summaryCardsContainer" spacing="14"/>
+        <VBox spacing="14" styleClass="section-panel">
+          <Label text="Details" styleClass="panel-title"/>
+          <VBox fx:id="sectionListContainer" spacing="10"/>
+        </VBox>
+        <Label fx:id="sectionStatusLabel" text="Ready" styleClass="status-ok"/>
+      </VBox>
+    </ScrollPane>
+  </center>
+</BorderPane>

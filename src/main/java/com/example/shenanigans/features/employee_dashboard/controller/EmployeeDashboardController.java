@@ -41,6 +41,8 @@ public class EmployeeDashboardController {
 
     private final ProjectService projectService = new ProjectService();
     private final EmployeeService employeeService = new EmployeeService();
+    private Employee currentEmployee;
+    private List<Project> assignedProjects = List.of();
 
     // Header components
     @FXML
@@ -164,6 +166,7 @@ public class EmployeeDashboardController {
         loadTask.setOnFailed(
                 event -> {
                     LOGGER.warning("Failed to load employee dashboard data: " + loadTask.getException());
+                    showLoadFailureState();
                     if (loadingIndicator != null) {
                         loadingIndicator.setVisible(false);
                     }
@@ -175,6 +178,8 @@ public class EmployeeDashboardController {
     }
 
     private void clearDashboardData() {
+        currentEmployee = null;
+        assignedProjects = List.of();
         if (tasksDueTodayLabel != null) {
             tasksDueTodayLabel.setText("0");
         }
@@ -193,7 +198,9 @@ public class EmployeeDashboardController {
     }
 
     private void applyDashboardData(EmployeeDashboardData data) {
-        List<Project> assignedProjects = safeList(data.assignedProjects());
+        currentEmployee = data.currentEmployee();
+        assignedProjects = safeList(data.assignedProjects());
+
         long dueToday = assignedProjects.stream().filter(this::isDueToday).count();
         long activeProjects = assignedProjects.stream().filter(Project::isActive).count();
 
@@ -213,6 +220,27 @@ public class EmployeeDashboardController {
         renderTasks(assignedProjects);
         renderProjects(assignedProjects);
         renderActivity(assignedProjects);
+    }
+
+    private void showLoadFailureState() {
+        if (tasksDueTodayLabel != null) {
+            tasksDueTodayLabel.setText("-");
+        }
+        if (hoursThisWeekLabel != null) {
+            hoursThisWeekLabel.setText("N/A");
+        }
+        if (activeProjectsLabel != null) {
+            activeProjectsLabel.setText("-");
+        }
+        if (leaveBalanceLabel != null) {
+            leaveBalanceLabel.setText("N/A");
+        }
+        renderTasks(List.of());
+        renderProjects(List.of());
+        if (activityContainer != null) {
+            activityContainer.getChildren().clear();
+            addActivityItem("Dashboard data could not be loaded", "Try refresh from My Tasks", "orange");
+        }
     }
 
     private Employee resolveCurrentEmployee(User user, List<Employee> employees) {
@@ -550,7 +578,7 @@ public class EmployeeDashboardController {
             return;
         LOGGER.info("Navigating to My Tasks");
         setActiveButton(myTasksButton);
-        // TODO: Navigate to tasks view or load tasks in content area
+        navigateToWorkspace("MY_TASKS");
     }
 
     /** Handles navigation to My Projects section. */
@@ -560,7 +588,7 @@ public class EmployeeDashboardController {
             return;
         LOGGER.info("Navigating to My Projects");
         setActiveButton(myProjectsButton);
-        // TODO: Navigate to projects view
+        navigateToWorkspace("MY_PROJECTS");
     }
 
     /** Handles navigation to Time Sheet section. */
@@ -570,7 +598,7 @@ public class EmployeeDashboardController {
             return;
         LOGGER.info("Navigating to Time Sheet");
         setActiveButton(timeSheetButton);
-        // TODO: Navigate to time sheet view
+        navigateToWorkspace("TIME_SHEET");
     }
 
     /** Handles navigation to Leave Requests section. */
@@ -580,7 +608,7 @@ public class EmployeeDashboardController {
             return;
         LOGGER.info("Navigating to Leave Requests");
         setActiveButton(requestsButton);
-        // TODO: Navigate to leave requests view
+        navigateToWorkspace("REQUESTS");
     }
 
     /** Handles navigation to Documents section. */
@@ -590,7 +618,7 @@ public class EmployeeDashboardController {
             return;
         LOGGER.info("Navigating to Documents");
         setActiveButton(documentsButton);
-        // TODO: Navigate to documents view
+        navigateToWorkspace("DOCUMENTS");
     }
 
     /** Handles navigation to Team section. */
@@ -600,7 +628,7 @@ public class EmployeeDashboardController {
             return;
         LOGGER.info("Navigating to Team");
         setActiveButton(teamButton);
-        // TODO: Navigate to team view
+        navigateToWorkspace("TEAM");
     }
 
     /** Handles navigation to Profile section. */
@@ -610,7 +638,10 @@ public class EmployeeDashboardController {
             return;
         LOGGER.info("Navigating to Profile");
         setActiveButton(profileButton);
-        // TODO: Navigate to profile view
+        if (currentEmployee != null && currentEmployee.getId() != null && !currentEmployee.getId().isBlank()) {
+            SessionManager.getInstance().setSelectedEmployeeId(currentEmployee.getId());
+        }
+        navigateToWorkspace("PROFILE");
     }
 
     /** Handles user logout. */
@@ -656,5 +687,14 @@ public class EmployeeDashboardController {
     /** Redirects to main dashboard (for non-employees). */
     private void redirectToMainDashboard() {
         ViewNavigator.redirectToDashboard(LOGGER);
+    }
+
+    private void navigateTo(String viewPath) {
+        ViewNavigator.navigateTo(viewPath, LOGGER);
+    }
+
+    private void navigateToWorkspace(String section) {
+        SessionManager.getInstance().setSelectedEmployeeSection(section);
+        navigateTo("features/employee_dashboard/view/employee_workspace_view");
     }
 }
