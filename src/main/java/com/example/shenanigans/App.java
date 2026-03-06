@@ -1,9 +1,12 @@
 package com.example.shenanigans;
 
 import com.example.shenanigans.core.firebase.FirebaseInitializer;
+import java.io.ByteArrayInputStream;
 import com.example.shenanigans.core.session.SessionManager;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Application;
@@ -70,6 +73,27 @@ public class App extends Application {
 
   private void initializeFirebase() {
     try {
+      // In cloud/container environments, prefer env-based credentials.
+      String serviceAccountJson = System.getenv("FIREBASE_SERVICE_ACCOUNT_JSON");
+      if (serviceAccountJson != null && !serviceAccountJson.isBlank()) {
+        try (InputStream input =
+            new ByteArrayInputStream(serviceAccountJson.getBytes(StandardCharsets.UTF_8))) {
+          FirebaseInitializer.initialize(input);
+          LOGGER.info("Firebase Admin SDK initialized from FIREBASE_SERVICE_ACCOUNT_JSON");
+          return;
+        }
+      }
+
+      String serviceAccountBase64 = System.getenv("FIREBASE_SERVICE_ACCOUNT_BASE64");
+      if (serviceAccountBase64 != null && !serviceAccountBase64.isBlank()) {
+        byte[] decoded = Base64.getDecoder().decode(serviceAccountBase64);
+        try (InputStream input = new ByteArrayInputStream(decoded)) {
+          FirebaseInitializer.initialize(input);
+          LOGGER.info("Firebase Admin SDK initialized from FIREBASE_SERVICE_ACCOUNT_BASE64");
+          return;
+        }
+      }
+
       // Load service account from resources
       InputStream serviceAccount =
           getClass()
@@ -78,14 +102,20 @@ public class App extends Application {
 
       if (serviceAccount == null) {
         LOGGER.warning("Firebase service account file not found. Firestore operations will fail.");
+        LOGGER.info(
+            "Set FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_SERVICE_ACCOUNT_BASE64 in cloud environments.");
         return;
       }
 
-      FirebaseInitializer.initialize(serviceAccount);
-      LOGGER.info("Firebase Admin SDK initialized successfully");
+      try (InputStream input = serviceAccount) {
+        FirebaseInitializer.initialize(input);
+        LOGGER.info("Firebase Admin SDK initialized successfully");
+      }
 
     } catch (IOException e) {
       LOGGER.log(Level.SEVERE, "Failed to initialize Firebase Admin SDK", e);
+    } catch (IllegalArgumentException e) {
+      LOGGER.log(Level.SEVERE, "Invalid base64 value in FIREBASE_SERVICE_ACCOUNT_BASE64", e);
     }
   }
 

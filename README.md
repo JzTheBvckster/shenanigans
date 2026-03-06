@@ -189,7 +189,10 @@ This repository includes a `render.yaml` Blueprint and Dockerfile that are ready
 
 Notes:
 - The container binds to Render's dynamic `PORT` automatically.
-- Ensure Firebase resource files exist in `src/main/resources/firebase/` before deployment.
+- Configure Firebase in Render environment variables:
+  - `FIREBASE_API_KEY`
+  - `FIREBASE_PROJECT_ID`
+  - `FIREBASE_SERVICE_ACCOUNT_JSON` (or `FIREBASE_SERVICE_ACCOUNT_BASE64`)
 
 ## 📁 Project Structure
 
