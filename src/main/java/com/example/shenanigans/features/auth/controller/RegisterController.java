@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 
@@ -351,7 +352,7 @@ public class RegisterController {
   @FXML
   private void navigateToLogin() {
     try {
-      App.setRoot("features/auth/view/auth_view");
+      setRootOnCurrentScene("features/auth/view/auth_view");
     } catch (Exception e) {
       LOGGER.log(Level.SEVERE, "Failed to navigate to login", e);
       showStatus("Failed to load login page", true);
@@ -363,13 +364,26 @@ public class RegisterController {
     try {
       User user = SessionManager.getInstance().getCurrentUser();
       if (user != null && user.isEmployee()) {
-        App.setRoot("features/employee_dashboard/view/employee_dashboard_view");
+        setRootOnCurrentScene("features/employee_dashboard/view/employee_dashboard_view");
       } else {
-        App.setRoot("features/dashboard/view/dashboard_view");
+        setRootOnCurrentScene("features/dashboard/view/dashboard_view");
       }
     } catch (Exception e) {
       LOGGER.log(Level.SEVERE, "Failed to navigate to dashboard", e);
       showStatus("Failed to load dashboard", true);
+    }
+  }
+
+  private void setRootOnCurrentScene(String fxmlPath) throws Exception {
+    Scene currentScene = registerPane != null ? registerPane.getScene() : null;
+    if (currentScene == null && statusLabel != null) {
+      currentScene = statusLabel.getScene();
+    }
+
+    if (currentScene != null) {
+      App.setRoot(currentScene, fxmlPath);
+    } else {
+      App.setRoot(fxmlPath);
     }
   }
 

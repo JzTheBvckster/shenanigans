@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: shenanigans
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    autoDeployTrigger: commit
+    healthCheckPath: /

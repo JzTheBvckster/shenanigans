@@ -11,6 +11,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 
 /** JavaFX App */
 public class App extends Application {
@@ -95,10 +96,28 @@ public class App extends Application {
    * @throws IOException if the FXML file cannot be loaded
    */
   public static void setRoot(String fxml) throws IOException {
-    scene.setRoot(loadFXML(fxml));
+    Scene targetScene = resolveNavigationScene();
+    if (targetScene == null) {
+      throw new IllegalStateException("No active JavaFX scene available for navigation to: " + fxml);
+    }
+    setRoot(targetScene, fxml);
+  }
+
+  /**
+   * Changes the root view on a specific scene.
+   *
+   * @param targetScene scene to apply the new root to
+   * @param fxml Path to the FXML file (without .fxml extension)
+   * @throws IOException if the FXML file cannot be loaded
+   */
+  public static void setRoot(Scene targetScene, String fxml) throws IOException {
+    targetScene.setRoot(loadFXML(fxml));
 
     // Re-apply theme because root-local stylesheets change per view.
-    com.example.shenanigans.core.theme.ThemeService.applyToScene(scene);
+    com.example.shenanigans.core.theme.ThemeService.applyToScene(targetScene);
+
+    // Keep desktop compatibility while allowing JPro to target the active scene.
+    scene = targetScene;
   }
 
   /**
@@ -122,6 +141,26 @@ public class App extends Application {
   private static Parent loadFXML(String fxml) throws IOException {
     FXMLLoader fxmlLoader = new FXMLLoader(App.class.getResource(fxml + ".fxml"));
     return fxmlLoader.load();
+  }
+
+  private static Scene resolveNavigationScene() {
+    if (scene != null && scene.getWindow() != null && scene.getWindow().isShowing()) {
+      return scene;
+    }
+
+    for (Window window : Window.getWindows()) {
+      if (window != null && window.isShowing() && window.isFocused() && window.getScene() != null) {
+        return window.getScene();
+      }
+    }
+
+    for (Window window : Window.getWindows()) {
+      if (window != null && window.isShowing() && window.getScene() != null) {
+        return window.getScene();
+      }
+    }
+
+    return scene;
   }
 
   public static void main(String[] args) {

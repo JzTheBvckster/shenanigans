@@ -2,8 +2,8 @@
 
 A modern JavaFX-based enterprise management system for managing employees, projects, and company operations. Built with a clean architecture, Firebase backend, and a professional UI design.
 
-![Java](https://img.shields.io/badge/Java-17-orange)
-![JavaFX](https://img.shields.io/badge/JavaFX-17.0.2-blue)
+![Java](https://img.shields.io/badge/Java-25-orange)
+![JavaFX](https://img.shields.io/badge/JavaFX-25.0.2-blue)
 ![Firebase](https://img.shields.io/badge/Firebase-Admin%20SDK-yellow)
 ![Maven](https://img.shields.io/badge/Maven-Build-red)
 
@@ -98,7 +98,7 @@ src/main/java/com/example/shenanigans/
 
 ### Prerequisites
 
-- **Java 17** or higher
+- **Java 25** or higher
 - **Maven 3.6+**
 - **Firebase Project** with:
   - Authentication enabled (Email/Password)
@@ -144,15 +144,52 @@ src/main/java/com/example/shenanigans/
 
 3. **Build the project**
    ```bash
-   mvn clean install
+  mvnw.cmd clean install
    ```
 
 4. **Run the application**
    ```bash
-   mvn javafx:run
+  mvnw.cmd javafx:run
    ```
 
    Or run `Launcher.java` directly from your IDE.
+
+### Run in a Browser with JPro
+
+1. **Start JPro mode**
+  ```bash
+  mvnw.cmd -Pjpro jpro:run
+  ```
+
+2. **Open the app in your browser**
+
+  JPro prints the local URL in the terminal (typically `http://localhost:8080`).
+
+3. **Keep desktop mode available**
+
+  Continue to use:
+  ```bash
+  mvnw.cmd javafx:run
+  ```
+  for native desktop execution.
+
+### Deploy on Render
+
+This repository includes a `render.yaml` Blueprint and Dockerfile that are ready for Render web service deployment.
+
+1. Push this repository to GitHub.
+
+2. In Render Dashboard, choose **New +** -> **Blueprint**.
+
+3. Select your repository and confirm `render.yaml` is detected.
+
+4. Create the service and wait for the first deploy to finish.
+
+5. Open the generated `*.onrender.com` URL.
+
+Notes:
+- The container binds to Render's dynamic `PORT` automatically.
+- Ensure Firebase resource files exist in `src/main/resources/firebase/` before deployment.
 
 ## 📁 Project Structure
 
@@ -196,8 +233,8 @@ shenanigans/
 
 ## 🛠️ Technology Stack
 
-- **Language**: Java 17
-- **UI Framework**: JavaFX 17 with FXML
+- **Language**: Java 25
+- **UI Framework**: JavaFX 25.0.2 with FXML
 - **Build Tool**: Maven
 - **Backend**: Firebase (Authentication + Firestore)
 - **Testing**: JUnit 5

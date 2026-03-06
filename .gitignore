@@ -5,6 +5,16 @@ shenanigans-ff409-firebase-adminsdk-fbsvc-e841083317.json
 src/main/resources/firebase/firebase.properties
 src/main/resources/firebase/serviceAccountKey.json
 *.json.template
-target/classes/firebase/firebase.properties
+target
 .tools
 .idea
+.mvn
+mvnw
+mvnw.cmd
+logs
+.vscode
+RUNNING_PID
+.dockerignore
+compose.yaml
+Dockerfile
+start.sh
