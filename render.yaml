@@ -4,7 +4,12 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     plan: free
+    numInstances: 1
     autoDeployTrigger: commit
     healthCheckPath: /
     envVars:
       - fromGroup: Firebase credentials
+      - key: MAVEN_OPTS
+        value: -Xms16m -Xmx80m -XX:MaxMetaspaceSize=64m -XX:+UseSerialGC -Dhttps.protocols=TLSv1.2
+      - key: JPRO_JVM_ARGS
+        value: "-Xms24m,-Xmx160m,-XX:MaxMetaspaceSize=80m,-XX:+UseSerialGC,-XX:+ExitOnOutOfMemoryError"
