@@ -15,6 +15,4 @@ logs
 .vscode
 RUNNING_PID
 .dockerignore
-compose.yaml
-Dockerfile
 start.sh

@@ -1,0 +1,12 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      MAVEN_OPTS: -Dhttps.protocols=TLSv1.2
+    ports:
+      - "8080:8080"
+    volumes:
+      - ${USERPROFILE}/.m2:/root/.m2
+
