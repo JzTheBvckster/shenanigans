@@ -1,5 +1,4 @@
 .github
-pom.xml
 shenanigans-ff409-firebase-adminsdk-fbsvc-e841083317.json
 # Firebase credentials - DO NOT COMMIT
 src/main/resources/firebase/firebase.properties
@@ -8,9 +7,6 @@ src/main/resources/firebase/serviceAccountKey.json
 target
 .tools
 .idea
-.mvn
-mvnw
-mvnw.cmd
 logs
 .vscode
 RUNNING_PID
