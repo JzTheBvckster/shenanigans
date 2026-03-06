@@ -189,7 +189,7 @@ This repository includes a `render.yaml` Blueprint and Dockerfile that are ready
 
 Notes:
 - The container binds to Render's dynamic `PORT` automatically.
-- Configure Firebase in Render environment variables:
+- Create a Render environment group named `Firebase credentials` and add:
   - `FIREBASE_API_KEY`
   - `FIREBASE_PROJECT_ID`
   - `FIREBASE_SERVICE_ACCOUNT_JSON` (or `FIREBASE_SERVICE_ACCOUNT_BASE64`)
