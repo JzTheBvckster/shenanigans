@@ -1,0 +1,67 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "api/**/*.js",
+            "use": "@vercel/node"
+        },
+        {
+            "src": "public/**",
+            "use": "@vercel/static"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/api/auth/login",
+            "dest": "/api/auth/login.js"
+        },
+        {
+            "src": "/api/auth/register",
+            "dest": "/api/auth/register.js"
+        },
+        {
+            "src": "/api/auth/logout",
+            "dest": "/api/auth/logout.js"
+        },
+        {
+            "src": "/api/auth/session",
+            "dest": "/api/auth/session.js"
+        },
+        {
+            "src": "/api/auth/forgot-password",
+            "dest": "/api/auth/forgot-password.js"
+        },
+        {
+            "src": "/api/health",
+            "dest": "/api/health.js"
+        },
+        {
+            "src": "/api/dashboard/summary",
+            "dest": "/api/dashboard/summary.js"
+        },
+        {
+            "src": "/api/employees(.*)",
+            "dest": "/api/employees/[...path].js"
+        },
+        {
+            "src": "/api/projects(.*)",
+            "dest": "/api/projects/[...path].js"
+        },
+        {
+            "src": "/api/finance/invoices(.*)",
+            "dest": "/api/finance/invoices/[...path].js"
+        },
+        {
+            "src": "/app",
+            "dest": "/public/app.html"
+        },
+        {
+            "src": "/assets/(.*)",
+            "dest": "/public/assets/$1"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/public/$1"
+        }
+    ]
+}

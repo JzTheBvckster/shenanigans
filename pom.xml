@@ -9,9 +9,7 @@
     <maven.compiler.release>25</maven.compiler.release>
     <maven.compiler.source>25</maven.compiler.source>
     <maven.compiler.target>25</maven.compiler.target>
-    <jpro.version>2026.1.1</jpro.version>
-    <jpro.java.version>25</jpro.java.version>
-    <jpro.javafx.version>25.0.2</jpro.javafx.version>
+    <javafx.version>25.0.2</javafx.version>
   </properties>
 
   <dependencies>
@@ -19,12 +17,12 @@
     <dependency>
       <groupId>org.openjfx</groupId>
       <artifactId>javafx-controls</artifactId>
-      <version>${jpro.javafx.version}</version>
+      <version>${javafx.version}</version>
     </dependency>
     <dependency>
       <groupId>org.openjfx</groupId>
       <artifactId>javafx-fxml</artifactId>
-      <version>${jpro.javafx.version}</version>
+      <version>${javafx.version}</version>
     </dependency>
     <!-- Firebase Admin SDK -->
     <dependency>
@@ -46,20 +44,6 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <repositories>
-    <repository>
-      <id>jpro - sandec repository</id>
-      <url>https://sandec.jfrog.io/artifactory/repo</url>
-    </repository>
-  </repositories>
-
-  <pluginRepositories>
-    <pluginRepository>
-      <id>jpro - sandec repository</id>
-      <url>https://sandec.jfrog.io/artifactory/repo</url>
-    </pluginRepository>
-  </pluginRepositories>
 
   <build>
     <plugins>
@@ -89,14 +73,6 @@
         <version>0.0.8</version>
         <configuration>
           <mainClass>com.example.shenanigans.Launcher</mainClass>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>one.jpro</groupId>
-        <artifactId>jpro-maven-plugin</artifactId>
-        <version>${jpro.version}</version>
-        <configuration>
-          <mainClassName>com.example.shenanigans.App</mainClassName>
         </configuration>
       </plugin>
     </plugins>

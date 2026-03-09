@@ -154,64 +154,6 @@ src/main/java/com/example/shenanigans/
 
    Or run `Launcher.java` directly from your IDE.
 
-### Run in a Browser with JPro
-
-1. **Start JPro mode**
-  ```bash
-  mvnw.cmd -Pjpro jpro:run
-  ```
-
-2. **Open the app in your browser**
-
-  JPro prints the local URL in the terminal (typically `http://localhost:8080`).
-
-3. **Keep desktop mode available**
-
-  Continue to use:
-  ```bash
-  mvnw.cmd javafx:run
-  ```
-  for native desktop execution.
-
-  ### Run Lightweight HTML Web Mode
-
-  If JPro + FXML rendering is too heavy for your web target, you can run the built-in HTML mode.
-  This serves plain HTML/CSS/JS pages while reusing your Java services (Auth, Employees, Projects, Finance).
-
-  1. **Start the HTML web server**
-    ```bash
-    mvnw.cmd -DskipTests "-Dexec.mainClass=com.example.shenanigans.WebLauncher" org.codehaus.mojo:exec-maven-plugin:3.5.0:java
-    ```
-
-  2. **Open the app in your browser**
-
-    Navigate to `http://localhost:8080`.
-
-  3. **Optional port override**
-
-    Set `PORT` environment variable, or use JVM property `-Dweb.port=9090`.
-
-### Deploy on Render
-
-This repository includes a `render.yaml` Blueprint and Dockerfile that are ready for Render web service deployment.
-
-1. Push this repository to GitHub.
-
-2. In Render Dashboard, choose **New +** -> **Blueprint**.
-
-3. Select your repository and confirm `render.yaml` is detected.
-
-4. Create the service and wait for the first deploy to finish.
-
-5. Open the generated `*.onrender.com` URL.
-
-Notes:
-- The container binds to Render's dynamic `PORT` automatically.
-- Create a Render environment group named `Firebase credentials` and add:
-  - `FIREBASE_API_KEY`
-  - `FIREBASE_PROJECT_ID`
-  - `FIREBASE_SERVICE_ACCOUNT_JSON` (or `FIREBASE_SERVICE_ACCOUNT_BASE64`)
-
 ## 📁 Project Structure
 
 ```
