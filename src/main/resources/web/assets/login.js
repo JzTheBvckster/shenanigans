@@ -151,7 +151,23 @@
         clearAllNotices();
         var email = document.getElementById('forgotEmail').value.trim();
         if (!email) { showNotice('forgotNotice', 'Please enter your email address.', 'error'); return; }
-        showNotice('forgotNotice', 'If an account exists, a reset link was sent to your email.', 'success');
+
+        fetch('/api/auth/forgot-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email })
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (body) {
+                if (body.ok) {
+                    showNotice('forgotNotice', 'If an account exists, a reset link was sent to your email.', 'success');
+                } else {
+                    showNotice('forgotNotice', body.error || 'Failed to send reset email.', 'error');
+                }
+            })
+            .catch(function () {
+                showNotice('forgotNotice', 'Network error. Please try again.', 'error');
+            });
     };
 
     // ---- Password toggle ----
