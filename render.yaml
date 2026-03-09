@@ -12,4 +12,4 @@ services:
       - key: MAVEN_OPTS
         value: -Xms16m -Xmx80m -XX:MaxMetaspaceSize=64m -XX:+UseSerialGC -Dhttps.protocols=TLSv1.2
       - key: JPRO_JVM_ARGS
-        value: "-Xms24m,-Xmx160m,-XX:MaxMetaspaceSize=80m,-XX:+UseSerialGC,-XX:+ExitOnOutOfMemoryError"
+        value: "-Xms16m,-Xmx128m,-XX:MaxMetaspaceSize=72m,-XX:+UseSerialGC,-XX:+ExitOnOutOfMemoryError"

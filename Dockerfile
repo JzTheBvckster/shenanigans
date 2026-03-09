@@ -28,7 +28,8 @@ EXPOSE 8080
 
 # Keep both Maven and the JPro app JVM within a 512 MB service budget.
 ENV MAVEN_OPTS="-Xms16m -Xmx80m -XX:MaxMetaspaceSize=64m -XX:+UseSerialGC -Dhttps.protocols=TLSv1.2"
-ENV JPRO_JVM_ARGS="-Xms24m,-Xmx160m,-XX:MaxMetaspaceSize=80m,-XX:+UseSerialGC,-XX:+ExitOnOutOfMemoryError"
+ENV JPRO_JVM_ARGS="-Xms16m,-Xmx128m,-XX:MaxMetaspaceSize=72m,-XX:+UseSerialGC,-XX:+ExitOnOutOfMemoryError"
 
 # Render sets PORT dynamically; default to 8080 for local Docker runs.
-CMD ["sh", "-c", "./mvnw -B -DskipTests jpro:run -Djpro.host=0.0.0.0 -Djpro.port=${PORT:-8080} \"-Djpro.openURLOnStartup=false\" \"-Djpro.JVMArgs=${JPRO_JVM_ARGS}\""]
+# Use jpro:start so Maven exits after startup, reducing steady-state RAM usage.
+CMD ["sh", "-c", "set -e; ./mvnw -B -DskipTests jpro:start \"-Djpro.port=${PORT:-8080}\" \"-Djpro.openURLOnStartup=false\" \"-Djpro.JVMArgs=${JPRO_JVM_ARGS}\"; pid=$(cat RUNNING_PID); echo \"JPro started with PID ${pid}\"; while kill -0 \"${pid}\" 2>/dev/null; do sleep 5; done"]

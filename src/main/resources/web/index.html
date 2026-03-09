@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shenanigans — Sign In</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+</head>
+
+<body>
+    <div class="auth-page" id="authPage">
+        <div class="auth-wrapper">
+            <!-- Branding -->
+            <div class="auth-brand">
+                <h1>Shenanigans</h1>
+                <p>Enterprise Management System</p>
+            </div>
+
+            <!-- LOGIN FORM -->
+            <div class="auth-form" id="loginForm">
+                <div class="form-header">
+                    <h2>Welcome Back</h2>
+                    <p>Enter your credentials to access the management portal</p>
+                </div>
+
+                <div class="field-group">
+                    <label for="loginEmail">EMAIL ADDRESS</label>
+                    <input type="email" id="loginEmail" placeholder="you@company.com" autocomplete="email">
+                    <div class="field-error" id="loginEmailError"></div>
+                </div>
+
+                <div class="field-group">
+                    <label for="loginPassword">PASSWORD</label>
+                    <div class="password-row">
+                        <input type="password" id="loginPassword" placeholder="Enter your password"
+                            autocomplete="current-password">
+                        <button type="button" class="password-toggle"
+                            onclick="togglePasswordVisibility('loginPassword', this)">Show</button>
+                    </div>
+                    <div class="field-error" id="loginPasswordError"></div>
+                </div>
+
+                <div class="forgot-link">
+                    <a href="#" id="forgotPasswordLink">Forgot password?</a>
+                </div>
+
+                <div class="auth-notice" id="loginNotice"></div>
+                <div class="auth-spinner" id="loginSpinner"></div>
+
+                <button class="btn-primary" id="loginBtn" onclick="doLogin()">Sign In</button>
+
+                <div class="auth-link-row">
+                    Don't have an account? <a href="#" id="showRegisterLink">Create one</a>
+                </div>
+            </div>
+
+            <!-- REGISTER FORM -->
+            <div class="auth-form hidden" id="registerForm">
+                <div class="form-header">
+                    <h2>Create Account</h2>
+                    <p>Fill in the form below to register a new account</p>
+                </div>
+
+                <div class="field-group">
+                    <label for="regName">FULL NAME</label>
+                    <input type="text" id="regName" placeholder="John Doe" autocomplete="name">
+                    <div class="field-error" id="regNameError"></div>
+                </div>
+
+                <div class="field-group">
+                    <label for="regEmail">EMAIL ADDRESS</label>
+                    <input type="email" id="regEmail" placeholder="you@company.com" autocomplete="email">
+                    <div class="field-error" id="regEmailError"></div>
+                </div>
+
+                <div class="field-group">
+                    <label for="regPassword">PASSWORD</label>
+                    <div class="password-row">
+                        <input type="password" id="regPassword" placeholder="Min 6 characters"
+                            autocomplete="new-password">
+                        <button type="button" class="password-toggle"
+                            onclick="togglePasswordVisibility('regPassword', this)">Show</button>
+                    </div>
+                    <div class="field-error" id="regPasswordError"></div>
+                </div>
+
+                <div class="field-group">
+                    <label for="regRole">ROLE</label>
+                    <select id="regRole">
+                        <option value="">Select a role</option>
+                        <option value="Managing Director">Managing Director</option>
+                        <option value="Project Manager">Project Manager</option>
+                    </select>
+                    <div class="field-error" id="regRoleError"></div>
+                </div>
+
+                <div class="auth-notice" id="registerNotice"></div>
+                <div class="auth-spinner" id="registerSpinner"></div>
+
+                <button class="btn-primary" id="registerBtn" onclick="doRegister()">Create Account</button>
+
+                <div class="auth-link-row">
+                    Already have an account? <a href="#" id="showLoginLink">Sign in</a>
+                </div>
+            </div>
+
+            <!-- FORGOT PASSWORD FORM -->
+            <div class="auth-form hidden" id="forgotForm">
+                <div class="form-header">
+                    <h2>Reset Password</h2>
+                    <p>Enter your email address and we'll send you a reset link</p>
+                </div>
+
+                <div class="field-group">
+                    <label for="forgotEmail">EMAIL ADDRESS</label>
+                    <input type="email" id="forgotEmail" placeholder="you@company.com" autocomplete="email">
+                    <div class="field-error" id="forgotEmailError"></div>
+                </div>
+
+                <div class="auth-notice" id="forgotNotice"></div>
+                <div class="auth-spinner" id="forgotSpinner"></div>
+
+                <button class="btn-primary" id="forgotBtn" onclick="doForgotPassword()">Send Reset Link</button>
+
+                <div class="auth-link-row">
+                    <a href="#" id="backToLoginLink">Back to Sign In</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/assets/login.js"></script>
+</body>
+
+</html>

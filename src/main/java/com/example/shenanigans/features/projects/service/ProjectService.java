@@ -27,6 +27,37 @@ public class ProjectService {
   }
 
   /**
+   * Synchronous retrieval variant used by non-JavaFX callers.
+   *
+   * @return list of projects ordered by creation timestamp descending
+   * @throws Exception when Firestore query fails
+   */
+  public List<Project> getAllProjectsSync() throws Exception {
+    if (firestore == null) {
+      throw new IllegalStateException("Firestore not initialized");
+    }
+
+    List<Project> projects = new ArrayList<>();
+
+    QuerySnapshot snapshot =
+        firestore
+            .collection(COLLECTION_NAME)
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .get()
+            .get();
+
+    for (DocumentSnapshot doc : snapshot.getDocuments()) {
+      Project project = mapToProject(doc);
+      if (project != null) {
+        projects.add(project);
+      }
+    }
+
+    LOGGER.info("Retrieved " + projects.size() + " projects");
+    return projects;
+  }
+
+  /**
    * Creates a new project in Firestore.
    *
    * @param project The project to create
@@ -117,28 +148,7 @@ public class ProjectService {
     return new Task<>() {
       @Override
       protected List<Project> call() throws Exception {
-        if (firestore == null) {
-          throw new IllegalStateException("Firestore not initialized");
-        }
-
-        List<Project> projects = new ArrayList<>();
-
-        QuerySnapshot snapshot =
-            firestore
-                .collection(COLLECTION_NAME)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
-                .get()
-                .get();
-
-        for (DocumentSnapshot doc : snapshot.getDocuments()) {
-          Project project = mapToProject(doc);
-          if (project != null) {
-            projects.add(project);
-          }
-        }
-
-        LOGGER.info("Retrieved " + projects.size() + " projects");
-        return projects;
+        return getAllProjectsSync();
       }
     };
   }

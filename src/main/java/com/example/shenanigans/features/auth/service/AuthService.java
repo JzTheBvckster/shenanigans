@@ -47,6 +47,88 @@ public class AuthService {
   }
 
   /**
+   * Synchronous sign-in variant for non-JavaFX callers (for example, HTML web mode).
+   *
+   * @param email user's email
+   * @param password user's password
+   * @return authenticated session payload
+   * @throws Exception when authentication or data lookup fails
+   */
+  public AuthSession signInSync(String email, String password) throws Exception {
+    checkAuthClient();
+
+    AuthResponse response = authClient.signIn(email, password);
+
+    currentIdToken = response.idToken;
+    currentRefreshToken = response.refreshToken;
+
+    User user = fetchUserFromFirestore(response.localId);
+    if (user == null) {
+      user = new User();
+      user.setUid(response.localId);
+      user.setEmail(response.email);
+      user.setDisplayName(response.displayName != null ? response.displayName : email.split("@")[0]);
+      user.setRole("PROJECT_MANAGER");
+      user.setMdApproved(false);
+      saveUserToFirestore(user);
+    }
+
+    enforceManagingDirectorApproval(user);
+
+    currentUser = user;
+    LOGGER.info("User signed in: " + user.getEmail());
+    return new AuthSession(user, currentIdToken, currentRefreshToken);
+  }
+
+  /**
+   * Synchronous sign-up variant for non-JavaFX callers.
+   *
+   * @param email user's email
+   * @param password user's password
+   * @param displayName user's display name
+   * @param role system role
+   * @return created user
+   * @throws Exception when account creation fails
+   */
+  public User signUpSync(String email, String password, String displayName, String role)
+      throws Exception {
+    checkAuthClient();
+
+    AuthResponse response = authClient.signUp(email, password);
+
+    currentIdToken = response.idToken;
+    currentRefreshToken = response.refreshToken;
+
+    if (displayName != null && !displayName.isEmpty()) {
+      authClient.updateProfile(response.idToken, displayName);
+    }
+
+    User user = new User(response.localId, email, displayName, role);
+    user.setMdApproved(!requiresManagingDirectorApproval(role));
+
+    saveUserToFirestore(user);
+
+    if ("EMPLOYEE".equals(role)) {
+      createEmployeeRecord(user);
+    }
+
+    LOGGER.info("User created: " + user.getEmail());
+    return user;
+  }
+
+  /**
+   * Synchronous password reset request.
+   *
+   * @param email user email
+   * @throws Exception when reset request fails
+   */
+  public void sendPasswordResetEmailSync(String email) throws Exception {
+    checkAuthClient();
+    authClient.sendPasswordResetEmail(email);
+    LOGGER.info("Password reset email sent to: " + email);
+  }
+
+  /**
    * Signs in a user with email and password.
    *
    * @param email    User's email
@@ -57,37 +139,8 @@ public class AuthService {
     return new Task<>() {
       @Override
       protected User call() throws Exception {
-        checkAuthClient();
-
-        // Authenticate via REST API
-        AuthResponse response = authClient.signIn(email, password);
-
-        // Store tokens
-        currentIdToken = response.idToken;
-        currentRefreshToken = response.refreshToken;
-
-        // Fetch full user data from Firestore
-        User user = fetchUserFromFirestore(response.localId);
-
-        if (user == null) {
-          // User exists in Auth but not in Firestore - create basic profile
-          user = new User();
-          user.setUid(response.localId);
-          user.setEmail(response.email);
-          user.setDisplayName(
-              response.displayName != null ? response.displayName : email.split("@")[0]);
-          user.setRole("PROJECT_MANAGER"); // Default role
-          user.setMdApproved(false);
-
-          // Save to Firestore
-          saveUserToFirestore(user);
-        }
-
-        enforceManagingDirectorApproval(user);
-
-        currentUser = user;
-        LOGGER.info("User signed in: " + user.getEmail());
-        return user;
+        AuthSession session = signInSync(email, password);
+        return session.user();
       }
     };
   }
@@ -105,34 +158,7 @@ public class AuthService {
     return new Task<>() {
       @Override
       protected User call() throws Exception {
-        checkAuthClient();
-
-        // Create user via REST API
-        AuthResponse response = authClient.signUp(email, password);
-
-        // Store tokens
-        currentIdToken = response.idToken;
-        currentRefreshToken = response.refreshToken;
-
-        // Update display name
-        if (displayName != null && !displayName.isEmpty()) {
-          authClient.updateProfile(response.idToken, displayName);
-        }
-
-        // Create user object
-        User user = new User(response.localId, email, displayName, role);
-        user.setMdApproved(!requiresManagingDirectorApproval(role));
-
-        // Save to Firestore users collection
-        saveUserToFirestore(user);
-
-        // If role is EMPLOYEE, also create an employee record
-        if ("EMPLOYEE".equals(role)) {
-          createEmployeeRecord(user);
-        }
-
-        LOGGER.info("User created: " + user.getEmail());
-        return user;
+        return signUpSync(email, password, displayName, role);
       }
     };
   }
@@ -197,9 +223,7 @@ public class AuthService {
     return new Task<>() {
       @Override
       protected Void call() throws Exception {
-        checkAuthClient();
-        authClient.sendPasswordResetEmail(email);
-        LOGGER.info("Password reset email sent to: " + email);
+        sendPasswordResetEmailSync(email);
         return null;
       }
     };
@@ -225,6 +249,13 @@ public class AuthService {
    */
   public String getCurrentIdToken() {
     return currentIdToken;
+  }
+
+  /**
+   * @return The current refresh token, or null if not authenticated
+   */
+  public String getCurrentRefreshToken() {
+    return currentRefreshToken;
   }
 
   /**
@@ -461,4 +492,7 @@ public class AuthService {
           "Your account is pending Managing Director approval. Please contact your MD.");
     }
   }
+
+  /** Immutable auth session payload used by callers that need both user and tokens. */
+  public record AuthSession(User user, String idToken, String refreshToken) {}
 }

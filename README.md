@@ -173,6 +173,24 @@ src/main/java/com/example/shenanigans/
   ```
   for native desktop execution.
 
+  ### Run Lightweight HTML Web Mode
+
+  If JPro + FXML rendering is too heavy for your web target, you can run the built-in HTML mode.
+  This serves plain HTML/CSS/JS pages while reusing your Java services (Auth, Employees, Projects, Finance).
+
+  1. **Start the HTML web server**
+    ```bash
+    mvnw.cmd -DskipTests "-Dexec.mainClass=com.example.shenanigans.WebLauncher" org.codehaus.mojo:exec-maven-plugin:3.5.0:java
+    ```
+
+  2. **Open the app in your browser**
+
+    Navigate to `http://localhost:8080`.
+
+  3. **Optional port override**
+
+    Set `PORT` environment variable, or use JVM property `-Dweb.port=9090`.
+
 ### Deploy on Render
 
 This repository includes a `render.yaml` Blueprint and Dockerfile that are ready for Render web service deployment.

@@ -23,52 +23,61 @@ public class FinanceService {
 
     private static final String COLLECTION = "invoices";
 
+    /**
+     * Synchronous invoice retrieval used by non-JavaFX callers.
+     *
+     * @return list of invoices from Firestore or fallback sample data
+     */
+    public List<Invoice> getAllInvoicesSync() {
+        if (FirebaseInitializer.isInitialized()) {
+            try {
+                Firestore db = FirebaseInitializer.getFirestore();
+                CollectionReference col = db.collection(COLLECTION);
+                ApiFuture<QuerySnapshot> future = col.get();
+                QuerySnapshot snapshot = future.get();
+                List<Invoice> out = new ArrayList<>();
+                for (QueryDocumentSnapshot doc : snapshot.getDocuments()) {
+                    try {
+                        Invoice inv = mapInvoiceDocument(doc);
+                        out.add(inv);
+                    } catch (Exception mappingError) {
+                        LOGGER.log(
+                                Level.WARNING,
+                                "Skipping unreadable invoice document: " + doc.getId(),
+                                mappingError);
+                    }
+                }
+                return out;
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Failed to load invoices from Firestore", e);
+                return new ArrayList<>();
+            }
+        }
+
+        // Fallback sample data
+        List<Invoice> list = new ArrayList<>();
+        Invoice a = new Invoice();
+        a.setId("INV-001");
+        a.setClient("Acme Corp");
+        a.setAmount(12450.00);
+        a.setPaid(false);
+
+        Invoice b = new Invoice();
+        b.setId("INV-002");
+        b.setClient("Beta LLC");
+        b.setAmount(5300.00);
+        b.setPaid(true);
+
+        list.add(a);
+        list.add(b);
+        return list;
+    }
+
     public Task<List<Invoice>> getAllInvoices() {
         return new Task<>() {
             @Override
             protected List<Invoice> call() {
-                if (FirebaseInitializer.isInitialized()) {
-                    try {
-                        Firestore db = FirebaseInitializer.getFirestore();
-                        CollectionReference col = db.collection(COLLECTION);
-                        ApiFuture<QuerySnapshot> future = col.get();
-                        QuerySnapshot snapshot = future.get();
-                        List<Invoice> out = new ArrayList<>();
-                        for (QueryDocumentSnapshot doc : snapshot.getDocuments()) {
-                            try {
-                                Invoice inv = mapInvoiceDocument(doc);
-                                out.add(inv);
-                            } catch (Exception mappingError) {
-                                LOGGER.log(
-                                        Level.WARNING,
-                                        "Skipping unreadable invoice document: " + doc.getId(),
-                                        mappingError);
-                            }
-                        }
-                        return out;
-                    } catch (Exception e) {
-                        LOGGER.log(Level.SEVERE, "Failed to load invoices from Firestore", e);
-                        return new ArrayList<>();
-                    }
-                }
-
-                // Fallback sample data
-                List<Invoice> list = new ArrayList<>();
-                Invoice a = new Invoice();
-                a.setId("INV-001");
-                a.setClient("Acme Corp");
-                a.setAmount(12450.00);
-                a.setPaid(false);
-
-                Invoice b = new Invoice();
-                b.setId("INV-002");
-                b.setClient("Beta LLC");
-                b.setAmount(5300.00);
-                b.setPaid(true);
-
-                list.add(a);
-                list.add(b);
-                return list;
+                return getAllInvoicesSync();
             }
         };
     }

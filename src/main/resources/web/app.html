@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shenanigans — Management Portal</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+</head>
+
+<body>
+    <div class="app-shell" id="appShell">
+
+        <!-- ========== HEADER ========== -->
+        <header class="app-header">
+            <div class="header-brand">
+                <div class="logo-circle">S</div>
+                <div class="header-brand-text">
+                    <h1>Shenanigans</h1>
+                    <p id="headerSubtitle">Management Portal</p>
+                </div>
+            </div>
+
+            <div class="header-spacer"></div>
+
+            <!-- Search (employees / projects pages) -->
+            <div class="header-search hidden" id="headerSearch">
+                <span class="header-search-icon">&#128269;</span>
+                <input type="text" id="headerSearchInput" placeholder="Search...">
+            </div>
+
+            <!-- Add button (employees / projects pages) -->
+            <button class="header-primary-btn hidden" id="headerAddBtn">+ Add</button>
+
+            <div class="header-user">
+                <div class="header-user-info">
+                    <div class="welcome-text" id="headerWelcome">Welcome</div>
+                    <div class="email-text" id="headerEmail"></div>
+                </div>
+                <div class="header-avatar-wrap">
+                    <div class="header-avatar" id="headerAvatar">?</div>
+                    <div class="role-badge-small" id="headerRole">User</div>
+                </div>
+                <button class="btn-logout" id="logoutBtn" onclick="doLogout()">Logout</button>
+            </div>
+        </header>
+
+        <!-- ========== SIDEBAR ========== -->
+        <aside class="app-sidebar" id="appSidebar">
+            <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">&#11164;</button>
+
+            <div class="menu-header">MAIN MENU</div>
+            <div class="menu-section">
+                <button class="menu-btn active" data-page="dashboard" onclick="navigateTo('dashboard')">
+                    <span class="menu-btn-icon"><svg viewBox="0 0 24 24">
+                            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                        </svg></span>
+                    <span class="menu-btn-text">Dashboard</span>
+                </button>
+                <button class="menu-btn" data-page="employees" onclick="navigateTo('employees')">
+                    <span class="menu-btn-icon"><svg viewBox="0 0 24 24">
+                            <path
+                                d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3z M8 11c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3z M2 17c0-2.33 4.67-3.5 7-3.5s7 1.17 7 3.5V20H2v-3z" />
+                        </svg></span>
+                    <span class="menu-btn-text">Employees</span>
+                </button>
+                <button class="menu-btn" data-page="projects" onclick="navigateTo('projects')">
+                    <span class="menu-btn-icon"><svg viewBox="0 0 24 24">
+                            <path
+                                d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1z" />
+                        </svg></span>
+                    <span class="menu-btn-text">Projects</span>
+                </button>
+                <button class="menu-btn" data-page="finance" onclick="navigateTo('finance')">
+                    <span class="menu-btn-icon"><svg viewBox="0 0 24 24">
+                            <path
+                                d="M12 1C6.48 1 2 5.48 2 11s4.48 10 10 10 10-4.48 10-10S17.52 1 12 1zm1 17.93V19h-2v-.07C8.06 18.44 6 16.28 6 13h2c0 2 2 4 5 4s5-2 5-4-2-3-5-3c-2.21 0-4 .9-4 2H8c0-2.76 3.13-5 7-5 3.87 0 7 2.24 7 5s-3.13 5-7 5c-1.66 0-3.17-.51-4.41-1.37z" />
+                        </svg></span>
+                    <span class="menu-btn-text">Finance</span>
+                </button>
+            </div>
+
+            <div class="menu-section">
+                <button class="menu-btn secondary" data-page="settings" onclick="navigateTo('settings')">
+                    <span class="menu-btn-icon"><svg viewBox="0 0 24 24">
+                            <path
+                                d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.11-.2-.36-.28-.57-.22l-2.39.96a7.007 7.007 0 0 0-1.6-.94l-.36-2.54A.486.486 0 0 0 14 1h-4c-.24 0-.44.17-.48.41l-.36 2.54c-.56.23-1.08.54-1.6.94l-2.39-.96c-.21-.08-.46.02-.57.22L2.71 8.88c-.11.2-.06.47.12.61L4.86 11.1c-.04.31-.06.63-.06.94s.02.63.06.94L2.83 15.56c-.18.14-.23.41-.12.61l1.92 3.32c.11.2.36.28.57.22l2.39-.96c.5.4 1.04.72 1.6.94l.36 2.54c.04.24.24.41.48.41h4c.24 0 .44-.17.48-.41l.36-2.54c.56-.23 1.08-.54 1.6-.94l2.39.96c.21.08.46-.02.57-.22l1.92-3.32c.11-.2.06-.47-.12-.61l-2.03-1.58z" />
+                        </svg></span>
+                    <span class="menu-btn-text">Settings</span>
+                </button>
+            </div>
+
+            <div class="sidebar-spacer"></div>
+
+            <div class="system-info-card">
+                <div class="title">System Status</div>
+                <div class="status-row">
+                    <div class="status-dot" id="systemStatusDot"></div>
+                    <span class="status-text" id="systemStatusText">Checking...</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ========== CONTENT ========== -->
+        <main class="app-content" id="appContent">
+
+            <!-- ===== DASHBOARD PAGE ===== -->
+            <section class="page-view" id="pageDashboard">
+                <div class="page-header">
+                    <h2>Dashboard</h2>
+                    <p>Overview of company operations and key metrics</p>
+                </div>
+
+                <div class="stats-row" id="statsRow">
+                    <div class="stat-card stat-card-blue">
+                        <div class="stat-icon">&#128101;</div>
+                        <div class="stat-label">Total Employees</div>
+                        <div class="stat-number" id="statEmployees">—</div>
+                    </div>
+                    <div class="stat-card stat-card-green">
+                        <div class="stat-icon">&#128194;</div>
+                        <div class="stat-label">Active Projects</div>
+                        <div class="stat-number" id="statProjects">—</div>
+                    </div>
+                    <div class="stat-card stat-card-orange">
+                        <div class="stat-icon">&#128176;</div>
+                        <div class="stat-label">Open Invoices</div>
+                        <div class="stat-number" id="statInvoices">—</div>
+                    </div>
+                    <div class="stat-card stat-card-purple">
+                        <div class="stat-icon">&#128200;</div>
+                        <div class="stat-label">Revenue</div>
+                        <div class="stat-number" id="statRevenue">—</div>
+                    </div>
+                </div>
+
+                <!-- Performance Snapshot -->
+                <div class="card insights-card">
+                    <div class="card-header">
+                        <h3>&#128161; Performance Snapshot</h3>
+                    </div>
+                    <div class="insights-row">
+                        <div class="insight-item">
+                            <div class="label">Total Projects</div>
+                            <div class="value" id="insightTotal">—</div>
+                        </div>
+                        <div class="insight-item">
+                            <div class="label">Overdue</div>
+                            <div class="value risk" id="insightOverdue">—</div>
+                        </div>
+                        <div class="insight-item">
+                            <div class="label">Paid Revenue</div>
+                            <div class="value" id="insightRevenue">—</div>
+                        </div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-label">
+                            <span>Budget Utilization</span>
+                            <span class="value" id="budgetPct">0%</span>
+                        </div>
+                        <div class="progress-bar-track">
+                            <div class="progress-bar-fill" id="budgetFill" style="width:0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project Overview + Recent Activity -->
+                <div class="content-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Project Overview</h3>
+                            <div class="spacer"></div>
+                            <button class="link-btn" onclick="navigateTo('projects')">View All</button>
+                        </div>
+                        <div id="projectOverviewList">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Recent Activity</h3>
+                        </div>
+                        <div id="activityList">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== EMPLOYEES PAGE ===== -->
+            <section class="page-view hidden" id="pageEmployees">
+                <div class="page-header">
+                    <h2>Employees</h2>
+                    <p>Manage your team across departments</p>
+                </div>
+                <div class="notice" id="employeesNotice"></div>
+                <div class="kanban-board" id="employeesKanban">
+                    <div class="kanban-column" id="colActive">
+                        <div class="kanban-header kanban-header-active">
+                            <span class="icon">&#9989;</span>
+                            <span class="title">Active</span>
+                            <span class="count" id="countActive">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cardsActive">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+                    <div class="kanban-column" id="colLeave">
+                        <div class="kanban-header kanban-header-leave">
+                            <span class="icon">&#9203;</span>
+                            <span class="title">On Leave</span>
+                            <span class="count" id="countLeave">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cardsLeave">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+                    <div class="kanban-column" id="colTerminated">
+                        <div class="kanban-header kanban-header-terminated">
+                            <span class="icon">&#10060;</span>
+                            <span class="title">Terminated</span>
+                            <span class="count" id="countTerminated">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cardsTerminated">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== PROJECTS PAGE ===== -->
+            <section class="page-view hidden" id="pageProjects">
+                <div class="page-header">
+                    <h2>Projects</h2>
+                    <p>Track project status and progress</p>
+                </div>
+                <div class="notice" id="projectsNotice"></div>
+                <div class="kanban-board" id="projectsKanban">
+                    <div class="kanban-column" id="colNew">
+                        <div class="kanban-header kanban-header-new">
+                            <span class="icon">&#128161;</span>
+                            <span class="title">New / Planning</span>
+                            <span class="count" id="countNew">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cardsNew">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+                    <div class="kanban-column" id="colInProgress">
+                        <div class="kanban-header kanban-header-pending">
+                            <span class="icon">&#9881;</span>
+                            <span class="title">In Progress</span>
+                            <span class="count" id="countInProgress">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cardsInProgress">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+                    <div class="kanban-column" id="colCompleted">
+                        <div class="kanban-header kanban-header-completed">
+                            <span class="icon">&#10004;</span>
+                            <span class="title">Completed</span>
+                            <span class="count" id="countCompleted">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cardsCompleted">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== FINANCE PAGE ===== -->
+            <section class="page-view hidden" id="pageFinance">
+                <div class="page-header">
+                    <h2>Invoices</h2>
+                    <p>Financial overview and invoice management</p>
+                </div>
+                <div class="notice" id="financeNotice"></div>
+                <div class="kanban-board" id="financeKanban">
+                    <div class="kanban-column" id="colDue">
+                        <div class="kanban-header kanban-header-due">
+                            <span class="icon">&#128176;</span>
+                            <span class="title">Due / Outstanding</span>
+                            <span class="count" id="countDue">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cardsDue">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+                    <div class="kanban-column" id="colPaid">
+                        <div class="kanban-header kanban-header-paid">
+                            <span class="icon">&#9989;</span>
+                            <span class="title">Paid</span>
+                            <span class="count" id="countPaid">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cardsPaid">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== SETTINGS PAGE ===== -->
+            <section class="page-view hidden" id="pageSettings">
+                <div class="page-header">
+                    <h2>Settings</h2>
+                    <p>Configure your preferences and account</p>
+                </div>
+
+                <div class="settings-grid">
+                    <!-- Appearance -->
+                    <div class="settings-card">
+                        <div class="card-title">Appearance</div>
+                        <label class="setting-item"><input type="checkbox" id="settingDarkMode"> Dark Mode</label>
+                        <label class="setting-item"><input type="checkbox" id="settingCompact"> Compact View</label>
+                    </div>
+
+                    <!-- Notifications -->
+                    <div class="settings-card">
+                        <div class="card-title">Notifications</div>
+                        <label class="setting-item"><input type="checkbox" id="settingEmailNotif" checked> Email
+                            Notifications</label>
+                        <label class="setting-item"><input type="checkbox" id="settingDesktopNotif"> Desktop
+                            Alerts</label>
+                    </div>
+
+                    <!-- Account Info -->
+                    <div class="settings-card">
+                        <div class="card-title">Account Information</div>
+                        <div class="info-grid">
+                            <span class="label">Name</span>
+                            <span class="value" id="settingsName">—</span>
+                            <span class="label">Email</span>
+                            <span class="value" id="settingsEmail">—</span>
+                            <span class="label">Role</span>
+                            <span class="value" id="settingsRole">—</span>
+                        </div>
+                    </div>
+
+                    <!-- Session -->
+                    <div class="settings-card">
+                        <div class="card-title">Session</div>
+                        <button class="btn-action" onclick="doLogout()">Logout from all devices</button>
+                        <button class="btn-action" onclick="navigateTo('dashboard')">Back to Dashboard</button>
+                    </div>
+                </div>
+
+                <button class="btn-save" onclick="saveSettings()">Save Settings</button>
+                <div class="save-status" id="saveStatus"></div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- ========== MODAL: Employee ========== -->
+    <div class="modal-overlay hidden" id="employeeModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="employeeModalTitle">Add Employee</h3>
+                <button class="modal-close" onclick="closeModal('employeeModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="empId">
+                <div class="modal-field">
+                    <label>First Name *</label>
+                    <input type="text" id="empFirstName" placeholder="John">
+                </div>
+                <div class="modal-field">
+                    <label>Last Name</label>
+                    <input type="text" id="empLastName" placeholder="Doe">
+                </div>
+                <div class="modal-field">
+                    <label>Email</label>
+                    <input type="email" id="empEmail" placeholder="john@company.com">
+                </div>
+                <div class="modal-field">
+                    <label>Phone</label>
+                    <input type="text" id="empPhone" placeholder="+1 234 567 890">
+                </div>
+                <div class="modal-field">
+                    <label>Department</label>
+                    <input type="text" id="empDepartment" placeholder="Engineering">
+                </div>
+                <div class="modal-field">
+                    <label>Position</label>
+                    <input type="text" id="empPosition" placeholder="Software Engineer">
+                </div>
+                <div class="modal-field">
+                    <label>Status</label>
+                    <select id="empStatus">
+                        <option value="ACTIVE">Active</option>
+                        <option value="ON_LEAVE">On Leave</option>
+                        <option value="TERMINATED">Terminated</option>
+                    </select>
+                </div>
+                <div class="modal-field">
+                    <label>Salary</label>
+                    <input type="number" id="empSalary" placeholder="50000" step="0.01">
+                </div>
+                <div class="modal-notice" id="empModalNotice"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal-delete hidden" id="empDeleteBtn" onclick="deleteEmployee()">Delete</button>
+                <div class="modal-footer-spacer"></div>
+                <button class="btn-modal-cancel" onclick="closeModal('employeeModal')">Cancel</button>
+                <button class="btn-modal-save" id="empSaveBtn" onclick="saveEmployee()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL: Project ========== -->
+    <div class="modal-overlay hidden" id="projectModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="projectModalTitle">Add Project</h3>
+                <button class="modal-close" onclick="closeModal('projectModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="projId">
+                <div class="modal-field">
+                    <label>Project Name *</label>
+                    <input type="text" id="projName" placeholder="Project Alpha">
+                </div>
+                <div class="modal-field">
+                    <label>Description</label>
+                    <textarea id="projDescription" rows="3" placeholder="Project description..."></textarea>
+                </div>
+                <div class="modal-field">
+                    <label>Project Manager</label>
+                    <input type="text" id="projManager" placeholder="Jane Smith">
+                </div>
+                <div class="modal-field">
+                    <label>Department</label>
+                    <input type="text" id="projDepartment" placeholder="Engineering">
+                </div>
+                <div class="modal-field">
+                    <label>Status</label>
+                    <select id="projStatus">
+                        <option value="PLANNING">Planning</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="COMPLETED">Completed</option>
+                        <option value="ON_HOLD">On Hold</option>
+                        <option value="CANCELLED">Cancelled</option>
+                    </select>
+                </div>
+                <div class="modal-field">
+                    <label>Priority</label>
+                    <select id="projPriority">
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM" selected>Medium</option>
+                        <option value="HIGH">High</option>
+                        <option value="CRITICAL">Critical</option>
+                    </select>
+                </div>
+                <div class="modal-row">
+                    <div class="modal-field">
+                        <label>Budget</label>
+                        <input type="number" id="projBudget" placeholder="100000" step="0.01">
+                    </div>
+                    <div class="modal-field">
+                        <label>Spent</label>
+                        <input type="number" id="projSpent" placeholder="0" step="0.01">
+                    </div>
+                </div>
+                <div class="modal-field">
+                    <label>Completion %</label>
+                    <input type="number" id="projCompletion" placeholder="0" min="0" max="100">
+                </div>
+                <div class="modal-notice" id="projModalNotice"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal-delete hidden" id="projDeleteBtn" onclick="deleteProject()">Delete</button>
+                <div class="modal-footer-spacer"></div>
+                <button class="btn-modal-cancel" onclick="closeModal('projectModal')">Cancel</button>
+                <button class="btn-modal-save" id="projSaveBtn" onclick="saveProject()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL: Invoice ========== -->
+    <div class="modal-overlay hidden" id="invoiceModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="invoiceModalTitle">Add Invoice</h3>
+                <button class="modal-close" onclick="closeModal('invoiceModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="invId">
+                <div class="modal-field">
+                    <label>Client *</label>
+                    <input type="text" id="invClient" placeholder="Acme Corp">
+                </div>
+                <div class="modal-field">
+                    <label>Amount *</label>
+                    <input type="number" id="invAmount" placeholder="5000" step="0.01">
+                </div>
+                <div class="modal-field">
+                    <label>Paid</label>
+                    <select id="invPaid">
+                        <option value="false">Outstanding</option>
+                        <option value="true">Paid</option>
+                    </select>
+                </div>
+                <div class="modal-field">
+                    <label>Project ID (optional)</label>
+                    <input type="text" id="invProjectId" placeholder="project-id">
+                </div>
+                <div class="modal-notice" id="invModalNotice"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal-delete hidden" id="invDeleteBtn" onclick="deleteInvoice()">Delete</button>
+                <div class="modal-footer-spacer"></div>
+                <button class="btn-modal-cancel" onclick="closeModal('invoiceModal')">Cancel</button>
+                <button class="btn-modal-save" id="invSaveBtn" onclick="saveInvoice()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL: Confirm Delete ========== -->
+    <div class="modal-overlay hidden" id="confirmModal">
+        <div class="modal-card modal-card-sm">
+            <div class="modal-header">
+                <h3>Confirm Delete</h3>
+                <button class="modal-close" onclick="closeModal('confirmModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmMessage">Are you sure you want to delete this item?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal-cancel" onclick="closeModal('confirmModal')">Cancel</button>
+                <button class="btn-modal-delete" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div class="toast" id="toast"></div>
+
+    <script src="/assets/app.js"></script>
+</body>
+
+</html>

@@ -24,6 +24,26 @@ public class EmployeeService {
   private static final String EMPLOYEES_COLLECTION = "employees";
 
   /**
+   * Synchronous variant used by non-JavaFX callers.
+   *
+   * @return list of all employees
+   * @throws Exception when Firestore query fails
+   */
+  public List<Employee> getAllEmployeesSync() throws Exception {
+    Firestore firestore = FirebaseInitializer.getFirestore();
+
+    QuerySnapshot snapshot = firestore.collection(EMPLOYEES_COLLECTION).get().get();
+
+    List<Employee> employees = new ArrayList<>();
+    for (QueryDocumentSnapshot doc : snapshot.getDocuments()) {
+      employees.add(mapToEmployee(doc));
+    }
+
+    LOGGER.info("Fetched " + employees.size() + " employees");
+    return employees;
+  }
+
+  /**
    * Creates a new employee in Firestore.
    *
    * @param employee The employee to create
@@ -62,17 +82,7 @@ public class EmployeeService {
     return new Task<>() {
       @Override
       protected List<Employee> call() throws Exception {
-        Firestore firestore = FirebaseInitializer.getFirestore();
-
-        QuerySnapshot snapshot = firestore.collection(EMPLOYEES_COLLECTION).get().get();
-
-        List<Employee> employees = new ArrayList<>();
-        for (QueryDocumentSnapshot doc : snapshot.getDocuments()) {
-          employees.add(mapToEmployee(doc));
-        }
-
-        LOGGER.info("Fetched " + employees.size() + " employees");
-        return employees;
+        return getAllEmployeesSync();
       }
     };
   }
