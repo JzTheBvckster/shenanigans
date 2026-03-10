@@ -21,7 +21,7 @@
         <padding>
           <Insets bottom="16" left="24" right="24" top="16"/>
         </padding>
-        <Button onAction="#handleBackToEmployees" styleClass="header-icon-button" text="←"/>
+        <Button onAction="#handleBackToEmployees" styleClass="header-icon-button" text="Back"/>
         <Label styleClass="app-title" text="Employee Profile"/>
         <Region HBox.hgrow="ALWAYS"/>
         <ProgressIndicator fx:id="loadingIndicator" maxHeight="20" maxWidth="20" visible="false"/>

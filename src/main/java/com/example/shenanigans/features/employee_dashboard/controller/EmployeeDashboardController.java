@@ -399,7 +399,7 @@ public class EmployeeDashboardController {
 
         content.getChildren().addAll(taskName, metaRow);
 
-        Button completeButton = new Button("✓");
+        Button completeButton = new Button("");
         completeButton.getStyleClass().add("task-complete-btn");
         completeButton.setDisable(true);
 

@@ -255,9 +255,9 @@ public class ProjectController {
             completedColumnCount.setText(String.valueOf(completedCount));
 
         // Add empty states if needed
-        addEmptyStateIfNeeded(newProjectsContainer, newCount, "No new projects", "✨");
-        addEmptyStateIfNeeded(pendingProjectsContainer, pendingCount, "No projects in progress", "⏳");
-        addEmptyStateIfNeeded(completedProjectsContainer, completedCount, "No completed projects", "✓");
+        addEmptyStateIfNeeded(newProjectsContainer, newCount, "No new projects", "");
+        addEmptyStateIfNeeded(pendingProjectsContainer, pendingCount, "No projects in progress", "");
+        addEmptyStateIfNeeded(completedProjectsContainer, completedCount, "No completed projects", "");
     }
 
     /** Adds empty state placeholder if column has no projects. */
@@ -326,7 +326,7 @@ public class ProjectController {
         metaRow.setAlignment(Pos.CENTER_LEFT);
 
         if (project.getProjectManager() != null && !project.getProjectManager().isEmpty()) {
-            Label managerLabel = new Label("👤 " + project.getProjectManager());
+            Label managerLabel = new Label("Manager: " + project.getProjectManager());
             managerLabel.getStyleClass().add("card-meta");
             metaRow.getChildren().add(managerLabel);
         }
@@ -336,7 +336,7 @@ public class ProjectController {
         metaRow.getChildren().add(spacer);
 
         if (project.getEndDate() > 0) {
-            Label deadlineLabel = new Label("📅 " + DATE_FORMAT.format(new Date(project.getEndDate())));
+            Label deadlineLabel = new Label("Due: " + DATE_FORMAT.format(new Date(project.getEndDate())));
             deadlineLabel.getStyleClass().add("card-meta");
             if (project.isOverdue()) {
                 deadlineLabel.getStyleClass().add("card-overdue");
@@ -378,14 +378,14 @@ public class ProjectController {
     private ContextMenu createCardContextMenu(Project project) {
         ContextMenu menu = new ContextMenu();
 
-        MenuItem viewItem = new MenuItem("👁 View Details");
+        MenuItem viewItem = new MenuItem("View Details");
         viewItem.setOnAction(e -> showProjectDetails(project));
 
-        MenuItem editItem = new MenuItem("✏️ Edit");
+        MenuItem editItem = new MenuItem("Edit");
         editItem.setOnAction(e -> handleEditProject(project));
 
         // Status change submenu
-        Menu moveMenu = new Menu("📦 Move to...");
+        Menu moveMenu = new Menu("Move to...");
 
         MenuItem moveToPlanningItem = new MenuItem("Planning");
         moveToPlanningItem.setOnAction(e -> updateProjectStatus(project, "PLANNING"));
@@ -403,7 +403,7 @@ public class ProjectController {
                 .getItems()
                 .addAll(moveToPlanningItem, moveToProgressItem, moveToCompletedItem, moveToHoldItem);
 
-        MenuItem deleteItem = new MenuItem("🗑️ Delete");
+        MenuItem deleteItem = new MenuItem("Delete");
         deleteItem.setOnAction(e -> handleDeleteProject(project));
 
         menu.getItems()

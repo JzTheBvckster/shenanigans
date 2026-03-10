@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shenanigans — Management Portal</title>
     <link rel="stylesheet" href="/assets/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
@@ -25,7 +26,10 @@
 
             <!-- Search (employees / projects pages) -->
             <div class="header-search hidden" id="headerSearch">
-                <span class="header-search-icon">&#128269;</span>
+                <span class="header-search-icon"><svg viewBox="0 0 24 24" width="16" height="16">
+                        <path fill="currentColor"
+                            d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+                    </svg></span>
                 <input type="text" id="headerSearchInput" placeholder="Search...">
             </div>
 
@@ -47,7 +51,7 @@
 
         <!-- ========== SIDEBAR ========== -->
         <aside class="app-sidebar" id="appSidebar">
-            <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">&#11164;</button>
+            <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">&lsaquo;</button>
 
             <div class="menu-header">MAIN MENU</div>
             <div class="menu-section">
@@ -113,22 +117,34 @@
 
                 <div class="stats-row" id="statsRow">
                     <div class="stat-card stat-card-blue">
-                        <div class="stat-icon">&#128101;</div>
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" width="28" height="28">
+                                <path fill="currentColor"
+                                    d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+                            </svg></div>
                         <div class="stat-label">Total Employees</div>
                         <div class="stat-number" id="statEmployees">—</div>
                     </div>
                     <div class="stat-card stat-card-green">
-                        <div class="stat-icon">&#128194;</div>
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" width="28" height="28">
+                                <path fill="currentColor"
+                                    d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1z" />
+                            </svg></div>
                         <div class="stat-label">Active Projects</div>
                         <div class="stat-number" id="statProjects">—</div>
                     </div>
                     <div class="stat-card stat-card-orange">
-                        <div class="stat-icon">&#128176;</div>
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" width="28" height="28">
+                                <path fill="currentColor"
+                                    d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z" />
+                            </svg></div>
                         <div class="stat-label">Open Invoices</div>
                         <div class="stat-number" id="statInvoices">—</div>
                     </div>
                     <div class="stat-card stat-card-purple">
-                        <div class="stat-icon">&#128200;</div>
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" width="28" height="28">
+                                <path fill="currentColor"
+                                    d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z" />
+                            </svg></div>
                         <div class="stat-label">Revenue</div>
                         <div class="stat-number" id="statRevenue">—</div>
                     </div>
@@ -137,7 +153,7 @@
                 <!-- Performance Snapshot -->
                 <div class="card insights-card">
                     <div class="card-header">
-                        <h3>&#128161; Performance Snapshot</h3>
+                        <h3>Performance Snapshot</h3>
                     </div>
                     <div class="insights-row">
                         <div class="insight-item">
@@ -161,6 +177,38 @@
                         <div class="progress-bar-track">
                             <div class="progress-bar-fill" id="budgetFill" style="width:0%"></div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="content-grid charts-grid">
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <h3>Revenue Trend</h3>
+                            <div class="spacer"></div>
+                            <select id="chartRangeFilter" class="chart-filter" onchange="updateRevenueTrendChart()">
+                                <option value="3">3 Months</option>
+                                <option value="6" selected>6 Months</option>
+                                <option value="12">12 Months</option>
+                            </select>
+                        </div>
+                        <div class="chart-container"><canvas id="revenueTrendChart"></canvas></div>
+                    </div>
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <h3>Project Status</h3>
+                        </div>
+                        <div class="chart-container"><canvas id="projectStatusChart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Approval Queue (MD only) -->
+                <div class="card approval-card hidden" id="approvalQueueCard">
+                    <div class="card-header">
+                        <h3>Approval Queue (<span id="approvalQueueCount">0</span>)</h3>
+                    </div>
+                    <div id="approvalQueueList">
+                        <p style="color:var(--ink-faint);padding:8px 0">No pending approvals</p>
                     </div>
                 </div>
 
@@ -198,7 +246,6 @@
                 <div class="kanban-board" id="employeesKanban">
                     <div class="kanban-column" id="colActive">
                         <div class="kanban-header kanban-header-active">
-                            <span class="icon">&#9989;</span>
                             <span class="title">Active</span>
                             <span class="count" id="countActive">0</span>
                         </div>
@@ -208,7 +255,6 @@
                     </div>
                     <div class="kanban-column" id="colLeave">
                         <div class="kanban-header kanban-header-leave">
-                            <span class="icon">&#9203;</span>
                             <span class="title">On Leave</span>
                             <span class="count" id="countLeave">0</span>
                         </div>
@@ -218,7 +264,6 @@
                     </div>
                     <div class="kanban-column" id="colTerminated">
                         <div class="kanban-header kanban-header-terminated">
-                            <span class="icon">&#10060;</span>
                             <span class="title">Terminated</span>
                             <span class="count" id="countTerminated">0</span>
                         </div>
@@ -239,7 +284,6 @@
                 <div class="kanban-board" id="projectsKanban">
                     <div class="kanban-column" id="colNew">
                         <div class="kanban-header kanban-header-new">
-                            <span class="icon">&#128161;</span>
                             <span class="title">New / Planning</span>
                             <span class="count" id="countNew">0</span>
                         </div>
@@ -249,7 +293,6 @@
                     </div>
                     <div class="kanban-column" id="colInProgress">
                         <div class="kanban-header kanban-header-pending">
-                            <span class="icon">&#9881;</span>
                             <span class="title">In Progress</span>
                             <span class="count" id="countInProgress">0</span>
                         </div>
@@ -259,7 +302,6 @@
                     </div>
                     <div class="kanban-column" id="colCompleted">
                         <div class="kanban-header kanban-header-completed">
-                            <span class="icon">&#10004;</span>
                             <span class="title">Completed</span>
                             <span class="count" id="countCompleted">0</span>
                         </div>
@@ -275,12 +317,17 @@
                 <div class="page-header">
                     <h2>Invoices</h2>
                     <p>Financial overview and invoice management</p>
+                    <div style="display:flex;gap:8px;margin-top:8px">
+                        <button class="header-primary-btn" id="financeAddBtn" onclick="openInvoiceModal(null)">+ Add
+                            Invoice</button>
+                        <button class="header-export-btn" id="financeExportBtn" onclick="exportInvoicesCSV()">Export
+                            CSV</button>
+                    </div>
                 </div>
                 <div class="notice" id="financeNotice"></div>
                 <div class="kanban-board" id="financeKanban">
                     <div class="kanban-column" id="colDue">
                         <div class="kanban-header kanban-header-due">
-                            <span class="icon">&#128176;</span>
                             <span class="title">Due / Outstanding</span>
                             <span class="count" id="countDue">0</span>
                         </div>
@@ -290,7 +337,6 @@
                     </div>
                     <div class="kanban-column" id="colPaid">
                         <div class="kanban-header kanban-header-paid">
-                            <span class="icon">&#9989;</span>
                             <span class="title">Paid</span>
                             <span class="count" id="countPaid">0</span>
                         </div>
@@ -312,17 +358,28 @@
                     <!-- Appearance -->
                     <div class="settings-card">
                         <div class="card-title">Appearance</div>
-                        <label class="setting-item"><input type="checkbox" id="settingDarkMode"> Dark Mode</label>
-                        <label class="setting-item"><input type="checkbox" id="settingCompact"> Compact View</label>
+                        <label class="setting-item"><input type="checkbox" id="settingDarkMode"> Enable dark
+                            mode</label>
+                        <label class="setting-item"><input type="checkbox" id="settingSidebarExpanded"> Keep sidebar
+                            expanded</label>
                     </div>
 
                     <!-- Notifications -->
                     <div class="settings-card">
                         <div class="card-title">Notifications</div>
                         <label class="setting-item"><input type="checkbox" id="settingEmailNotif" checked> Email
-                            Notifications</label>
+                            notifications</label>
                         <label class="setting-item"><input type="checkbox" id="settingDesktopNotif"> Desktop
-                            Alerts</label>
+                            alerts</label>
+                        <label class="setting-item">Auto-refresh
+                            <select id="settingAutoRefresh">
+                                <option value="1">1 min</option>
+                                <option value="5" selected>5 min</option>
+                                <option value="10">10 min</option>
+                                <option value="15">15 min</option>
+                                <option value="30">30 min</option>
+                            </select>
+                        </label>
                     </div>
 
                     <!-- Account Info -->
@@ -335,14 +392,16 @@
                             <span class="value" id="settingsEmail">—</span>
                             <span class="label">Role</span>
                             <span class="value" id="settingsRole">—</span>
+                            <span class="label">Approval</span>
+                            <span class="value" id="settingsApproval">—</span>
                         </div>
                     </div>
 
                     <!-- Session -->
                     <div class="settings-card">
                         <div class="card-title">Session</div>
+                        <button class="btn-action" onclick="resetSidebarState()">Reset sidebar layout</button>
                         <button class="btn-action" onclick="doLogout()">Logout from all devices</button>
-                        <button class="btn-action" onclick="navigateTo('dashboard')">Back to Dashboard</button>
                     </div>
                 </div>
 
@@ -397,6 +456,10 @@
                 <div class="modal-field">
                     <label>Salary</label>
                     <input type="number" id="empSalary" placeholder="50000" step="0.01">
+                </div>
+                <div class="modal-field">
+                    <label>Hire Date</label>
+                    <input type="date" id="empHireDate">
                 </div>
                 <div class="modal-notice" id="empModalNotice"></div>
             </div>
@@ -466,6 +529,16 @@
                 <div class="modal-field">
                     <label>Completion %</label>
                     <input type="number" id="projCompletion" placeholder="0" min="0" max="100">
+                </div>
+                <div class="modal-row">
+                    <div class="modal-field">
+                        <label>Start Date</label>
+                        <input type="date" id="projStartDate">
+                    </div>
+                    <div class="modal-field">
+                        <label>End Date</label>
+                        <input type="date" id="projEndDate">
+                    </div>
                 </div>
                 <div class="modal-notice" id="projModalNotice"></div>
             </div>

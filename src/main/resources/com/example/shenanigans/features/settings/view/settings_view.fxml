@@ -36,10 +36,10 @@
       </HBox>
       <Label fx:id="menuHeaderLabel" styleClass="menu-header" text="MAIN MENU"/>
       <VBox spacing="6" styleClass="menu-section">
-        <Button fx:id="dashboardButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleDashboard" styleClass="menu-button" text="🏠 Dashboard"/>
-        <Button fx:id="employeesButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleEmployees" styleClass="menu-button" text="👥 Employees"/>
-        <Button fx:id="projectsButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleProjects" styleClass="menu-button" text="📋 Projects"/>
-        <Button fx:id="financeButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleFinance" styleClass="menu-button" text="💰 Finance"/>
+        <Button fx:id="dashboardButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleDashboard" styleClass="menu-button" text="Dashboard"/>
+        <Button fx:id="employeesButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleEmployees" styleClass="menu-button" text="Employees"/>
+        <Button fx:id="projectsButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleProjects" styleClass="menu-button" text="Projects"/>
+        <Button fx:id="financeButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleFinance" styleClass="menu-button" text="Finance"/>
       </VBox>
       <Region prefHeight="20"/>
       <Label fx:id="settingsHeaderLabel" styleClass="menu-header" text="SETTINGS"/>

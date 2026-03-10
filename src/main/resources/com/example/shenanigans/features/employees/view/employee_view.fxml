@@ -35,11 +35,11 @@
         <Region HBox.hgrow="ALWAYS"/>
         <!-- Search -->
         <HBox alignment="CENTER_LEFT" spacing="8" styleClass="header-search-container">
-          <Label styleClass="search-icon" text="🔍"/>
+          <Label styleClass="search-icon" text=""/>
           <TextField fx:id="searchField" prefWidth="250" promptText="Search employees..." styleClass="header-search-field"/>
         </HBox>
         <!-- Actions -->
-        <Button fx:id="refreshButton" onAction="#loadEmployees" styleClass="header-icon-button" text="↻"/>
+        <Button fx:id="refreshButton" onAction="#loadEmployees" styleClass="header-icon-button" text="Refresh"/>
         <!-- Loading and Status -->
         <HBox alignment="CENTER" spacing="12">
           <ProgressIndicator fx:id="loadingIndicator" maxHeight="20" maxWidth="20" visible="false"/>
@@ -64,17 +64,17 @@
       <!-- Navigation Section -->
       <Label fx:id="menuHeaderLabel" styleClass="menu-header" text="MAIN MENU"/>
       <VBox fx:id="mainMenuSection" spacing="6" styleClass="menu-section">
-        <Button fx:id="dashboardButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleDashboard" styleClass="menu-button" text="🏠 Dashboard"/>
-        <Button fx:id="employeesButton" graphicTextGap="14" maxWidth="Infinity" styleClass="menu-button,menu-button-active" text="👥 Employees"/>
-        <Button fx:id="projectsButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleProjects" styleClass="menu-button" text="📋 Projects"/>
-        <Button fx:id="financeButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleFinance" styleClass="menu-button" text="💰 Finance"/>
+        <Button fx:id="dashboardButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleDashboard" styleClass="menu-button" text="Dashboard"/>
+        <Button fx:id="employeesButton" graphicTextGap="14" maxWidth="Infinity" styleClass="menu-button,menu-button-active" text="Employees"/>
+        <Button fx:id="projectsButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleProjects" styleClass="menu-button" text="Projects"/>
+        <Button fx:id="financeButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleFinance" styleClass="menu-button" text="Finance"/>
       </VBox>
       <Region prefHeight="20"/>
       <Label fx:id="settingsHeaderLabel" styleClass="menu-header" text="SETTINGS"/>
       <VBox fx:id="settingsSection" spacing="6">
         <Button fx:id="settingsButton" graphicTextGap="14" maxWidth="Infinity" onAction="#handleSettings" styleClass="menu-button,menu-button-secondary" text="Settings">
           <graphic>
-            <Label styleClass="menu-icon" text="⚙️"/>
+            <Label styleClass="menu-icon" text=""/>
           </graphic>
         </Button>
       </VBox>
@@ -102,7 +102,7 @@
           <!-- Active Employees Column -->
           <VBox spacing="0" styleClass="kanban-column" HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT" spacing="6.0" styleClass="kanban-column-header,kanban-header,kanban-header-active">
-              <Label styleClass="kanban-column-icon" text="✓"/>
+              <Label styleClass="kanban-column-icon" text=""/>
               <Label styleClass="kanban-column-title" text="Active"/>
               <Region HBox.hgrow="ALWAYS"/>
               <Label fx:id="activeColumnCount" styleClass="kanban-column-count" text="0"/>
@@ -121,7 +121,7 @@
           <!-- On Leave Employees Column -->
           <VBox spacing="0" styleClass="kanban-column" HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT" spacing="6.0" styleClass="kanban-column-header,kanban-header,kanban-header-leave">
-              <Label styleClass="kanban-column-icon" text="🏖"/>
+              <Label styleClass="kanban-column-icon" text=""/>
               <Label styleClass="kanban-column-title" text="On Leave"/>
               <Region HBox.hgrow="ALWAYS"/>
               <Label fx:id="leaveColumnCount" styleClass="kanban-column-count" text="0"/>
@@ -140,7 +140,7 @@
           <!-- Terminated Employees Column -->
           <VBox spacing="0" styleClass="kanban-column" HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT" spacing="6.0" styleClass="kanban-column-header,kanban-header,kanban-header-terminated">
-              <Label styleClass="kanban-column-icon" text="✗"/>
+              <Label styleClass="kanban-column-icon" text=""/>
               <Label styleClass="kanban-column-title" text="Terminated"/>
               <Region HBox.hgrow="ALWAYS"/>
               <Label fx:id="terminatedColumnCount" styleClass="kanban-column-count" text="0"/>

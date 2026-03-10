@@ -44,6 +44,7 @@
             var finBtn = document.querySelector('[data-page="finance"]');
             if (finBtn) finBtn.classList.add('hidden');
         }
+        applySettingsInfo();
     }
 
     function isMD() {
@@ -90,7 +91,7 @@
         // Header search visibility
         var showSearch = (page === 'employees' || page === 'projects');
         document.getElementById('headerSearch').classList.toggle('hidden', !showSearch);
-        document.getElementById('headerAddBtn').classList.toggle('hidden', !showSearch);
+        document.getElementById('headerAddBtn').classList.toggle('hidden', page !== 'employees' && page !== 'projects');
         if (showSearch) {
             document.getElementById('headerSearchInput').placeholder = page === 'employees' ? 'Search employees...' : 'Search projects...';
             document.getElementById('headerAddBtn').textContent = page === 'employees' ? '+ Add Employee' : '+ Add Project';
@@ -116,7 +117,7 @@
         var collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
         if (collapsed) {
             document.getElementById('appShell').classList.add('sidebar-collapsed');
-            document.getElementById('sidebarToggle').innerHTML = '\u2B9E'; // ⮞
+            document.getElementById('sidebarToggle').innerHTML = '\u2039'; // <
         }
     })();
 
@@ -125,7 +126,7 @@
         shell.classList.toggle('sidebar-collapsed');
         var collapsed = shell.classList.contains('sidebar-collapsed');
         var btn = document.getElementById('sidebarToggle');
-        btn.innerHTML = collapsed ? '\u2B9E' : '\u2B9C'; // ⮞ or ⮜
+        btn.innerHTML = collapsed ? '\u203A' : '\u2039'; // > or <
         localStorage.setItem('sidebarCollapsed', collapsed);
     };
 
@@ -171,6 +172,16 @@
 
     // ---- Settings ----
     window.saveSettings = function () {
+        var sidebarCheckbox = document.getElementById('settingSidebarExpanded');
+        if (sidebarCheckbox) {
+            if (sidebarCheckbox.checked) {
+                localStorage.removeItem('sidebarCollapsed');
+                document.querySelector('.sidebar').classList.remove('collapsed');
+            } else {
+                localStorage.setItem('sidebarCollapsed', 'true');
+                document.querySelector('.sidebar').classList.add('collapsed');
+            }
+        }
         document.getElementById('saveStatus').textContent = 'Settings saved.';
         showToast('Settings saved', 'success');
         setTimeout(function () { document.getElementById('saveStatus').textContent = ''; }, 2000);
@@ -247,10 +258,18 @@
             cachedData.projects = data;
             renderProjectOverview(data);
             renderRecentActivity(data);
+            renderProjectStatusChart(data);
         }, function () {
             document.getElementById('projectOverviewList').innerHTML = '<p style="color:#94a3b8;padding:12px">No project data available.</p>';
             document.getElementById('activityList').innerHTML = '<p style="color:#94a3b8;padding:12px">No activity data.</p>';
         });
+
+        fetchJson('/api/finance/invoices', function (data) {
+            cachedData.invoices = data;
+            renderRevenueTrendChart(data);
+        });
+
+        loadApprovalQueue();
     }
 
     function renderProjectOverview(projects) {
@@ -338,6 +357,9 @@
     function renderEmployeeCard(e) {
         var name = buildName(e);
         var id = esc(e.id || '');
+        var status = (e.status || 'ACTIVE').toUpperCase();
+        var statusClass = 'employee-status-' + status.toLowerCase();
+        var statusLabel = formatStatus(status);
         return '<div class="employee-card clickable" onclick="openEmployeeModal(\'' + id + '\')">'
             + '<div class="employee-card-top">'
             + '<div class="employee-avatar">' + initials(name) + '</div>'
@@ -346,8 +368,12 @@
             + '<div class="position">' + esc(e.position || 'No position') + '</div>'
             + '</div></div>'
             + (e.department ? '<div class="employee-card-dept">' + esc(e.department) + '</div>' : '')
-            + (e.email ? '<div class="employee-card-contact">' + esc(e.email) + '</div>' : '')
-            + '</div>';
+            + (e.email ? '<div class="employee-card-contact">Email: ' + esc(e.email) + '</div>' : '')
+            + (e.phone ? '<div class="employee-card-phone">Phone: ' + esc(e.phone) + '</div>' : '')
+            + '<div class="employee-card-meta">'
+            + (e.hireDate ? '<span>Hired ' + formatTimestamp(e.hireDate) + '</span>' : '<span></span>')
+            + '<span class="employee-status-badge ' + statusClass + '">' + statusLabel + '</span>'
+            + '</div></div>';
     }
 
     function buildName(e) {
@@ -376,6 +402,7 @@
                 document.getElementById('empPosition').value = emp.position || '';
                 document.getElementById('empStatus').value = (emp.status || 'ACTIVE').toUpperCase();
                 document.getElementById('empSalary').value = emp.salary || '';
+                document.getElementById('empHireDate').value = emp.hireDate ? toDateInput(emp.hireDate) : '';
             }
         } else {
             document.getElementById('empId').value = '';
@@ -387,6 +414,7 @@
             document.getElementById('empPosition').value = '';
             document.getElementById('empStatus').value = 'ACTIVE';
             document.getElementById('empSalary').value = '';
+            document.getElementById('empHireDate').value = '';
         }
 
         document.getElementById('employeeModal').classList.remove('hidden');
@@ -406,7 +434,8 @@
             department: document.getElementById('empDepartment').value.trim(),
             position: document.getElementById('empPosition').value.trim(),
             status: document.getElementById('empStatus').value,
-            salary: parseFloat(document.getElementById('empSalary').value) || 0
+            salary: parseFloat(document.getElementById('empSalary').value) || 0,
+            hireDate: dateInputToMs('empHireDate')
         };
 
         var isEdit = !!id;
@@ -475,10 +504,18 @@
         var pct = p.completionPercentage || 0;
         var priorityClass = 'priority-' + (p.priority || 'medium').toLowerCase();
         var id = esc(p.id || '');
+        var desc = p.description ? (p.description.length > 80 ? p.description.substring(0, 80) + '...' : p.description) : '';
+        var dueHtml = '';
+        if (p.endDate) {
+            var isOverdue = p.endDate < Date.now() && (p.status || '').toUpperCase() !== 'COMPLETED';
+            dueHtml = '<div class="card-due' + (isOverdue ? ' overdue' : '') + '">Due ' + formatTimestamp(p.endDate) + (isOverdue ? ' (Overdue)' : '') + '</div>';
+        }
         return '<div class="project-card clickable" onclick="openProjectModal(\'' + id + '\')">'
             + '<div class="card-name">' + esc(p.name || 'Untitled') + '</div>'
             + '<div class="card-manager">' + esc(p.projectManager || 'Unassigned') + '</div>'
+            + (desc ? '<div class="card-description">' + esc(desc) + '</div>' : '')
             + '<span class="card-priority ' + priorityClass + '">' + esc(formatStatus(p.priority || 'MEDIUM')) + '</span>'
+            + dueHtml
             + '<div class="card-progress-row">'
             + '<div class="card-progress"><div class="card-progress-fill" style="width:' + pct + '%"></div></div>'
             + '<span>' + pct + '%</span>'
@@ -505,6 +542,8 @@
                 document.getElementById('projBudget').value = proj.budget || '';
                 document.getElementById('projSpent').value = proj.spent || '';
                 document.getElementById('projCompletion').value = proj.completionPercentage || 0;
+                document.getElementById('projStartDate').value = proj.startDate ? toDateInput(proj.startDate) : '';
+                document.getElementById('projEndDate').value = proj.endDate ? toDateInput(proj.endDate) : '';
             }
         } else {
             document.getElementById('projId').value = '';
@@ -517,6 +556,8 @@
             document.getElementById('projBudget').value = '';
             document.getElementById('projSpent').value = '';
             document.getElementById('projCompletion').value = '0';
+            document.getElementById('projStartDate').value = '';
+            document.getElementById('projEndDate').value = '';
         }
 
         document.getElementById('projectModal').classList.remove('hidden');
@@ -537,7 +578,9 @@
             priority: document.getElementById('projPriority').value,
             budget: parseFloat(document.getElementById('projBudget').value) || 0,
             spent: parseFloat(document.getElementById('projSpent').value) || 0,
-            completionPercentage: parseInt(document.getElementById('projCompletion').value, 10) || 0
+            completionPercentage: parseInt(document.getElementById('projCompletion').value, 10) || 0,
+            startDate: dateInputToMs('projStartDate'),
+            endDate: dateInputToMs('projEndDate')
         };
 
         var isEdit = !!id;
@@ -602,12 +645,15 @@
         var statusClass = inv.paid ? 'invoice-status-paid' : 'invoice-status-outstanding';
         var statusText = inv.paid ? 'Paid' : 'Outstanding';
         var id = esc(inv.id || '');
+        var toggleClass = inv.paid ? 'mark-unpaid' : 'mark-paid';
+        var toggleLabel = inv.paid ? 'Mark Unpaid' : 'Mark Paid';
         return '<div class="invoice-card clickable" onclick="openInvoiceModal(\'' + id + '\')">'
-            + '<div class="invoice-id">' + esc(inv.id || '—') + '</div>'
+            + '<div class="invoice-id">' + esc(inv.id || '\u2014') + '</div>'
             + '<div class="invoice-client">' + esc(inv.client || 'Unknown client') + '</div>'
             + '<div class="invoice-amount">$' + formatMoney(inv.amount || 0) + '</div>'
             + '<span class="invoice-status-badge ' + statusClass + '">' + statusText + '</span>'
             + (inv.issuedAt ? '<div class="invoice-date">' + formatTimestamp(inv.issuedAt) + '</div>' : '')
+            + '<button class="invoice-toggle-btn ' + toggleClass + '" onclick="event.stopPropagation();toggleInvoicePaid(\'' + id + '\')">' + toggleLabel + '</button>'
             + '</div>';
     }
 
@@ -716,7 +762,7 @@
         if (!container) return;
 
         if (!items || items.length === 0) {
-            container.innerHTML = '<div class="kanban-empty"><div class="icon">&#128230;</div><div class="msg">' + esc(emptyMsg) + '</div></div>';
+            container.innerHTML = '<div class="kanban-empty"><div class="msg">' + esc(emptyMsg) + '</div></div>';
             return;
         }
 
@@ -809,5 +855,253 @@
         var div = document.createElement('div');
         div.appendChild(document.createTextNode(String(str)));
         return div.innerHTML;
+    }
+
+    // ---- Date helpers ----
+    function toDateInput(ts) {
+        if (!ts) return '';
+        var d = ts > 1e12 ? new Date(ts) : new Date(ts * 1000);
+        if (isNaN(d.getTime())) return '';
+        return d.toISOString().split('T')[0];
+    }
+
+    function dateInputToMs(id) {
+        var val = document.getElementById(id).value;
+        if (!val) return 0;
+        return new Date(val).getTime();
+    }
+
+    // ---- Toggle Invoice Paid ----
+    window.toggleInvoicePaid = function (id) {
+        var inv = findCached('invoices', id);
+        if (!inv) return;
+        var payload = { client: inv.client, amount: inv.amount, paid: !inv.paid, projectId: inv.projectId || '' };
+        fetchMutate('PUT', '/api/finance/invoices/' + encodeURIComponent(id), payload, function () {
+            showToast(payload.paid ? 'Invoice marked as paid' : 'Invoice marked as outstanding', 'success');
+            loadFinance();
+        }, function (err) {
+            showToast(err || 'Failed to update invoice', 'error');
+        });
+    };
+
+    // ---- Export Invoices CSV ----
+    window.exportInvoicesCSV = function () {
+        var invoices = cachedData.invoices;
+        if (!invoices || invoices.length === 0) {
+            showToast('No invoices to export', 'error');
+            return;
+        }
+        var csv = 'ID,Client,Amount,Paid,Issued At\n';
+        invoices.forEach(function (inv) {
+            var client = (inv.client || '').replace(/"/g, '""');
+            csv += '"' + (inv.id || '') + '","' + client + '",' + (inv.amount || 0) + ',' + (inv.paid ? 'Yes' : 'No') + ',"' + formatTimestamp(inv.issuedAt) + '"\n';
+        });
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        var link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'invoices_' + new Date().toISOString().split('T')[0] + '.csv';
+        link.click();
+        URL.revokeObjectURL(link.href);
+        showToast('Invoices exported', 'success');
+    };
+
+    // ---- Reset sidebar ----
+    window.resetSidebarState = function () {
+        localStorage.removeItem('sidebarCollapsed');
+        document.getElementById('appShell').classList.remove('sidebar-collapsed');
+        document.getElementById('sidebarToggle').innerHTML = '\u2039';
+        showToast('Sidebar layout reset', 'success');
+    };
+
+    // ---- Approval Queue (MD only) ----
+    function loadApprovalQueue() {
+        if (!isMD()) return;
+        fetchJson('/api/employees', function (employees) {
+            var pending = employees.filter(function (e) { return e.mdApproved === false; });
+            var card = document.getElementById('approvalQueueCard');
+            var countEl = document.getElementById('approvalQueueCount');
+            var listEl = document.getElementById('approvalQueueList');
+            if (!card) return;
+
+            if (pending.length > 0) {
+                card.classList.remove('hidden');
+                countEl.textContent = pending.length;
+                listEl.innerHTML = pending.map(function (e) {
+                    var name = buildName(e);
+                    var eid = esc(e.id || '');
+                    return '<div class="approval-item">'
+                        + '<div class="avatar">' + initials(name) + '</div>'
+                        + '<div class="info">'
+                        + '<div class="name">' + esc(name) + '</div>'
+                        + '<div class="role">' + esc(e.position || e.department || 'Employee') + '</div>'
+                        + '</div>'
+                        + '<div class="approval-actions">'
+                        + '<button class="btn-approve" onclick="approveEmployee(\'' + eid + '\')" data-id="' + eid + '">Approve</button>'
+                        + '</div>'
+                        + '</div>';
+                }).join('');
+            } else {
+                card.classList.add('hidden');
+            }
+        });
+    }
+
+    window.approveEmployee = function (id) {
+        if (!id) return;
+        var btn = document.querySelector('.btn-approve[data-id="' + id + '"]');
+        if (btn) { btn.textContent = 'Approving...'; btn.disabled = true; }
+        fetch('/api/employees/' + encodeURIComponent(id), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ mdApproved: true })
+        }).then(function (r) { return r.json(); }).then(function (res) {
+            if (res.ok) {
+                showToast('Employee approved', 'success');
+                loadApprovalQueue();
+            } else {
+                showToast(res.error || 'Approval failed', 'error');
+                if (btn) { btn.textContent = 'Approve'; btn.disabled = false; }
+            }
+        }).catch(function () {
+            showToast('Network error', 'error');
+            if (btn) { btn.textContent = 'Approve'; btn.disabled = false; }
+        });
+    };
+
+    // ---- Charts ----
+    var revenueTrendChartInstance = null;
+    var projectStatusChartInstance = null;
+
+    function isProjectOverdue(p) {
+        if (!p.endDate) return false;
+        var end = typeof p.endDate === 'number' ? p.endDate : new Date(p.endDate).getTime();
+        return end < Date.now() && (p.status || '').toUpperCase() !== 'COMPLETED';
+    }
+
+    function renderRevenueTrendChart(invoices) {
+        var canvas = document.getElementById('revenueTrendChart');
+        if (!canvas || typeof Chart === 'undefined') return;
+        var months = parseInt(document.getElementById('chartRangeFilter').value) || 6;
+        var now = new Date();
+        var labels = [];
+        var values = [];
+        for (var i = months - 1; i >= 0; i--) {
+            var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            labels.push(d.toLocaleString('default', { month: 'short', year: '2-digit' }));
+            values.push(0);
+        }
+        (invoices || []).forEach(function (inv) {
+            if (!inv.paid || !inv.issuedAt) return;
+            var ts = typeof inv.issuedAt === 'number' ? inv.issuedAt : new Date(inv.issuedAt).getTime();
+            var d = new Date(ts);
+            for (var i = 0; i < months; i++) {
+                var ref = new Date(now.getFullYear(), now.getMonth() - (months - 1 - i), 1);
+                var nextRef = new Date(ref.getFullYear(), ref.getMonth() + 1, 1);
+                if (d >= ref && d < nextRef) {
+                    values[i] += (inv.amount || 0);
+                    break;
+                }
+            }
+        });
+        if (revenueTrendChartInstance) revenueTrendChartInstance.destroy();
+        var isDark = document.documentElement.classList.contains('dark');
+        var gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)';
+        var textColor = isDark ? '#cbd5e1' : '#64748b';
+        revenueTrendChartInstance = new Chart(canvas.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Revenue',
+                    data: values,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59,130,246,0.08)',
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#3b82f6',
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor, callback: function (v) { return '$' + formatMoney(v); } } },
+                    x: { grid: { display: false }, ticks: { color: textColor } }
+                }
+            }
+        });
+    }
+
+    window.updateRevenueTrendChart = function () {
+        renderRevenueTrendChart(cachedData.invoices || []);
+    };
+
+    function renderProjectStatusChart(projects) {
+        var canvas = document.getElementById('projectStatusChart');
+        if (!canvas || typeof Chart === 'undefined') return;
+        var counts = { 'In Progress': 0, 'Completed': 0, 'Planning': 0, 'At Risk': 0 };
+        (projects || []).forEach(function (p) {
+            var s = (p.status || '').toUpperCase();
+            if (s === 'COMPLETED') counts['Completed']++;
+            else if (isProjectOverdue(p)) counts['At Risk']++;
+            else if (s === 'IN_PROGRESS') counts['In Progress']++;
+            else counts['Planning']++;
+        });
+        var labels = Object.keys(counts).filter(function (k) { return counts[k] > 0; });
+        var values = labels.map(function (k) { return counts[k]; });
+        var palette = { 'In Progress': '#3b82f6', 'Completed': '#22c55e', 'Planning': '#f59e0b', 'At Risk': '#ef4444' };
+        var colors = labels.map(function (k) { return palette[k]; });
+
+        if (labels.length === 0) {
+            labels = ['No Data'];
+            values = [1];
+            colors = ['#e2e8f0'];
+        }
+        if (projectStatusChartInstance) projectStatusChartInstance.destroy();
+        var isDark = document.documentElement.classList.contains('dark');
+        projectStatusChartInstance = new Chart(canvas.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors,
+                    borderWidth: 2,
+                    borderColor: isDark ? '#1e293b' : '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '60%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: isDark ? '#cbd5e1' : '#334155', padding: 16, usePointStyle: true }
+                    }
+                }
+            }
+        });
+    }
+
+    // ---- Settings: apply user info including approval ----
+    function applySettingsInfo() {
+        if (!currentUser) return;
+        var approval = document.getElementById('settingsApproval');
+        if (approval) {
+            var isApproved = currentUser.mdApproved !== false;
+            approval.innerHTML = isApproved
+                ? '<span class="approval-badge approved">Approved</span>'
+                : '<span class="approval-badge pending">Pending approval</span>';
+        }
+        // Restore sidebar toggle
+        var sidebarCheck = document.getElementById('settingSidebarExpanded');
+        if (sidebarCheck) {
+            sidebarCheck.checked = localStorage.getItem('sidebarCollapsed') !== 'true';
+        }
     }
 })();

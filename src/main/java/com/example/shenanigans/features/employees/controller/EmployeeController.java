@@ -248,10 +248,10 @@ public class EmployeeController {
             terminatedColumnCount.setText(String.valueOf(terminatedCount));
 
         // Add empty states if needed
-        addEmptyStateIfNeeded(activeEmployeesContainer, activeCount, "No active employees", "✓");
-        addEmptyStateIfNeeded(onLeaveEmployeesContainer, leaveCount, "No employees on leave", "🏖");
+        addEmptyStateIfNeeded(activeEmployeesContainer, activeCount, "No active employees", "");
+        addEmptyStateIfNeeded(onLeaveEmployeesContainer, leaveCount, "No employees on leave", "");
         addEmptyStateIfNeeded(
-                terminatedEmployeesContainer, terminatedCount, "No terminated employees", "✗");
+                terminatedEmployeesContainer, terminatedCount, "No terminated employees", "");
     }
 
     /** Adds empty state placeholder if column has no employees. */
@@ -304,7 +304,7 @@ public class EmployeeController {
         deptRow.setAlignment(Pos.CENTER_LEFT);
 
         if (employee.getDepartment() != null && !employee.getDepartment().isEmpty()) {
-            Label deptBadge = new Label("🏢 " + employee.getDepartment());
+            Label deptBadge = new Label("Dept: " + employee.getDepartment());
             deptBadge.getStyleClass().add("card-department");
             deptRow.getChildren().add(deptBadge);
         }
@@ -313,13 +313,13 @@ public class EmployeeController {
         VBox contactBox = new VBox(6);
 
         if (employee.getEmail() != null && !employee.getEmail().isEmpty()) {
-            Label emailLabel = new Label("✉ " + employee.getEmail());
+            Label emailLabel = new Label("Email: " + employee.getEmail());
             emailLabel.getStyleClass().add("card-contact");
             contactBox.getChildren().add(emailLabel);
         }
 
         if (employee.getPhone() != null && !employee.getPhone().isEmpty()) {
-            Label phoneLabel = new Label("📞 " + employee.getPhone());
+            Label phoneLabel = new Label("Phone: " + employee.getPhone());
             phoneLabel.getStyleClass().add("card-contact");
             contactBox.getChildren().add(phoneLabel);
         }
@@ -389,11 +389,11 @@ public class EmployeeController {
     private ContextMenu createCardContextMenu(Employee employee) {
         ContextMenu menu = new ContextMenu();
 
-        MenuItem editItem = new MenuItem("✏️ Edit");
+        MenuItem editItem = new MenuItem("Edit");
         editItem.setOnAction(e -> handleEditEmployee(employee));
 
         // Status change submenu
-        Menu statusMenu = new Menu("📋 Change Status...");
+        Menu statusMenu = new Menu("Change Status...");
 
         MenuItem activeItem = new MenuItem("Active");
         activeItem.setOnAction(e -> updateEmployeeStatus(employee, "ACTIVE"));
@@ -406,7 +406,7 @@ public class EmployeeController {
 
         statusMenu.getItems().addAll(activeItem, leaveItem, terminatedItem);
 
-        MenuItem deleteItem = new MenuItem("🗑️ Delete");
+        MenuItem deleteItem = new MenuItem("Delete");
         deleteItem.setOnAction(e -> handleDeleteEmployee(employee));
 
         menu.getItems()

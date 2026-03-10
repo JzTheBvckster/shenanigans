@@ -56,22 +56,22 @@
       </padding>
       <!-- Role Badge -->
       <HBox alignment="CENTER">
-        <Label styleClass="role-badge" text="👤 EMPLOYEE" />
+        <Label styleClass="role-badge" text="EMPLOYEE" />
       </HBox>
       <Region prefHeight="16" />
       <!-- Navigation Section -->
       <Label styleClass="menu-header" text="MY WORKSPACE" />
       <VBox spacing="4" styleClass="menu-section">
-        <Button fx:id="myTasksButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleMyTasks" styleClass="menu-button,menu-button-active" text="📋 My Tasks" />
-        <Button fx:id="myProjectsButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleMyProjects" styleClass="menu-button" text="📁 My Projects" />
-        <Button fx:id="timeSheetButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleTimeSheet" styleClass="menu-button" text="⏱️ Time Sheet" />
-        <Button fx:id="requestsButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleRequests" styleClass="menu-button" text="📅 Leave Requests" />
+        <Button fx:id="myTasksButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleMyTasks" styleClass="menu-button,menu-button-active" text="My Tasks" />
+        <Button fx:id="myProjectsButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleMyProjects" styleClass="menu-button" text="My Projects" />
+        <Button fx:id="timeSheetButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleTimeSheet" styleClass="menu-button" text="Time Sheet" />
+        <Button fx:id="requestsButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleRequests" styleClass="menu-button" text="Leave Requests" />
       </VBox>
       <Region prefHeight="16" />
       <Label styleClass="menu-header" text="RESOURCES" />
       <VBox spacing="4" styleClass="menu-section">
-        <Button fx:id="documentsButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleDocuments" styleClass="menu-button" text="📄 Documents" />
-        <Button fx:id="teamButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleTeam" styleClass="menu-button" text="👥 My Team" />
+        <Button fx:id="documentsButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleDocuments" styleClass="menu-button" text="Documents" />
+        <Button fx:id="teamButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleTeam" styleClass="menu-button" text="My Team" />
       </VBox>
       <Region VBox.vgrow="ALWAYS" />
       <!-- Work Status Card -->
@@ -86,7 +86,7 @@
       <Region prefHeight="8" />
       <!-- Bottom Section -->
       <VBox spacing="4">
-        <Button fx:id="profileButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleProfile" styleClass="menu-button,menu-button-secondary" text="⚙️ My Profile" />
+        <Button fx:id="profileButton" graphicTextGap="12" maxWidth="Infinity" onAction="#handleProfile" styleClass="menu-button,menu-button-secondary" text="My Profile" />
       </VBox>
     </VBox>
   </left>
@@ -100,7 +100,7 @@
         <!-- Page Header with Greeting -->
         <HBox alignment="CENTER_LEFT" spacing="16">
           <VBox spacing="8" HBox.hgrow="ALWAYS">
-            <Label styleClass="page-title" text="Good Morning! 👋" />
+            <Label styleClass="page-title" text="Good Morning!" />
             <Label styleClass="page-subtitle" text="Here's your workspace overview for today" />
           </VBox>
           <ProgressIndicator fx:id="loadingIndicator" maxHeight="24" maxWidth="24" visible="false" />
@@ -111,10 +111,10 @@
           <VBox alignment="TOP_LEFT" spacing="12" styleClass="stat-card,stat-card-gradient-blue" HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT" spacing="12">
               <StackPane styleClass="stat-icon-container">
-                <Label styleClass="stat-icon" text="📋" />
+                <Label styleClass="stat-icon" text="" />
               </StackPane>
               <Region HBox.hgrow="ALWAYS" />
-              <Label styleClass="trend-badge,trend-up" text="↓ 2" />
+              <Label styleClass="trend-badge,trend-up" text="-2" />
             </HBox>
             <Label fx:id="tasksDueTodayLabel" styleClass="stat-number-light" text="3" />
             <Label styleClass="stat-label-light" text="Tasks Due Today" />
@@ -123,7 +123,7 @@
           <VBox alignment="TOP_LEFT" spacing="12" styleClass="stat-card,stat-card-gradient-green" HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT" spacing="12">
               <StackPane styleClass="stat-icon-container">
-                <Label styleClass="stat-icon" text="⏱️" />
+                <Label styleClass="stat-icon" text="" />
               </StackPane>
               <Region HBox.hgrow="ALWAYS" />
               <Label styleClass="trend-badge,trend-up" text="80%" />
@@ -135,7 +135,7 @@
           <VBox alignment="TOP_LEFT" spacing="12" styleClass="stat-card,stat-card-gradient-purple" HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT" spacing="12">
               <StackPane styleClass="stat-icon-container">
-                <Label styleClass="stat-icon" text="📁" />
+                <Label styleClass="stat-icon" text="" />
               </StackPane>
               <Region HBox.hgrow="ALWAYS" />
               <Label styleClass="trend-badge" text="+1" />
@@ -147,7 +147,7 @@
           <VBox alignment="TOP_LEFT" spacing="12" styleClass="stat-card,stat-card-gradient-orange" HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT" spacing="12">
               <StackPane styleClass="stat-icon-container">
-                <Label styleClass="stat-icon" text="🏖️" />
+                <Label styleClass="stat-icon" text="" />
               </StackPane>
               <Region HBox.hgrow="ALWAYS" />
               <Label styleClass="trend-badge" text="Annual" />
@@ -163,9 +163,9 @@
             <!-- My Tasks Card -->
             <VBox spacing="16" styleClass="card">
               <HBox alignment="CENTER_LEFT">
-                <Label styleClass="section-title" text="📋 My Tasks" />
+                <Label styleClass="section-title" text="My Tasks" />
                 <Region HBox.hgrow="ALWAYS" />
-                <Button onAction="#handleMyTasks" styleClass="link-button" text="View All →" />
+                <Button onAction="#handleMyTasks" styleClass="link-button" text="View All" />
               </HBox>
               <VBox fx:id="tasksContainer" spacing="12">
                 <!-- High Priority Task -->
@@ -180,7 +180,7 @@
                       <Label styleClass="task-due,task-due-urgent" text="Due Today" />
                     </HBox>
                   </VBox>
-                  <Button styleClass="task-complete-btn" text="✓" />
+                  <Button styleClass="task-complete-btn" text="" />
                 </HBox>
                 <!-- Medium Priority Task -->
                 <HBox alignment="CENTER_LEFT" spacing="14" styleClass="task-item,task-medium">
@@ -194,7 +194,7 @@
                       <Label styleClass="task-due" text="Due Tomorrow" />
                     </HBox>
                   </VBox>
-                  <Button styleClass="task-complete-btn" text="✓" />
+                  <Button styleClass="task-complete-btn" text="" />
                 </HBox>
                 <!-- Low Priority Task -->
                 <HBox alignment="CENTER_LEFT" spacing="14" styleClass="task-item,task-low">
@@ -208,16 +208,16 @@
                       <Label styleClass="task-due" text="Due in 3 days" />
                     </HBox>
                   </VBox>
-                  <Button styleClass="task-complete-btn" text="✓" />
+                  <Button styleClass="task-complete-btn" text="" />
                 </HBox>
               </VBox>
             </VBox>
             <!-- My Projects Progress -->
             <VBox spacing="16" styleClass="card">
               <HBox alignment="CENTER_LEFT">
-                <Label styleClass="section-title" text="📁 Project Progress" />
+                <Label styleClass="section-title" text="Project Progress" />
                 <Region HBox.hgrow="ALWAYS" />
-                <Button onAction="#handleMyProjects" styleClass="link-button" text="View All →" />
+                <Button onAction="#handleMyProjects" styleClass="link-button" text="View All" />
               </HBox>
               <VBox fx:id="projectsContainer" spacing="14">
                 <VBox spacing="8" styleClass="project-item">
@@ -245,16 +245,16 @@
           <VBox prefWidth="360" spacing="24">
             <!-- Quick Actions -->
             <VBox spacing="16" styleClass="card,quick-actions-card">
-              <Label styleClass="section-title" text="⚡ Quick Actions" />
+              <Label styleClass="section-title" text="Quick Actions" />
               <VBox spacing="12">
-                <Button maxWidth="Infinity" onAction="#handleTimeSheet" styleClass="action-button" text="🕐 Clock In/Out" />
-                <Button maxWidth="Infinity" onAction="#handleRequests" styleClass="action-button" text="📅 Request Leave" />
-                <Button maxWidth="Infinity" onAction="#handleDocuments" styleClass="action-button" text="📄 Submit Report" />
+                <Button maxWidth="Infinity" onAction="#handleTimeSheet" styleClass="action-button" text="Clock In/Out" />
+                <Button maxWidth="Infinity" onAction="#handleRequests" styleClass="action-button" text="Request Leave" />
+                <Button maxWidth="Infinity" onAction="#handleDocuments" styleClass="action-button" text="Submit Report" />
               </VBox>
             </VBox>
             <!-- Recent Activity -->
             <VBox spacing="16" styleClass="card">
-              <Label styleClass="section-title" text="🕐 Recent Activity" />
+              <Label styleClass="section-title" text="Recent Activity" />
               <VBox fx:id="activityContainer" spacing="10">
                 <HBox alignment="CENTER_LEFT" spacing="12" styleClass="activity-item">
                   <Region styleClass="activity-dot,activity-dot-green" />
@@ -282,7 +282,7 @@
             <!-- Announcements -->
             <VBox spacing="16" styleClass="card,announcements-card">
               <HBox alignment="CENTER_LEFT">
-                <Label styleClass="section-title" text="📢 Announcements" />
+                <Label styleClass="section-title" text="Announcements" />
                 <Region HBox.hgrow="ALWAYS" />
                 <Label styleClass="announcement-count" text="1 new" />
               </HBox>

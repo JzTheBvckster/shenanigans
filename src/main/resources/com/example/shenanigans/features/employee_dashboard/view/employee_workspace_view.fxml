@@ -49,27 +49,27 @@
         <Insets top="24" right="16" bottom="24" left="16"/>
       </padding>
       <HBox alignment="CENTER">
-        <Label styleClass="role-badge" text="👤 EMPLOYEE"/>
+        <Label styleClass="role-badge" text="EMPLOYEE"/>
       </HBox>
       <Region prefHeight="16"/>
       <Label styleClass="menu-header" text="MY WORKSPACE"/>
       <VBox spacing="4" styleClass="menu-section">
         <Button fx:id="myTasksButton" maxWidth="Infinity" styleClass="menu-button,menu-button-active"
-                                        text="📋 My Tasks" onAction="#handleMyTasks" />
+                                        text="My Tasks" onAction="#handleMyTasks" />
         <Button fx:id="myProjectsButton" maxWidth="Infinity" styleClass="menu-button"
-                                        text="📁 My Projects" onAction="#handleMyProjects" />
+                                        text="My Projects" onAction="#handleMyProjects" />
         <Button fx:id="timeSheetButton" maxWidth="Infinity" styleClass="menu-button"
-                                        text="⏱️ Time Sheet" onAction="#handleTimeSheet" />
+                                        text="Time Sheet" onAction="#handleTimeSheet" />
         <Button fx:id="requestsButton" maxWidth="Infinity" styleClass="menu-button"
-                                        text="📅 Leave Requests" onAction="#handleRequests" />
+                                        text="Leave Requests" onAction="#handleRequests" />
       </VBox>
       <Region prefHeight="16"/>
       <Label styleClass="menu-header" text="RESOURCES"/>
       <VBox spacing="4" styleClass="menu-section">
         <Button fx:id="documentsButton" maxWidth="Infinity" styleClass="menu-button"
-                                        text="📄 Documents" onAction="#handleDocuments" />
+                                        text="Documents" onAction="#handleDocuments" />
         <Button fx:id="teamButton" maxWidth="Infinity" styleClass="menu-button"
-                                        text="👥 My Team" onAction="#handleTeam" />
+                                        text="My Team" onAction="#handleTeam" />
       </VBox>
       <Region VBox.vgrow="ALWAYS"/>
       <VBox spacing="8" styleClass="work-status-card">
@@ -83,9 +83,9 @@
       <Region prefHeight="8"/>
       <VBox spacing="4">
         <Button fx:id="profileButton" maxWidth="Infinity" styleClass="menu-button,menu-button-secondary"
-                                        text="⚙️ My Profile" onAction="#handleProfile" />
+                                        text="My Profile" onAction="#handleProfile" />
       </VBox>
-      <Button fx:id="backToDashboardButton" text="← Back to Dashboard" maxWidth="Infinity" styleClass="back-button"
+      <Button fx:id="backToDashboardButton" text="Back to Dashboard" maxWidth="Infinity" styleClass="back-button"
                                   onAction="#handleBackToDashboard" />
     </VBox>
   </left>
