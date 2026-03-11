@@ -1,11 +1,12 @@
 const { db } = require("../../lib/firebase");
 const { requireSession } = require("../../lib/session");
+const { withSecurity } = require("../../lib/security");
 
 /**
  * Consolidated workspace API handler.
  * Routes: /api/workspace/timesheets, /api/workspace/leave-requests, /api/workspace/documents
  */
-module.exports = async function handler(req, res) {
+module.exports = withSecurity(async function handler(req, res) {
     const session = await requireSession(req, res);
     if (!session) return;
 
@@ -24,7 +25,7 @@ module.exports = async function handler(req, res) {
         default:
             return res.status(404).json({ ok: false, error: "Unknown workspace resource." });
     }
-};
+}, { maxRequests: 30 });
 
 // ---------------------------------------------------------------------------
 // Timesheets

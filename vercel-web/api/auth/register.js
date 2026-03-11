@@ -4,8 +4,9 @@ const {
   createSession,
   setSessionCookie,
 } = require("../../lib/session");
+const { withSecurity } = require("../../lib/security");
 
-module.exports = async function handler(req, res) {
+module.exports = withSecurity(async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ ok: false, error: "Method not allowed." });
@@ -61,7 +62,7 @@ module.exports = async function handler(req, res) {
   } catch (err) {
     return res.status(400).json({ ok: false, error: err.message || "Registration failed." });
   }
-};
+}, { maxRequests: 10 });
 
 function normalizeRole(raw) {
   if (!raw) return "EMPLOYEE";

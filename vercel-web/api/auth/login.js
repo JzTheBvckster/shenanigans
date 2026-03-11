@@ -4,8 +4,9 @@ const {
     createSession,
     setSessionCookie,
 } = require("../../lib/session");
+const { withSecurity } = require("../../lib/security");
 
-module.exports = async function handler(req, res) {
+module.exports = withSecurity(async function handler(req, res) {
     if (req.method !== "POST") {
         res.setHeader("Allow", "POST");
         return res.status(405).json({ ok: false, error: "Method not allowed." });
@@ -60,7 +61,7 @@ module.exports = async function handler(req, res) {
         const status = err.message && err.message.toLowerCase().includes("pending") ? 403 : 401;
         return res.status(status).json({ ok: false, error: err.message || "Authentication failed." });
     }
-};
+}, { maxRequests: 10 });
 
 function toUserPayload(u) {
     return {

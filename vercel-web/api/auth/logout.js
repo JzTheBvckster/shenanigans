@@ -4,8 +4,9 @@ const {
     clearSessionCookie,
     COOKIE_NAME,
 } = require("../../lib/session");
+const { withSecurity } = require("../../lib/security");
 
-module.exports = async function handler(req, res) {
+module.exports = withSecurity(async function handler(req, res) {
     if (req.method !== "POST") {
         res.setHeader("Allow", "POST");
         return res.status(405).json({ ok: false, error: "Method not allowed." });
@@ -18,4 +19,4 @@ module.exports = async function handler(req, res) {
 
     clearSessionCookie(res);
     return res.status(200).json({ ok: true });
-};
+}, { maxRequests: 20 });

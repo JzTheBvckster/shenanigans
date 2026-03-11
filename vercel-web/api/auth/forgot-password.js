@@ -1,6 +1,7 @@
 const restAuth = require("../../lib/firebase-rest-auth");
+const { withSecurity } = require("../../lib/security");
 
-module.exports = async function handler(req, res) {
+module.exports = withSecurity(async function handler(req, res) {
     if (req.method !== "POST") {
         res.setHeader("Allow", "POST");
         return res.status(405).json({ ok: false, error: "Method not allowed." });
@@ -21,4 +22,4 @@ module.exports = async function handler(req, res) {
         ok: true,
         data: { message: "If an account exists, a reset link was sent." },
     });
-};
+}, { maxRequests: 5 });

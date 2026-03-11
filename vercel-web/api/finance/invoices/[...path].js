@@ -1,9 +1,10 @@
 const { db } = require("../../../lib/firebase");
 const { requireSession } = require("../../../lib/session");
+const { withSecurity } = require("../../../lib/security");
 
 const COLLECTION = "invoices";
 
-module.exports = async function handler(req, res) {
+module.exports = withSecurity(async function handler(req, res) {
   const session = await requireSession(req, res);
   if (!session) return;
 
@@ -58,4 +59,4 @@ module.exports = async function handler(req, res) {
       res.setHeader("Allow", "GET, POST, PUT, DELETE");
       return res.status(405).json({ ok: false, error: "Method not allowed." });
   }
-};
+}, { maxRequests: 30 });
