@@ -39,11 +39,12 @@ public class SidebarComponent {
     private final VBox systemInfoCard;
     private final Button[] menuButtons;
     private final String[] menuTexts;
+    private final String[] svgIcons;
 
     private boolean sidebarExpanded = true;
 
     /**
-     * Creates a reusable sidebar component.
+     * Creates a reusable sidebar component with default icons.
      *
      * @param logger              logger used for warnings/info
      * @param sidebarContent      sidebar container
@@ -57,6 +58,26 @@ public class SidebarComponent {
     public SidebarComponent(Logger logger, VBox sidebarContent, Button sidebarToggleButton,
             Label menuHeaderLabel, Label settingsHeaderLabel, VBox systemInfoCard,
             Button[] menuButtons, String[] menuTexts) {
+        this(logger, sidebarContent, sidebarToggleButton, menuHeaderLabel, settingsHeaderLabel,
+                systemInfoCard, menuButtons, menuTexts, null);
+    }
+
+    /**
+     * Creates a reusable sidebar component with custom icons.
+     *
+     * @param logger              logger used for warnings/info
+     * @param sidebarContent      sidebar container
+     * @param sidebarToggleButton sidebar toggle button
+     * @param menuHeaderLabel     main menu header label
+     * @param settingsHeaderLabel settings header label
+     * @param systemInfoCard      system status card
+     * @param menuButtons         menu buttons in display order
+     * @param menuTexts           menu button text labels in display order
+     * @param svgIcons            custom SVG icon paths (null to use defaults)
+     */
+    public SidebarComponent(Logger logger, VBox sidebarContent, Button sidebarToggleButton,
+            Label menuHeaderLabel, Label settingsHeaderLabel, VBox systemInfoCard,
+            Button[] menuButtons, String[] menuTexts, String[] svgIcons) {
         this.logger = logger;
         this.sidebarContent = sidebarContent;
         this.sidebarToggleButton = sidebarToggleButton;
@@ -65,6 +86,7 @@ public class SidebarComponent {
         this.systemInfoCard = systemInfoCard;
         this.menuButtons = menuButtons == null ? new Button[0] : menuButtons;
         this.menuTexts = menuTexts == null ? new String[0] : menuTexts;
+        this.svgIcons = svgIcons == null ? DEFAULT_SVG_ICONS : svgIcons;
     }
 
     /**
@@ -119,14 +141,14 @@ public class SidebarComponent {
      * Rebuilds sidebar button icons using current theme colors.
      */
     public void refreshIconsForTheme() {
-        int limit = Math.min(Math.min(menuButtons.length, menuTexts.length), DEFAULT_SVG_ICONS.length);
+        int limit = Math.min(Math.min(menuButtons.length, menuTexts.length), svgIcons.length);
         for (int i = 0; i < limit; i++) {
             Button button = menuButtons[i];
             if (button == null) {
                 continue;
             }
             SVGPath svg = new SVGPath();
-            svg.setContent(DEFAULT_SVG_ICONS[i]);
+            svg.setContent(svgIcons[i]);
             svg.setFill(ThemeService.isDarkMode() ? Color.web("#e2e8f0") : Color.web("#475569"));
             svg.setScaleX(0.9);
             svg.setScaleY(0.9);

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects — Shenanigans</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+</head>
+
+<body>
+    <div class="app-shell" id="appShell">
+        <header class="app-header" id="appHeader"></header>
+        <aside class="app-sidebar" id="appSidebar"></aside>
+
+        <main class="app-content" id="appContent">
+            <section class="page-view" id="pageProjects">
+                <div class="page-header">
+                    <h2>Projects</h2>
+                    <p>Track project status and progress</p>
+                </div>
+                <div class="notice" id="projectsNotice"></div>
+                <div class="kanban-board" id="projectsKanban">
+                    <div class="kanban-column" id="colNew">
+                        <div class="kanban-header kanban-header-new">
+                            <span class="title">New / Planning</span>
+                            <span class="count" id="countNew">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cardsNew">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+                    <div class="kanban-column" id="colInProgress">
+                        <div class="kanban-header kanban-header-pending">
+                            <span class="title">In Progress</span>
+                            <span class="count" id="countInProgress">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cardsInProgress">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+                    <div class="kanban-column" id="colCompleted">
+                        <div class="kanban-header kanban-header-completed">
+                            <span class="title">Completed</span>
+                            <span class="count" id="countCompleted">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cardsCompleted">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Project Modal -->
+    <div class="modal-overlay hidden" id="projectModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="projectModalTitle">Add Project</h3>
+                <button class="modal-close" onclick="closeModal('projectModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="projId">
+                <div class="modal-field"><label>Project Name *</label><input type="text" id="projName"
+                        placeholder="Project Alpha"></div>
+                <div class="modal-field"><label>Description</label><textarea id="projDescription" rows="3"
+                        placeholder="Project description..."></textarea></div>
+                <div class="modal-field"><label>Project Manager</label><input type="text" id="projManager"
+                        placeholder="Jane Smith"></div>
+                <div class="modal-field"><label>Department</label><input type="text" id="projDepartment"
+                        placeholder="Engineering"></div>
+                <div class="modal-field"><label>Status</label>
+                    <select id="projStatus">
+                        <option value="PLANNING">Planning</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="COMPLETED">Completed</option>
+                        <option value="ON_HOLD">On Hold</option>
+                        <option value="CANCELLED">Cancelled</option>
+                    </select>
+                </div>
+                <div class="modal-field"><label>Priority</label>
+                    <select id="projPriority">
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM" selected>Medium</option>
+                        <option value="HIGH">High</option>
+                        <option value="CRITICAL">Critical</option>
+                    </select>
+                </div>
+                <div class="modal-row">
+                    <div class="modal-field"><label>Budget</label><input type="number" id="projBudget"
+                            placeholder="100000" step="0.01"></div>
+                    <div class="modal-field"><label>Spent</label><input type="number" id="projSpent" placeholder="0"
+                            step="0.01"></div>
+                </div>
+                <div class="modal-field"><label>Completion %</label><input type="number" id="projCompletion"
+                        placeholder="0" min="0" max="100"></div>
+                <div class="modal-row">
+                    <div class="modal-field"><label>Start Date</label><input type="date" id="projStartDate"></div>
+                    <div class="modal-field"><label>End Date</label><input type="date" id="projEndDate"></div>
+                </div>
+                <div class="modal-notice" id="projModalNotice"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal-delete hidden" id="projDeleteBtn" onclick="deleteProject()">Delete</button>
+                <div class="modal-footer-spacer"></div>
+                <button class="btn-modal-cancel" onclick="closeModal('projectModal')">Cancel</button>
+                <button class="btn-modal-save" id="projSaveBtn" onclick="saveProject()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/assets/shared.js"></script>
+    <script src="/assets/admin.js"></script>
+    <script>
+        ShenanigansApp.init({
+            sidebar: 'admin',
+            activePage: 'projects',
+            subtitle: 'Project Management',
+            showSearch: true,
+            searchPlaceholder: 'Search projects...',
+            showAddBtn: true,
+            addBtnText: '+ Add Project',
+            onReady: function () {
+                loadProjects();
+                setupSearchFilter(filterProjectCards);
+                document.getElementById('headerAddBtn').addEventListener('click', function () { openProjectModal(null); });
+            }
+        });
+    </script>
+</body>
+
+</html>

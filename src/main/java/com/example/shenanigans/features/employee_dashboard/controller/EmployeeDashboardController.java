@@ -1,8 +1,13 @@
 package com.example.shenanigans.features.employee_dashboard.controller;
 
+import com.example.shenanigans.core.navigation.SidebarComponent;
 import com.example.shenanigans.core.navigation.ViewNavigator;
 import com.example.shenanigans.core.session.SessionManager;
 import com.example.shenanigans.features.auth.model.User;
+import com.example.shenanigans.features.employee_dashboard.model.TimesheetEntry;
+import com.example.shenanigans.features.employee_dashboard.model.LeaveRequest;
+import com.example.shenanigans.features.employee_dashboard.service.TimesheetService;
+import com.example.shenanigans.features.employee_dashboard.service.LeaveRequestService;
 import com.example.shenanigans.features.employees.model.Employee;
 import com.example.shenanigans.features.employees.service.EmployeeService;
 import com.example.shenanigans.features.projects.model.Project;
@@ -41,8 +46,29 @@ public class EmployeeDashboardController {
 
     private final ProjectService projectService = new ProjectService();
     private final EmployeeService employeeService = new EmployeeService();
+    private final TimesheetService timesheetService = new TimesheetService();
+    private final LeaveRequestService leaveRequestService = new LeaveRequestService();
     private Employee currentEmployee;
     private List<Project> assignedProjects = List.of();
+    private SidebarComponent sidebarComponent;
+
+    /** Employee-specific SVG icon paths for sidebar menu buttons. */
+    private static final String[] EMPLOYEE_SVG_ICONS = {
+            // My Tasks - clipboard with checkmark
+            "M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm-2 14l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z",
+            // My Projects - folder
+            "M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z",
+            // Time Sheet - clock
+            "M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z",
+            // Leave Requests - calendar
+            "M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z",
+            // Documents - file
+            "M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z",
+            // My Team - group
+            "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z",
+            // My Profile - person
+            "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+    };
 
     // Header components
     @FXML
@@ -54,9 +80,17 @@ public class EmployeeDashboardController {
     @FXML
     private Button logoutButton;
 
-    // Menu components
+    // Sidebar components
     @FXML
-    private VBox menuContainer;
+    private VBox sidebarContent;
+    @FXML
+    private Button sidebarToggleButton;
+    @FXML
+    private Label menuHeaderLabel;
+    @FXML
+    private Label settingsHeaderLabel;
+    @FXML
+    private VBox systemInfoCard;
     @FXML
     private Button myTasksButton;
     @FXML
@@ -116,6 +150,9 @@ public class EmployeeDashboardController {
         // Setup user information
         setupUserInfo(user);
 
+        // Setup sidebar component (consistent with admin screens)
+        setupSidebar();
+
         // Load dashboard data
         loadDashboardData();
 
@@ -130,6 +167,33 @@ public class EmployeeDashboardController {
         // Set avatar letter from display name
         if (user.getDisplayName() != null && !user.getDisplayName().isEmpty()) {
             avatarLabel.setText(user.getDisplayName().substring(0, 1).toUpperCase());
+        }
+    }
+
+    /**
+     * Initializes the sidebar component with employee-specific icons and toggle.
+     */
+    private void setupSidebar() {
+        sidebarComponent = new SidebarComponent(
+                LOGGER,
+                sidebarContent,
+                sidebarToggleButton,
+                menuHeaderLabel,
+                settingsHeaderLabel,
+                systemInfoCard,
+                new Button[] { myTasksButton, myProjectsButton, timeSheetButton, requestsButton,
+                        documentsButton, teamButton, profileButton },
+                new String[] { "My Tasks", "My Projects", "Time Sheet", "Leave Requests",
+                        "Documents", "My Team", "My Profile" },
+                EMPLOYEE_SVG_ICONS);
+        sidebarComponent.initialize();
+    }
+
+    /** Handles sidebar toggle action. */
+    @FXML
+    private void handleSidebarToggle() {
+        if (sidebarComponent != null) {
+            sidebarComponent.toggle();
         }
     }
 
@@ -151,7 +215,11 @@ public class EmployeeDashboardController {
                 Employee currentEmployee = resolveCurrentEmployee(currentUser, allEmployees);
                 List<Project> assignedProjects = findAssignedProjects(currentUser, allProjects);
 
-                return new EmployeeDashboardData(currentEmployee, assignedProjects);
+                String uid = currentUser.getUid();
+                List<TimesheetEntry> timesheetEntries = runAndWait(timesheetService.getEntriesByEmployee(uid));
+                List<LeaveRequest> leaveRequests = runAndWait(leaveRequestService.getRequestsByEmployee(uid));
+
+                return new EmployeeDashboardData(currentEmployee, assignedProjects, timesheetEntries, leaveRequests);
             }
         };
 
@@ -208,13 +276,21 @@ public class EmployeeDashboardController {
             tasksDueTodayLabel.setText(String.valueOf(dueToday));
         }
         if (hoursThisWeekLabel != null) {
-            hoursThisWeekLabel.setText("N/A");
+            LocalDate today = LocalDate.now();
+            LocalDate weekStart = today.with(java.time.DayOfWeek.MONDAY);
+            long weekStartMillis = weekStart.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            long weekEndMillis = weekStart.plusDays(7).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            double weeklyHours = safeList(data.timesheetEntries()).stream()
+                    .filter(e -> e.getDate() >= weekStartMillis && e.getDate() < weekEndMillis)
+                    .mapToDouble(TimesheetEntry::getHours).sum();
+            hoursThisWeekLabel.setText(String.format("%.1fh", weeklyHours));
         }
         if (activeProjectsLabel != null) {
             activeProjectsLabel.setText(String.valueOf(activeProjects));
         }
         if (leaveBalanceLabel != null) {
-            leaveBalanceLabel.setText(formatLeaveMetric(data.currentEmployee()));
+            long pending = safeList(data.leaveRequests()).stream().filter(LeaveRequest::isPending).count();
+            leaveBalanceLabel.setText(pending > 0 ? pending + " pending" : "None pending");
         }
 
         renderTasks(assignedProjects);
@@ -566,7 +642,8 @@ public class EmployeeDashboardController {
         }
     }
 
-    private record EmployeeDashboardData(Employee currentEmployee, List<Project> assignedProjects) {
+    private record EmployeeDashboardData(Employee currentEmployee, List<Project> assignedProjects,
+            List<TimesheetEntry> timesheetEntries, List<LeaveRequest> leaveRequests) {
     }
 
     // Navigation handlers
@@ -577,8 +654,7 @@ public class EmployeeDashboardController {
         if (!checkAuth())
             return;
         LOGGER.info("Navigating to My Tasks");
-        setActiveButton(myTasksButton);
-        navigateToWorkspace("MY_TASKS");
+        navigateTo("features/employee_dashboard/view/employee_tasks_view");
     }
 
     /** Handles navigation to My Projects section. */
@@ -587,8 +663,7 @@ public class EmployeeDashboardController {
         if (!checkAuth())
             return;
         LOGGER.info("Navigating to My Projects");
-        setActiveButton(myProjectsButton);
-        navigateToWorkspace("MY_PROJECTS");
+        navigateTo("features/employee_dashboard/view/employee_projects_view");
     }
 
     /** Handles navigation to Time Sheet section. */
@@ -597,8 +672,7 @@ public class EmployeeDashboardController {
         if (!checkAuth())
             return;
         LOGGER.info("Navigating to Time Sheet");
-        setActiveButton(timeSheetButton);
-        navigateToWorkspace("TIME_SHEET");
+        navigateTo("features/employee_dashboard/view/employee_timesheet_view");
     }
 
     /** Handles navigation to Leave Requests section. */
@@ -607,8 +681,7 @@ public class EmployeeDashboardController {
         if (!checkAuth())
             return;
         LOGGER.info("Navigating to Leave Requests");
-        setActiveButton(requestsButton);
-        navigateToWorkspace("REQUESTS");
+        navigateTo("features/employee_dashboard/view/employee_requests_view");
     }
 
     /** Handles navigation to Documents section. */
@@ -617,8 +690,7 @@ public class EmployeeDashboardController {
         if (!checkAuth())
             return;
         LOGGER.info("Navigating to Documents");
-        setActiveButton(documentsButton);
-        navigateToWorkspace("DOCUMENTS");
+        navigateTo("features/employee_dashboard/view/employee_documents_view");
     }
 
     /** Handles navigation to Team section. */
@@ -627,8 +699,7 @@ public class EmployeeDashboardController {
         if (!checkAuth())
             return;
         LOGGER.info("Navigating to Team");
-        setActiveButton(teamButton);
-        navigateToWorkspace("TEAM");
+        navigateTo("features/employee_dashboard/view/employee_team_view");
     }
 
     /** Handles navigation to Profile section. */
@@ -637,11 +708,10 @@ public class EmployeeDashboardController {
         if (!checkAuth())
             return;
         LOGGER.info("Navigating to Profile");
-        setActiveButton(profileButton);
         if (currentEmployee != null && currentEmployee.getId() != null && !currentEmployee.getId().isBlank()) {
             SessionManager.getInstance().setSelectedEmployeeId(currentEmployee.getId());
         }
-        navigateToWorkspace("PROFILE");
+        navigateTo("features/employee_dashboard/view/employee_profile_view");
     }
 
     /** Handles user logout. */
@@ -693,8 +763,4 @@ public class EmployeeDashboardController {
         ViewNavigator.navigateTo(viewPath, LOGGER);
     }
 
-    private void navigateToWorkspace(String section) {
-        SessionManager.getInstance().setSelectedEmployeeSection(section);
-        navigateTo("features/employee_dashboard/view/employee_workspace_view");
-    }
 }

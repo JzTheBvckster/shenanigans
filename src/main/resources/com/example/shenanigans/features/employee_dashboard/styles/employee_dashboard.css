@@ -5,13 +5,13 @@
 
 /* === Root === */
 .dashboard-root {
-    -fx-background-color: linear-gradient(to bottom right, #f0fdf4, #ecfdf5);
+    -fx-background-color: linear-gradient(to bottom right, #f8fafc, #f1f5f9);
 }
 
 /* === Header Styles === */
 .header-container {
     -fx-background-color: linear-gradient(to right, #059669, #10b981);
-    -fx-effect: dropshadow(gaussian, rgba(16, 185, 129, 0.3), 20, 0, 0, 4);
+    -fx-effect: dropshadow(gaussian, rgba(5, 150, 105, 0.3), 20, 0, 0, 4);
 }
 
 .header {
@@ -102,8 +102,59 @@
 /* === Sidebar Styles === */
 .sidebar {
     -fx-background-color: #ffffff;
-    -fx-border-color: #d1fae5;
+    -fx-border-color: #e2e8f0;
     -fx-border-width: 0 1 0 0;
+    -fx-min-width: 70;
+}
+
+/* === Sidebar Toggle Button === */
+.sidebar-toggle-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #059669;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-min-width: 36;
+    -fx-min-height: 36;
+    -fx-pref-width: 36;
+    -fx-pref-height: 36;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+    -fx-border-color: #e2e8f0;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+}
+
+.sidebar-toggle-button:hover {
+    -fx-background-color: linear-gradient(to right, rgba(5, 150, 105, 0.1), rgba(16, 185, 129, 0.1));
+    -fx-border-color: #059669;
+}
+
+.sidebar-toggle-button:pressed {
+    -fx-background-color: linear-gradient(to right, rgba(5, 150, 105, 0.2), rgba(16, 185, 129, 0.2));
+}
+
+/* Large collapse button variant */
+.sidebar-toggle-large {
+    -fx-pref-width: 240px;
+    -fx-pref-height: 32px;
+    -fx-background-color: linear-gradient(to right, #ffffff, #f8fafc);
+    -fx-text-fill: #0f172a;
+    -fx-font-weight: 600;
+    -fx-font-size: 13px;
+    -fx-border-color: rgba(15, 23, 42, 0.06);
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 6 14;
+}
+
+.sidebar-toggle-large:hover {
+    -fx-background-color: linear-gradient(to right, #ffffff, #ecfdf5);
+    -fx-translate-x: 0;
+    -fx-effect: dropshadow(gaussian, rgba(2, 6, 23, 0.08), 6, 0, 0, 2);
+}
+
+.sidebar-toggle-large:pressed {
+    -fx-background-color: linear-gradient(to right, #f1f5f9, #ecfdf5);
 }
 
 /* Role Badge */
@@ -115,7 +166,7 @@
     -fx-font-size: 12px;
     -fx-font-weight: bold;
     -fx-alignment: center;
-    -fx-effect: dropshadow(gaussian, rgba(16, 185, 129, 0.3), 8, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(5, 150, 105, 0.3), 8, 0, 0, 2);
 }
 
 /* Menu Header */
@@ -124,6 +175,10 @@
     -fx-font-weight: bold;
     -fx-text-fill: #94a3b8;
     -fx-padding: 16 8 8 8;
+}
+
+.menu-section {
+    -fx-padding: 0;
 }
 
 /* Menu Buttons */
@@ -139,12 +194,12 @@
 }
 
 .menu-button:hover {
-    -fx-background-color: #ecfdf5;
-    -fx-text-fill: #059669;
+    -fx-background-color: #f1f5f9;
+    -fx-text-fill: #1e293b;
 }
 
 .menu-button-active {
-    -fx-background-color: linear-gradient(to right, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.1));
+    -fx-background-color: linear-gradient(to right, rgba(5, 150, 105, 0.15), rgba(16, 185, 129, 0.1));
     -fx-text-fill: #059669;
     -fx-font-weight: 600;
 }
@@ -158,30 +213,28 @@
     -fx-text-fill: #475569;
 }
 
-/* Work Status Card */
-.work-status-card {
-    -fx-background-color: #f0fdf4;
+.menu-icon {
+    -fx-font-size: 18px;
+}
+
+/* System Info Card */
+.system-info-card {
+    -fx-background-color: #f8fafc;
     -fx-background-radius: 12;
     -fx-padding: 16;
-    -fx-border-color: #d1fae5;
+    -fx-border-color: #e2e8f0;
     -fx-border-radius: 12;
 }
 
-.work-status-title {
-    -fx-font-size: 11px;
+.system-info-title {
+    -fx-font-size: 12px;
     -fx-font-weight: bold;
     -fx-text-fill: #64748b;
 }
 
-.work-status-text {
-    -fx-font-size: 13px;
-    -fx-font-weight: 600;
-    -fx-text-fill: #059669;
-}
-
-.work-status-time {
-    -fx-font-size: 11px;
-    -fx-text-fill: #94a3b8;
+.system-info-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: #10b981;
 }
 
 .status-dot {

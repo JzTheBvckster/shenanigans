@@ -17,7 +17,8 @@ module.exports = async function handler(req, res) {
     }
 
     const user = session.user;
-    const redirect = user.role === "EMPLOYEE" ? "/app?view=employee" : "/app";
+    const isMD = user.role && user.role.toUpperCase().replace(/\s+/g, '_') === 'MANAGING_DIRECTOR';
+    const redirect = isMD ? '/app' : '/workspace';
     return res.status(200).json({
         ok: true,
         data: {

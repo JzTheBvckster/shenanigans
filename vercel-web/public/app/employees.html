@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employees — Shenanigans</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+</head>
+
+<body>
+    <div class="app-shell" id="appShell">
+        <header class="app-header" id="appHeader"></header>
+        <aside class="app-sidebar" id="appSidebar"></aside>
+
+        <main class="app-content" id="appContent">
+            <section class="page-view" id="pageEmployees">
+                <div class="page-header">
+                    <h2>Employees</h2>
+                    <p>Manage your team across departments</p>
+                </div>
+                <div class="notice" id="employeesNotice"></div>
+                <div class="kanban-board" id="employeesKanban">
+                    <div class="kanban-column" id="colActive">
+                        <div class="kanban-header kanban-header-active">
+                            <span class="title">Active</span>
+                            <span class="count" id="countActive">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cardsActive">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+                    <div class="kanban-column" id="colLeave">
+                        <div class="kanban-header kanban-header-leave">
+                            <span class="title">On Leave</span>
+                            <span class="count" id="countLeave">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cardsLeave">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+                    <div class="kanban-column" id="colTerminated">
+                        <div class="kanban-header kanban-header-terminated">
+                            <span class="title">Terminated</span>
+                            <span class="count" id="countTerminated">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cardsTerminated">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Employee Modal -->
+    <div class="modal-overlay hidden" id="employeeModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="employeeModalTitle">Add Employee</h3>
+                <button class="modal-close" onclick="closeModal('employeeModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="empId">
+                <div class="modal-field"><label>First Name *</label><input type="text" id="empFirstName"
+                        placeholder="John"></div>
+                <div class="modal-field"><label>Last Name</label><input type="text" id="empLastName" placeholder="Doe">
+                </div>
+                <div class="modal-field"><label>Email</label><input type="email" id="empEmail"
+                        placeholder="john@company.com"></div>
+                <div class="modal-field"><label>Phone</label><input type="text" id="empPhone"
+                        placeholder="+1 234 567 890"></div>
+                <div class="modal-field"><label>Department</label><input type="text" id="empDepartment"
+                        placeholder="Engineering"></div>
+                <div class="modal-field"><label>Position</label><input type="text" id="empPosition"
+                        placeholder="Software Engineer"></div>
+                <div class="modal-field"><label>Status</label>
+                    <select id="empStatus">
+                        <option value="ACTIVE">Active</option>
+                        <option value="ON_LEAVE">On Leave</option>
+                        <option value="TERMINATED">Terminated</option>
+                    </select>
+                </div>
+                <div class="modal-field"><label>Salary</label><input type="number" id="empSalary" placeholder="50000"
+                        step="0.01"></div>
+                <div class="modal-field"><label>Hire Date</label><input type="date" id="empHireDate"></div>
+                <div class="modal-notice" id="empModalNotice"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal-delete hidden" id="empDeleteBtn" onclick="deleteEmployee()">Delete</button>
+                <div class="modal-footer-spacer"></div>
+                <button class="btn-modal-cancel" onclick="closeModal('employeeModal')">Cancel</button>
+                <button class="btn-modal-save" id="empSaveBtn" onclick="saveEmployee()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/assets/shared.js"></script>
+    <script src="/assets/admin.js"></script>
+    <script>
+        ShenanigansApp.init({
+            sidebar: 'admin',
+            activePage: 'employees',
+            subtitle: 'Employee Management',
+            showSearch: true,
+            searchPlaceholder: 'Search employees...',
+            showAddBtn: true,
+            addBtnText: '+ Add Employee',
+            onReady: function () {
+                loadEmployees();
+                setupSearchFilter(filterEmployeeCards);
+                document.getElementById('headerAddBtn').addEventListener('click', function () { openEmployeeModal(null); });
+            }
+        });
+    </script>
+</body>
+
+</html>

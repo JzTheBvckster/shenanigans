@@ -7,7 +7,7 @@ module.exports = async function handler(req, res) {
     const session = await requireSession(req, res);
     if (!session) return;
 
-    if (session.user.role === "EMPLOYEE") {
+    if (session.user.role === "EMPLOYEE" && req.method !== "GET") {
         return res.status(403).json({ ok: false, error: "Access denied for employee role." });
     }
 

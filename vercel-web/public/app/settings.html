@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings — Shenanigans</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+</head>
+
+<body>
+    <div class="app-shell" id="appShell">
+        <header class="app-header" id="appHeader"></header>
+        <aside class="app-sidebar" id="appSidebar"></aside>
+
+        <main class="app-content" id="appContent">
+            <section class="page-view" id="pageSettings">
+                <div class="page-header">
+                    <h2>Settings</h2>
+                    <p>Configure your preferences and account</p>
+                </div>
+
+                <div class="settings-grid">
+                    <div class="settings-card">
+                        <div class="card-title">Appearance</div>
+                        <label class="setting-item"><input type="checkbox" id="settingDarkMode"> Enable dark
+                            mode</label>
+                        <label class="setting-item"><input type="checkbox" id="settingSidebarExpanded"> Keep sidebar
+                            expanded</label>
+                    </div>
+                    <div class="settings-card">
+                        <div class="card-title">Notifications</div>
+                        <label class="setting-item"><input type="checkbox" id="settingEmailNotif" checked> Email
+                            notifications</label>
+                        <label class="setting-item"><input type="checkbox" id="settingDesktopNotif"> Desktop
+                            alerts</label>
+                        <label class="setting-item">Auto-refresh
+                            <select id="settingAutoRefresh">
+                                <option value="1">1 min</option>
+                                <option value="5" selected>5 min</option>
+                                <option value="10">10 min</option>
+                                <option value="15">15 min</option>
+                                <option value="30">30 min</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="settings-card">
+                        <div class="card-title">Account Information</div>
+                        <div class="info-grid">
+                            <span class="label">Name</span><span class="value" id="settingsName">&mdash;</span>
+                            <span class="label">Email</span><span class="value" id="settingsEmail">&mdash;</span>
+                            <span class="label">Role</span><span class="value" id="settingsRole">&mdash;</span>
+                            <span class="label">Approval</span><span class="value" id="settingsApproval">&mdash;</span>
+                        </div>
+                    </div>
+                    <div class="settings-card">
+                        <div class="card-title">Session</div>
+                        <button class="btn-action" onclick="resetSidebarState()">Reset sidebar layout</button>
+                        <button class="btn-action" onclick="doLogout()">Logout from all devices</button>
+                    </div>
+                </div>
+
+                <button class="btn-save" onclick="saveSettings()">Save Settings</button>
+                <div class="save-status" id="saveStatus"></div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/assets/shared.js"></script>
+    <script src="/assets/admin.js"></script>
+    <script>
+        ShenanigansApp.init({
+            sidebar: 'admin',
+            activePage: 'settings',
+            subtitle: 'Settings',
+            onReady: function () { applySettingsInfo(); }
+        });
+    </script>
+</body>
+
+</html>

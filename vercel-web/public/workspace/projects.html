@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Projects — Shenanigans</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+</head>
+
+<body>
+    <div class="app-shell" id="appShell">
+        <header class="app-header" id="appHeader"></header>
+        <aside class="app-sidebar" id="appSidebar"></aside>
+
+        <main class="app-content" id="appContent">
+            <section class="page-view" id="pageEmpProjects">
+                <div class="page-header">
+                    <h2>My Projects</h2>
+                    <p>Projects where you are assigned as a contributor</p>
+                </div>
+                <div class="stats-row" id="empProjectsStats"></div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Project Details</h3>
+                    </div>
+                    <div id="empProjectsList">
+                        <div class="loading-spinner visible"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/assets/shared.js"></script>
+    <script src="/assets/employee.js"></script>
+    <script>
+        ShenanigansApp.init({
+            sidebar: 'employee',
+            activePage: 'empProjects',
+            subtitle: 'Employee Workspace',
+            onReady: function () { loadEmpProjects(); }
+        });
+    </script>
+</body>
+
+</html>

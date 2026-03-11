@@ -52,8 +52,56 @@
             "dest": "/api/finance/invoices/[...path].js"
         },
         {
+            "src": "/api/workspace/(.*)",
+            "dest": "/api/workspace/[...path].js"
+        },
+        {
+            "src": "/app/employees",
+            "dest": "/public/app/employees.html"
+        },
+        {
+            "src": "/app/projects",
+            "dest": "/public/app/projects.html"
+        },
+        {
+            "src": "/app/finance",
+            "dest": "/public/app/finance.html"
+        },
+        {
+            "src": "/app/settings",
+            "dest": "/public/app/settings.html"
+        },
+        {
             "src": "/app",
-            "dest": "/public/app.html"
+            "dest": "/public/app/index.html"
+        },
+        {
+            "src": "/workspace/projects",
+            "dest": "/public/workspace/projects.html"
+        },
+        {
+            "src": "/workspace/timesheet",
+            "dest": "/public/workspace/timesheet.html"
+        },
+        {
+            "src": "/workspace/requests",
+            "dest": "/public/workspace/requests.html"
+        },
+        {
+            "src": "/workspace/documents",
+            "dest": "/public/workspace/documents.html"
+        },
+        {
+            "src": "/workspace/team",
+            "dest": "/public/workspace/team.html"
+        },
+        {
+            "src": "/workspace/profile",
+            "dest": "/public/workspace/profile.html"
+        },
+        {
+            "src": "/workspace",
+            "dest": "/public/workspace/index.html"
         },
         {
             "src": "/assets/(.*)",
