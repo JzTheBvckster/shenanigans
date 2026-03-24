@@ -5,10 +5,12 @@
     var currentPage = 'dashboard';
     var currentUser = null;
     var cachedData = {};
+    var filtersInitialized = false;
 
     // ---- Bootstrap ----
     checkAuth();
     checkSystemHealth();
+    initPageFilters();
 
     // ---- Auth guard ----
     function checkAuth() {
@@ -214,15 +216,224 @@
     function filterEmployeeCards(query) {
         document.querySelectorAll('#employeesKanban .employee-card').forEach(function (card) {
             var text = card.textContent.toLowerCase();
-            card.style.display = text.includes(query) ? '' : 'none';
+            var deptFilter = (document.getElementById('employeeDeptFilter') || {}).value || '';
+            var statusFilter = (document.getElementById('employeeStatusFilter') || {}).value || '';
+            var cardDept = card.getAttribute('data-department') || '';
+            var cardStatus = card.getAttribute('data-status') || '';
+            var matchesSearch = text.includes(query);
+            var matchesDept = !deptFilter || cardDept === deptFilter;
+            var matchesStatus = !statusFilter || cardStatus === statusFilter;
+            card.style.display = matchesSearch && matchesDept && matchesStatus ? '' : 'none';
         });
     }
 
     function filterProjectCards(query) {
         document.querySelectorAll('#projectsKanban .project-card').forEach(function (card) {
             var text = card.textContent.toLowerCase();
-            card.style.display = text.includes(query) ? '' : 'none';
+            var deptFilter = (document.getElementById('projectDeptFilter') || {}).value || '';
+            var managerFilter = (document.getElementById('projectManagerFilter') || {}).value || '';
+            var statusFilter = (document.getElementById('projectStatusFilter') || {}).value || '';
+            var cardDept = card.getAttribute('data-department') || '';
+            var cardManager = card.getAttribute('data-manager') || '';
+            var cardStatus = card.getAttribute('data-status') || '';
+            var matchesSearch = text.includes(query);
+            var matchesDept = !deptFilter || cardDept === deptFilter;
+            var matchesManager = !managerFilter || cardManager === managerFilter;
+            var matchesStatus = !statusFilter || cardStatus === statusFilter;
+            card.style.display = matchesSearch && matchesDept && matchesManager && matchesStatus ? '' : 'none';
         });
+    }
+
+    function filterInvoiceCards() {
+        var statusFilter = (document.getElementById('invoiceStatusFilter') || {}).value || '';
+        var clientFilter = ((document.getElementById('invoiceClientFilter') || {}).value || '').toLowerCase().trim();
+        document.querySelectorAll('#financeKanban .invoice-card').forEach(function (card) {
+            var paid = card.getAttribute('data-paid') || 'false';
+            var client = (card.getAttribute('data-client') || '').toLowerCase();
+            var matchesStatus = !statusFilter || (statusFilter === 'paid' ? paid === 'true' : paid !== 'true');
+            var matchesClient = !clientFilter || client.indexOf(clientFilter) !== -1;
+            card.style.display = matchesStatus && matchesClient ? '' : 'none';
+        });
+    }
+
+    window.clearEmployeesFilters = function () {
+        var dept = document.getElementById('employeeDeptFilter');
+        var status = document.getElementById('employeeStatusFilter');
+        var headerSearch = document.getElementById('headerSearchInput');
+        if (dept) dept.value = '';
+        if (status) status.value = '';
+        if (headerSearch) headerSearch.value = '';
+        filterEmployeeCards('');
+    };
+
+    window.clearProjectsFilters = function () {
+        var dept = document.getElementById('projectDeptFilter');
+        var manager = document.getElementById('projectManagerFilter');
+        var status = document.getElementById('projectStatusFilter');
+        var headerSearch = document.getElementById('headerSearchInput');
+        if (dept) dept.value = '';
+        if (manager) manager.value = '';
+        if (status) status.value = '';
+        if (headerSearch) headerSearch.value = '';
+        filterProjectCards('');
+    };
+
+    window.clearFinanceFilters = function () {
+        var status = document.getElementById('invoiceStatusFilter');
+        var client = document.getElementById('invoiceClientFilter');
+        if (status) status.value = '';
+        if (client) client.value = '';
+        filterInvoiceCards();
+    };
+
+    function applyEmpTasksFilters() {
+        var statusFilter = (document.getElementById('empTaskStatusFilter') || {}).value || '';
+        var priorityFilter = (document.getElementById('empTaskPriorityFilter') || {}).value || '';
+        var searchFilter = ((document.getElementById('empTaskSearchFilter') || {}).value || '').toLowerCase().trim();
+        document.querySelectorAll('#empTasksList .emp-task-row').forEach(function (row) {
+            var status = row.getAttribute('data-status') || '';
+            var priority = row.getAttribute('data-priority') || '';
+            var text = row.textContent.toLowerCase();
+            var matchesStatus = !statusFilter || status === statusFilter;
+            var matchesPriority = !priorityFilter || priority === priorityFilter;
+            var matchesSearch = !searchFilter || text.indexOf(searchFilter) !== -1;
+            row.style.display = matchesStatus && matchesPriority && matchesSearch ? '' : 'none';
+        });
+    }
+
+    function applyEmpProjectsFilters() {
+        var statusFilter = (document.getElementById('empProjectStatusFilter') || {}).value || '';
+        var priorityFilter = (document.getElementById('empProjectPriorityFilter') || {}).value || '';
+        var deptFilter = (document.getElementById('empProjectDepartmentFilter') || {}).value || '';
+        var searchFilter = ((document.getElementById('empProjectSearchFilter') || {}).value || '').toLowerCase().trim();
+        document.querySelectorAll('#empProjectsList .emp-project-item').forEach(function (item) {
+            var status = item.getAttribute('data-status') || '';
+            var priority = item.getAttribute('data-priority') || '';
+            var dept = item.getAttribute('data-department') || '';
+            var text = item.textContent.toLowerCase();
+            var matchesStatus = !statusFilter || status === statusFilter;
+            var matchesPriority = !priorityFilter || priority === priorityFilter;
+            var matchesDept = !deptFilter || dept === deptFilter;
+            var matchesSearch = !searchFilter || text.indexOf(searchFilter) !== -1;
+            item.style.display = matchesStatus && matchesPriority && matchesDept && matchesSearch ? '' : 'none';
+        });
+    }
+
+    function applyEmpTeamFilters() {
+        var deptFilter = (document.getElementById('empTeamDepartmentFilter') || {}).value || '';
+        var searchFilter = ((document.getElementById('empTeamSearchFilter') || {}).value || '').toLowerCase().trim();
+        document.querySelectorAll('#empTeamList .emp-team-row').forEach(function (row) {
+            var dept = row.getAttribute('data-department') || '';
+            var text = row.textContent.toLowerCase();
+            var matchesDept = !deptFilter || dept === deptFilter;
+            var matchesSearch = !searchFilter || text.indexOf(searchFilter) !== -1;
+            row.style.display = matchesDept && matchesSearch ? '' : 'none';
+        });
+    }
+
+    window.clearEmpTasksFilters = function () {
+        var status = document.getElementById('empTaskStatusFilter');
+        var priority = document.getElementById('empTaskPriorityFilter');
+        var search = document.getElementById('empTaskSearchFilter');
+        if (status) status.value = '';
+        if (priority) priority.value = '';
+        if (search) search.value = '';
+        applyEmpTasksFilters();
+    };
+
+    window.clearEmpProjectsFilters = function () {
+        var status = document.getElementById('empProjectStatusFilter');
+        var priority = document.getElementById('empProjectPriorityFilter');
+        var dept = document.getElementById('empProjectDepartmentFilter');
+        var search = document.getElementById('empProjectSearchFilter');
+        if (status) status.value = '';
+        if (priority) priority.value = '';
+        if (dept) dept.value = '';
+        if (search) search.value = '';
+        applyEmpProjectsFilters();
+    };
+
+    window.clearEmpTeamFilters = function () {
+        var dept = document.getElementById('empTeamDepartmentFilter');
+        var search = document.getElementById('empTeamSearchFilter');
+        if (dept) dept.value = '';
+        if (search) search.value = '';
+        applyEmpTeamFilters();
+    };
+
+    function populateEmpProjectsDeptFilter(projects) {
+        var select = document.getElementById('empProjectDepartmentFilter');
+        if (!select) return;
+        var current = select.value || '';
+        var deptMap = {};
+        (projects || []).forEach(function (p) {
+            var d = normalizeDepartment(p.department);
+            if (d) deptMap[d] = true;
+        });
+        var departments = Object.keys(deptMap).sort(function (a, b) { return a.localeCompare(b); });
+        select.innerHTML = '<option value="">All Departments</option>' + departments.map(function (d) {
+            return '<option value="' + esc(d) + '">' + esc(d) + '</option>';
+        }).join('');
+        if (current) select.value = current;
+    }
+
+    function populateEmpTeamDeptFilter(team) {
+        var select = document.getElementById('empTeamDepartmentFilter');
+        if (!select) return;
+        var current = select.value || '';
+        var deptMap = {};
+        (team || []).forEach(function (e) {
+            var d = normalizeDepartment(e.department);
+            if (d) deptMap[d] = true;
+        });
+        var departments = Object.keys(deptMap).sort(function (a, b) { return a.localeCompare(b); });
+        select.innerHTML = '<option value="">All Departments</option>' + departments.map(function (d) {
+            return '<option value="' + esc(d) + '">' + esc(d) + '</option>';
+        }).join('');
+        if (current) select.value = current;
+    }
+
+    function initPageFilters() {
+        if (filtersInitialized) return;
+        filtersInitialized = true;
+
+        ['employeeDeptFilter', 'employeeStatusFilter', 'projectDeptFilter', 'projectManagerFilter', 'projectStatusFilter'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('change', function () {
+                var q = ((document.getElementById('headerSearchInput') || {}).value || '').toLowerCase().trim();
+                if (currentPage === 'employees') filterEmployeeCards(q);
+                if (currentPage === 'projects') filterProjectCards(q);
+            });
+        });
+
+        var invoiceStatusFilter = document.getElementById('invoiceStatusFilter');
+        if (invoiceStatusFilter) {
+            invoiceStatusFilter.addEventListener('change', filterInvoiceCards);
+        }
+        var invoiceClientFilter = document.getElementById('invoiceClientFilter');
+        if (invoiceClientFilter) {
+            invoiceClientFilter.addEventListener('input', filterInvoiceCards);
+        }
+
+        ['empTaskStatusFilter', 'empTaskPriorityFilter'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.addEventListener('change', applyEmpTasksFilters);
+        });
+        var empTaskSearch = document.getElementById('empTaskSearchFilter');
+        if (empTaskSearch) empTaskSearch.addEventListener('input', applyEmpTasksFilters);
+
+        ['empProjectStatusFilter', 'empProjectPriorityFilter', 'empProjectDepartmentFilter'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.addEventListener('change', applyEmpProjectsFilters);
+        });
+        var empProjectSearch = document.getElementById('empProjectSearchFilter');
+        if (empProjectSearch) empProjectSearch.addEventListener('input', applyEmpProjectsFilters);
+
+        var empTeamDept = document.getElementById('empTeamDepartmentFilter');
+        if (empTeamDept) empTeamDept.addEventListener('change', applyEmpTeamFilters);
+        var empTeamSearch = document.getElementById('empTeamSearchFilter');
+        if (empTeamSearch) empTeamSearch.addEventListener('input', applyEmpTeamFilters);
     }
 
     // ---- Header Add Button ----
@@ -369,15 +580,36 @@
         renderCards('cardsActive', active, renderEmployeeCard, 'No active employees');
         renderCards('cardsLeave', leave, renderEmployeeCard, 'No employees on leave');
         renderCards('cardsTerminated', terminated, renderEmployeeCard, 'No terminated employees');
+
+        populateEmployeeFilters(employees);
+        filterEmployeeCards(((document.getElementById('headerSearchInput') || {}).value || '').toLowerCase().trim());
+    }
+
+    function populateEmployeeFilters(employees) {
+        var deptSelect = document.getElementById('employeeDeptFilter');
+        if (!deptSelect) return;
+
+        var currentVal = deptSelect.value || '';
+        var depts = {};
+        (employees || []).forEach(function (e) {
+            var d = normalizeDepartment(e.department);
+            if (d) depts[d] = true;
+        });
+        var options = Object.keys(depts).sort(function (a, b) { return a.localeCompare(b); });
+        deptSelect.innerHTML = '<option value="">All Departments</option>' + options.map(function (d) {
+            return '<option value="' + esc(d) + '">' + esc(d) + '</option>';
+        }).join('');
+        if (currentVal) deptSelect.value = currentVal;
     }
 
     function renderEmployeeCard(e) {
         var name = buildName(e);
         var id = esc(e.id || '');
         var status = (e.status || 'ACTIVE').toUpperCase();
+        var department = normalizeDepartment(e.department);
         var statusClass = 'employee-status-' + status.toLowerCase();
         var statusLabel = formatStatus(status);
-        return '<div class="employee-card clickable" onclick="openEmployeeModal(\'' + id + '\')">'
+        return '<div class="employee-card clickable" data-department="' + esc(department) + '" data-status="' + esc(status) + '" onclick="openEmployeeModal(\'' + id + '\')">'
             + '<div class="employee-card-top">'
             + '<div class="employee-avatar">' + initials(name) + '</div>'
             + '<div class="employee-card-info">'
@@ -493,9 +725,222 @@
         fetchJson('/api/projects', function (data) {
             cachedData.projects = data;
             renderProjectKanban(data);
+            loadProjectManagersPanel(data);
         }, function (err) {
             showNotice('projectsNotice', err || 'Failed to load projects.', 'error');
             clearKanbanSpinners('projectsKanban');
+            renderProjectManagersPanel([], []);
+        });
+    }
+
+    function ensureProjectManagerCandidates(onDone) {
+        if (cachedData.projectManagerCandidates) {
+            onDone(cachedData.projectManagerCandidates);
+            return;
+        }
+
+        fetchJson('/api/employees?projectManagers=true', function (data) {
+            cachedData.projectManagerCandidates = data || [];
+            onDone(cachedData.projectManagerCandidates);
+        }, function () {
+            fetchJson('/api/employees', function (allEmployees) {
+                var filtered = (allEmployees || []).filter(isProjectManagerEmployee);
+                cachedData.projectManagerCandidates = filtered;
+                onDone(filtered);
+            }, function () {
+                cachedData.projectManagerCandidates = [];
+                onDone([]);
+            });
+        });
+    }
+
+    function isProjectManagerEmployee(employee) {
+        var role = (employee && employee.role ? String(employee.role) : '').toUpperCase().replace(/\s+/g, '_');
+        return role === 'PROJECT_MANAGER';
+    }
+
+    function normalizeDepartment(value) {
+        return (value || '').trim();
+    }
+
+    function managerDisplayName(manager) {
+        return manager.displayName || buildName(manager) || manager.email || 'Unknown';
+    }
+
+    function loadProjectManagersPanel(projects) {
+        ensureProjectManagerCandidates(function (managers) {
+            renderProjectManagersPanel(projects || [], managers || []);
+        });
+    }
+
+    function renderProjectManagersPanel(projects, managers) {
+        var statsEl = document.getElementById('projectManagersStats');
+        var groupsEl = document.getElementById('projectManagersDeptGroups');
+        if (!statsEl || !groupsEl) return;
+
+        if (!managers || managers.length === 0) {
+            statsEl.innerHTML = '';
+            groupsEl.innerHTML = '<div class="empty-state">No project managers found.</div>';
+            return;
+        }
+
+        var enriched = managers.map(function (manager) {
+            var id = (manager.id || manager.uid || '').toLowerCase();
+            var name = managerDisplayName(manager);
+            var nameKey = name.toLowerCase();
+            var owned = (projects || []).filter(function (project) {
+                var managerId = (project.projectManagerId || '').toLowerCase();
+                var managerName = (project.projectManager || '').toLowerCase();
+                return (id && managerId === id) || (nameKey && managerName === nameKey);
+            });
+
+            var dept = normalizeDepartment(manager.department);
+            if (!dept && owned.length > 0) {
+                dept = normalizeDepartment(owned[0].department);
+            }
+
+            return {
+                id: manager.id || manager.uid || '',
+                name: name,
+                email: manager.email || '',
+                department: dept,
+                projectCount: owned.length
+            };
+        });
+
+        var groups = {};
+        var noDept = [];
+        enriched.forEach(function (manager) {
+            if (!manager.department) {
+                noDept.push(manager);
+                return;
+            }
+            if (!groups[manager.department]) groups[manager.department] = [];
+            groups[manager.department].push(manager);
+        });
+
+        var deptNames = Object.keys(groups).sort(function (a, b) { return a.localeCompare(b); });
+        var totalManaged = enriched.filter(function (m) { return m.projectCount > 0; }).length;
+        var noDeptCount = noDept.length;
+
+        statsEl.innerHTML =
+            '<div class="stat-card stat-card-blue"><div class="stat-number">' + enriched.length + '</div><div class="stat-label">Project Managers</div><div class="stat-sub">Available managers</div></div>'
+            + '<div class="stat-card stat-card-green"><div class="stat-number">' + totalManaged + '</div><div class="stat-label">Assigned</div><div class="stat-sub">Managing projects</div></div>'
+            + '<div class="stat-card stat-card-purple"><div class="stat-number">' + (deptNames.length + (noDeptCount > 0 ? 1 : 0)) + '</div><div class="stat-label">Departments</div><div class="stat-sub">Manager groups</div></div>'
+            + (noDeptCount > 0 ? '<div class="stat-card stat-card-orange"><div class="stat-number">' + noDeptCount + '</div><div class="stat-label">No Dept</div><div class="stat-sub">Needs assignment</div></div>' : '');
+
+        var html = '';
+        if (noDept.length > 0) {
+            html += renderProjectManagerDeptGroup('Unassigned', noDept, true);
+        }
+        deptNames.forEach(function (dept) {
+            html += renderProjectManagerDeptGroup(dept, groups[dept], false);
+        });
+        groupsEl.innerHTML = html || '<div class="empty-state">No project managers found.</div>';
+    }
+
+    function renderProjectManagerDeptGroup(deptName, members, isUnassigned) {
+        var cls = isUnassigned ? ' dept-group-warning' : '';
+        var sorted = members.slice().sort(function (a, b) { return a.name.localeCompare(b.name); });
+        return '<div class="dept-group' + cls + '">'
+            + '<div class="dept-group-header">'
+            + '<span class="dept-group-name">' + esc(deptName) + '</span>'
+            + '<span class="dept-group-count">' + sorted.length + ' manager' + (sorted.length === 1 ? '' : 's') + '</span>'
+            + '</div>'
+            + '<div class="dept-group-list">'
+            + sorted.map(renderProjectManagerRow).join('')
+            + '</div>'
+            + '</div>';
+    }
+
+    function renderProjectManagerRow(manager) {
+        return '<div class="user-row">'
+            + '<div class="user-row-avatar">' + initials(manager.name) + '</div>'
+            + '<div class="user-row-info">'
+            + '<div class="user-row-name">' + esc(manager.name) + '</div>'
+            + '<div class="user-row-email">' + esc(manager.email || 'No email') + '</div>'
+            + '</div>'
+            + '<div class="user-row-actions">'
+            + '<span class="badge badge-muted">' + manager.projectCount + ' project' + (manager.projectCount === 1 ? '' : 's') + '</span>'
+            + '</div>'
+            + '</div>';
+    }
+
+    function buildProjectDepartments(managers, projects) {
+        var map = {};
+        (managers || []).forEach(function (manager) {
+            var dept = normalizeDepartment(manager.department);
+            if (dept) map[dept] = true;
+        });
+        (projects || []).forEach(function (project) {
+            var dept = normalizeDepartment(project.department);
+            if (dept) map[dept] = true;
+        });
+        return Object.keys(map).sort(function (a, b) { return a.localeCompare(b); });
+    }
+
+    function populateProjectDeptSelect(selectedDept) {
+        var deptSel = document.getElementById('projDepartment');
+        if (!deptSel) return;
+
+        var depts = buildProjectDepartments(cachedData.projectManagerCandidates || [], cachedData.projects || []);
+        deptSel.innerHTML = '<option value="">Select department...</option>'
+            + depts.map(function (d) { return '<option value="' + esc(d) + '">' + esc(d) + '</option>'; }).join('');
+        if (selectedDept) {
+            deptSel.value = selectedDept;
+            if (deptSel.value !== selectedDept) {
+                deptSel.innerHTML += '<option value="' + esc(selectedDept) + '" selected>' + esc(selectedDept) + '</option>';
+                deptSel.value = selectedDept;
+            }
+        }
+    }
+
+    function populateProjectManagerSelect(selectedDept, selectedManager, selectedManagerId) {
+        var mgrSel = document.getElementById('projManager');
+        if (!mgrSel) return;
+
+        var managers = (cachedData.projectManagerCandidates || []).filter(function (manager) {
+            if (!selectedDept) return true;
+            return normalizeDepartment(manager.department) === selectedDept;
+        });
+
+        mgrSel.innerHTML = '<option value="">Unassigned</option>';
+        var selectedFound = false;
+
+        managers.forEach(function (manager) {
+            var name = managerDisplayName(manager);
+            var option = document.createElement('option');
+            option.value = name;
+            option.setAttribute('data-id', manager.id || manager.uid || '');
+            option.textContent = name;
+            if (selectedManager && name === selectedManager) {
+                option.selected = true;
+                selectedFound = true;
+            }
+            mgrSel.appendChild(option);
+        });
+
+        if (selectedManager && !selectedFound) {
+            var legacy = document.createElement('option');
+            legacy.value = selectedManager;
+            legacy.setAttribute('data-id', selectedManagerId || '');
+            legacy.textContent = selectedManager + ' (Current)';
+            legacy.selected = true;
+            mgrSel.appendChild(legacy);
+        }
+    }
+
+    function setupProjectManagerForm(selectedDept, selectedManager, selectedManagerId) {
+        ensureProjectManagerCandidates(function () {
+            populateProjectDeptSelect(selectedDept || '');
+            populateProjectManagerSelect(selectedDept || '', selectedManager || '', selectedManagerId || '');
+
+            var deptSel = document.getElementById('projDepartment');
+            if (deptSel) {
+                deptSel.onchange = function () {
+                    populateProjectManagerSelect(deptSel.value, '', '');
+                };
+            }
         });
     }
 
@@ -516,19 +961,56 @@
         renderCards('cardsNew', newP, renderProjectCard, 'No new projects');
         renderCards('cardsInProgress', inProgress, renderProjectCard, 'No projects in progress');
         renderCards('cardsCompleted', completed, renderProjectCard, 'No completed projects');
+
+        populateProjectFilters(projects);
+        filterProjectCards(((document.getElementById('headerSearchInput') || {}).value || '').toLowerCase().trim());
+    }
+
+    function populateProjectFilters(projects) {
+        var deptSelect = document.getElementById('projectDeptFilter');
+        var managerSelect = document.getElementById('projectManagerFilter');
+        if (!deptSelect || !managerSelect) return;
+
+        var deptCurrent = deptSelect.value || '';
+        var managerCurrent = managerSelect.value || '';
+        var deptMap = {};
+        var managerMap = {};
+
+        (projects || []).forEach(function (p) {
+            var dept = normalizeDepartment(p.department);
+            var manager = (p.projectManager || '').trim();
+            if (dept) deptMap[dept] = true;
+            if (manager) managerMap[manager] = true;
+        });
+
+        var depts = Object.keys(deptMap).sort(function (a, b) { return a.localeCompare(b); });
+        var managers = Object.keys(managerMap).sort(function (a, b) { return a.localeCompare(b); });
+
+        deptSelect.innerHTML = '<option value="">All Departments</option>' + depts.map(function (d) {
+            return '<option value="' + esc(d) + '">' + esc(d) + '</option>';
+        }).join('');
+        managerSelect.innerHTML = '<option value="">All Managers</option>' + managers.map(function (m) {
+            return '<option value="' + esc(m) + '">' + esc(m) + '</option>';
+        }).join('');
+
+        if (deptCurrent) deptSelect.value = deptCurrent;
+        if (managerCurrent) managerSelect.value = managerCurrent;
     }
 
     function renderProjectCard(p) {
         var pct = p.completionPercentage || 0;
         var priorityClass = 'priority-' + (p.priority || 'medium').toLowerCase();
         var id = esc(p.id || '');
+        var department = normalizeDepartment(p.department);
+        var manager = (p.projectManager || '').trim();
+        var status = (p.status || '').toUpperCase();
         var desc = p.description ? (p.description.length > 80 ? p.description.substring(0, 80) + '...' : p.description) : '';
         var dueHtml = '';
         if (p.endDate) {
             var isOverdue = p.endDate < Date.now() && (p.status || '').toUpperCase() !== 'COMPLETED';
             dueHtml = '<div class="card-due' + (isOverdue ? ' overdue' : '') + '">Due ' + formatTimestamp(p.endDate) + (isOverdue ? ' (Overdue)' : '') + '</div>';
         }
-        return '<div class="project-card clickable" onclick="openProjectModal(\'' + id + '\')">'
+        return '<div class="project-card clickable" data-department="' + esc(department) + '" data-manager="' + esc(manager) + '" data-status="' + esc(status) + '" onclick="openProjectModal(\'' + id + '\')">'
             + '<div class="card-name">' + esc(p.name || 'Untitled') + '</div>'
             + '<div class="card-manager">' + esc(p.projectManager || 'Unassigned') + '</div>'
             + (desc ? '<div class="card-description">' + esc(desc) + '</div>' : '')
@@ -553,8 +1035,7 @@
                 document.getElementById('projId').value = proj.id || '';
                 document.getElementById('projName').value = proj.name || '';
                 document.getElementById('projDescription').value = proj.description || '';
-                document.getElementById('projManager').value = proj.projectManager || '';
-                document.getElementById('projDepartment').value = proj.department || '';
+                setupProjectManagerForm(proj.department || '', proj.projectManager || '', proj.projectManagerId || '');
                 document.getElementById('projStatus').value = (proj.status || 'PLANNING').toUpperCase();
                 document.getElementById('projPriority').value = (proj.priority || 'MEDIUM').toUpperCase();
                 document.getElementById('projBudget').value = proj.budget || '';
@@ -567,8 +1048,7 @@
             document.getElementById('projId').value = '';
             document.getElementById('projName').value = '';
             document.getElementById('projDescription').value = '';
-            document.getElementById('projManager').value = '';
-            document.getElementById('projDepartment').value = '';
+            setupProjectManagerForm('', '', '');
             document.getElementById('projStatus').value = 'PLANNING';
             document.getElementById('projPriority').value = 'MEDIUM';
             document.getElementById('projBudget').value = '';
@@ -587,11 +1067,14 @@
         if (!name) { showModalNotice('projModalNotice', 'Project name is required.', 'error'); return; }
 
         var id = document.getElementById('projId').value;
+        var managerSelect = document.getElementById('projManager');
+        var managerOption = managerSelect ? managerSelect.options[managerSelect.selectedIndex] : null;
         var payload = {
             name: name,
             description: document.getElementById('projDescription').value.trim(),
-            projectManager: document.getElementById('projManager').value.trim(),
-            department: document.getElementById('projDepartment').value.trim(),
+            projectManager: managerSelect ? managerSelect.value : '',
+            projectManagerId: managerOption ? (managerOption.getAttribute('data-id') || '') : '',
+            department: document.getElementById('projDepartment').value,
             status: document.getElementById('projStatus').value,
             priority: document.getElementById('projPriority').value,
             budget: parseFloat(document.getElementById('projBudget').value) || 0,
@@ -657,6 +1140,7 @@
 
         renderCards('cardsDue', due, renderInvoiceCard, 'No outstanding invoices');
         renderCards('cardsPaid', paid, renderInvoiceCard, 'No paid invoices');
+        filterInvoiceCards();
     }
 
     function renderInvoiceCard(inv) {
@@ -665,7 +1149,7 @@
         var id = esc(inv.id || '');
         var toggleClass = inv.paid ? 'mark-unpaid' : 'mark-paid';
         var toggleLabel = inv.paid ? 'Mark Unpaid' : 'Mark Paid';
-        return '<div class="invoice-card clickable" onclick="openInvoiceModal(\'' + id + '\')">'
+        return '<div class="invoice-card clickable" data-paid="' + (inv.paid ? 'true' : 'false') + '" data-client="' + esc(inv.client || '') + '" onclick="openInvoiceModal(\'' + id + '\')">'
             + '<div class="invoice-id">' + esc(inv.id || '\u2014') + '</div>'
             + '<div class="invoice-client">' + esc(inv.client || 'Unknown client') + '</div>'
             + '<div class="invoice-amount">$' + formatMoney(inv.amount || 0) + '</div>'
@@ -1241,7 +1725,9 @@
             } else {
                 tasks.forEach(function (p) {
                     var priority = isEmpOverdue(p) ? 'high' : 'medium';
-                    html += '<div class="emp-task-row">'
+                    var status = (p.status || '').toUpperCase();
+                    var sourcePriority = (p.priority || '').toUpperCase();
+                    html += '<div class="emp-task-row" data-status="' + esc(status) + '" data-priority="' + esc(sourcePriority) + '">'
                         + '<div class="priority-dot priority-' + priority + '"></div>'
                         + '<div class="emp-task-info"><div class="emp-task-name">' + esc(p.name || 'Untitled') + '</div>'
                         + '<div class="emp-task-meta"><span class="badge badge-muted">' + esc(formatStatus(p.status)) + '</span> '
@@ -1250,6 +1736,7 @@
                 });
             }
             document.getElementById('empTasksList').innerHTML = html;
+            applyEmpTasksFilters();
         });
     }
 
@@ -1272,7 +1759,7 @@
                 assigned.forEach(function (p) {
                     var pct = p.completionPercentage || 0;
                     var badge = isEmpCompleted(p) ? 'green' : isEmpOverdue(p) ? 'purple' : 'blue';
-                    html += '<div class="emp-project-item">'
+                    html += '<div class="emp-project-item" data-status="' + esc((p.status || '').toUpperCase()) + '" data-priority="' + esc((p.priority || '').toUpperCase()) + '" data-department="' + esc(normalizeDepartment(p.department)) + '">'
                         + '<div class="emp-project-header"><span class="emp-project-name">' + esc(p.name || 'Untitled') + '</span>'
                         + '<span class="badge badge-' + badge + '">' + esc(formatStatus(p.status)) + '</span></div>'
                         + '<div class="project-progress"><div class="project-progress-fill" style="width:' + pct + '%"></div></div>'
@@ -1284,6 +1771,8 @@
                 });
             }
             document.getElementById('empProjectsList').innerHTML = html;
+            populateEmpProjectsDeptFilter(assigned);
+            applyEmpProjectsFilters();
         });
     }
 
@@ -1400,7 +1889,7 @@
             } else {
                 team.slice(0, 12).forEach(function (e) {
                     var name = buildName(e);
-                    html += '<div class="emp-team-row">'
+                    html += '<div class="emp-team-row" data-department="' + esc(normalizeDepartment(e.department)) + '">'
                         + '<div class="emp-team-avatar">' + initials(name) + '</div>'
                         + '<div class="emp-team-info"><div class="emp-team-name">' + esc(name) + '</div>'
                         + '<div class="emp-team-meta">' + esc(e.position || 'No position') + ' \u2022 ' + esc(e.email || '') + '</div></div>'
@@ -1408,6 +1897,8 @@
                 });
             }
             document.getElementById('empTeamList').innerHTML = html;
+            populateEmpTeamDeptFilter(team);
+            applyEmpTeamFilters();
         });
     }
 

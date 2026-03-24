@@ -2,6 +2,8 @@
 (function (app) {
     'use strict';
 
+    var pmSectionFiltersInitialized = false;
+
     /* ============================================================
        DASHBOARD
        ============================================================ */
@@ -384,9 +386,243 @@
         app.fetchJson('/api/projects', function (data) {
             app.cachedData.projects = data;
             renderProjectKanban(data);
+            loadProjectManagersSection(data);
         }, function (err) {
             app.showNotice('projectsNotice', err || 'Failed to load projects.', 'error');
             clearKanbanSpinners('projectsKanban');
+            renderProjectManagersByDepartment([], []);
+        });
+    };
+
+    function loadProjectManagersSection(projects) {
+        app.fetchJson('/api/employees?projectManagers=true', function (data) {
+            var managers = data || [];
+            app.cachedData.projectManagers = managers;
+            initProjectManagerSectionFilters();
+            renderProjectManagersByDepartment(managers, projects || []);
+        }, function () {
+            app.fetchJson('/api/employees', function (allEmployees) {
+                var managers = (allEmployees || []).filter(function (e) {
+                    return (e.role || '').toUpperCase().replace(/\s+/g, '_') === 'PROJECT_MANAGER';
+                });
+                app.cachedData.projectManagers = managers;
+                initProjectManagerSectionFilters();
+                renderProjectManagersByDepartment(managers, projects || []);
+            }, function () {
+                app.cachedData.projectManagers = [];
+                initProjectManagerSectionFilters();
+                renderProjectManagersByDepartment([], projects || []);
+            });
+        });
+    }
+
+    function initProjectManagerSectionFilters() {
+        if (pmSectionFiltersInitialized) return;
+        pmSectionFiltersInitialized = true;
+
+        ['pmDeptFilter', 'pmAssignedFilter'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('change', function () {
+                renderProjectManagersByDepartment(app.cachedData.projectManagers || [], app.cachedData.projects || []);
+            });
+        });
+
+        var search = document.getElementById('pmSearchFilter');
+        if (search) {
+            search.addEventListener('input', function () {
+                renderProjectManagersByDepartment(app.cachedData.projectManagers || [], app.cachedData.projects || []);
+            });
+        }
+    }
+
+    function populateProjectManagerDeptFilter(managers) {
+        var deptFilter = document.getElementById('pmDeptFilter');
+        if (!deptFilter) return;
+
+        var selected = deptFilter.value || '';
+        var deptMap = {};
+        (managers || []).forEach(function (m) {
+            var d = normalizeDepartment(m.department);
+            if (d) deptMap[d] = true;
+        });
+
+        var depts = Object.keys(deptMap).sort(function (a, b) { return a.localeCompare(b); });
+        deptFilter.innerHTML = '<option value="">All Departments</option>' + depts.map(function (d) {
+            return '<option value="' + app.esc(d) + '">' + app.esc(d) + '</option>';
+        }).join('');
+        if (selected) deptFilter.value = selected;
+    }
+
+    window.clearProjectManagerFilters = function () {
+        var dept = document.getElementById('pmDeptFilter');
+        var assigned = document.getElementById('pmAssignedFilter');
+        var search = document.getElementById('pmSearchFilter');
+        if (dept) dept.value = '';
+        if (assigned) assigned.value = '';
+        if (search) search.value = '';
+        renderProjectManagersByDepartment(app.cachedData.projectManagers || [], app.cachedData.projects || []);
+    };
+
+    function managerDisplayName(m) {
+        return m.displayName || app.buildName(m) || m.email || 'Unknown';
+    }
+
+    function normalizeDepartment(v) {
+        return (v || '').trim();
+    }
+
+    function renderProjectManagersByDepartment(managers, projects) {
+        var statsEl = document.getElementById('projectManagersDeptStats');
+        var groupsEl = document.getElementById('projectManagersDeptGroups');
+        if (!statsEl || !groupsEl) return;
+
+        populateProjectManagerDeptFilter(managers);
+
+        if (!managers || managers.length === 0) {
+            statsEl.innerHTML = '';
+            groupsEl.innerHTML = '<div class="empty-state">No project managers found.</div>';
+            return;
+        }
+
+        var enriched = managers.map(function (m) {
+            var mid = (m.id || m.uid || '').toLowerCase();
+            var name = managerDisplayName(m);
+            var nameKey = name.toLowerCase();
+            var owned = (projects || []).filter(function (p) {
+                var pid = (p.projectManagerId || '').toLowerCase();
+                var pname = (p.projectManager || '').toLowerCase();
+                return (mid && pid === mid) || (nameKey && pname === nameKey);
+            });
+
+            var dept = normalizeDepartment(m.department);
+            if (!dept && owned.length > 0) dept = normalizeDepartment(owned[0].department);
+
+            return {
+                id: m.id || m.uid || '',
+                firstName: m.firstName || '',
+                lastName: m.lastName || '',
+                email: m.email || '',
+                position: m.position || 'Project Manager',
+                status: (m.status || 'ACTIVE').toUpperCase(),
+                department: dept,
+                name: name,
+                projectCount: owned.length
+            };
+        });
+
+        app.cachedData.projectManagersView = enriched;
+
+        var deptFilter = (document.getElementById('pmDeptFilter') || {}).value || '';
+        var assignedFilter = (document.getElementById('pmAssignedFilter') || {}).value || '';
+        var searchText = ((document.getElementById('pmSearchFilter') || {}).value || '').toLowerCase().trim();
+
+        var filtered = enriched.filter(function (m) {
+            var matchesDept = !deptFilter || m.department === deptFilter;
+            var matchesAssigned = !assignedFilter || (assignedFilter === 'assigned' ? m.projectCount > 0 : m.projectCount === 0);
+            var blob = (m.name + ' ' + m.email).toLowerCase();
+            var matchesSearch = !searchText || blob.indexOf(searchText) !== -1;
+            return matchesDept && matchesAssigned && matchesSearch;
+        });
+
+        var groups = {};
+        var noDept = [];
+        filtered.forEach(function (m) {
+            if (!m.department) {
+                noDept.push(m);
+                return;
+            }
+            if (!groups[m.department]) groups[m.department] = [];
+            groups[m.department].push(m);
+        });
+
+        var deptNames = Object.keys(groups).sort(function (a, b) { return a.localeCompare(b); });
+        var assignedCount = filtered.filter(function (m) { return m.projectCount > 0; }).length;
+        var deptCount = deptNames.length + (noDept.length > 0 ? 1 : 0);
+
+        statsEl.innerHTML =
+            '<div class="stat-card stat-card-blue"><div class="stat-number">' + filtered.length + '</div><div class="stat-label">Project Managers</div><div class="stat-sub">Filtered managers</div></div>'
+            + '<div class="stat-card stat-card-green"><div class="stat-number">' + assignedCount + '</div><div class="stat-label">Assigned</div><div class="stat-sub">Managing projects</div></div>'
+            + '<div class="stat-card stat-card-purple"><div class="stat-number">' + deptCount + '</div><div class="stat-label">Departments</div><div class="stat-sub">Grouped view</div></div>'
+            + (noDept.length > 0 ? '<div class="stat-card stat-card-orange"><div class="stat-number">' + noDept.length + '</div><div class="stat-label">No Dept</div><div class="stat-sub">Needs assignment</div></div>' : '');
+
+        var html = '';
+        if (noDept.length > 0) html += renderProjectManagerDeptGroup('Unassigned', noDept, true);
+        deptNames.forEach(function (d) { html += renderProjectManagerDeptGroup(d, groups[d], false); });
+        groupsEl.innerHTML = html || '<div class="empty-state">No project managers match the current filters.</div>';
+    }
+
+    function renderProjectManagerDeptGroup(deptName, managers, isUnassigned) {
+        var cls = isUnassigned ? ' dept-group-warning' : '';
+        var rows = managers.slice().sort(function (a, b) { return a.name.localeCompare(b.name); }).map(function (m) {
+            var pmid = app.esc(m.id);
+            return '<div class="user-row">'
+                + '<div class="user-row-avatar">' + app.initials(m.name) + '</div>'
+                + '<div class="user-row-info"><div class="user-row-name">' + app.esc(m.name) + '</div>'
+                + '<div class="user-row-email">' + app.esc(m.email || 'No email') + '</div></div>'
+                + '<span class="badge badge-muted">' + m.projectCount + ' project' + (m.projectCount === 1 ? '' : 's') + '</span>'
+                + '<div class="user-row-actions">'
+                + '<button class="btn-edit-sm" onclick="openProjectManagerModal(\'' + pmid + '\')">Edit</button>'
+                + '</div>'
+                + '</div>';
+        }).join('');
+
+        return '<div class="dept-group' + cls + '">'
+            + '<div class="dept-group-header">'
+            + '<span class="dept-group-name">' + app.esc(deptName) + '</span>'
+            + '<span class="dept-group-count">' + managers.length + ' manager' + (managers.length === 1 ? '' : 's') + '</span>'
+            + '</div>'
+            + '<div class="dept-group-list">' + rows + '</div>'
+            + '</div>';
+    }
+
+    window.openProjectManagerModal = function (id) {
+        app.clearModalNotice('projectManagerModalNotice');
+        var managers = app.cachedData.projectManagersView || app.cachedData.projectManagers || [];
+        var manager = null;
+        for (var i = 0; i < managers.length; i++) {
+            if (managers[i].id === id) { manager = managers[i]; break; }
+        }
+        if (!manager) { app.showToast('Project manager not found', 'error'); return; }
+
+        document.getElementById('pmEditId').value = manager.id || '';
+        document.getElementById('pmEditFirstName').value = manager.firstName || '';
+        document.getElementById('pmEditLastName').value = manager.lastName || '';
+        document.getElementById('pmEditEmail').value = manager.email || '';
+        document.getElementById('pmEditPosition').value = manager.position || 'Project Manager';
+        document.getElementById('pmEditStatus').value = manager.status || 'ACTIVE';
+        document.getElementById('pmEditDepartment').innerHTML = app.deptOptions(manager.department || '');
+        document.getElementById('projectManagerModal').classList.remove('hidden');
+    };
+
+    window.saveProjectManagerFromProjectsPage = function () {
+        app.clearModalNotice('projectManagerModalNotice');
+        var id = document.getElementById('pmEditId').value;
+        var firstName = document.getElementById('pmEditFirstName').value.trim();
+        var email = document.getElementById('pmEditEmail').value.trim();
+        if (!id) return;
+        if (!firstName) { app.showModalNotice('projectManagerModalNotice', 'First name is required.', 'error'); return; }
+        if (!email) { app.showModalNotice('projectManagerModalNotice', 'Email is required.', 'error'); return; }
+
+        var payload = {
+            firstName: firstName,
+            lastName: document.getElementById('pmEditLastName').value.trim(),
+            email: email,
+            department: document.getElementById('pmEditDepartment').value.trim(),
+            position: document.getElementById('pmEditPosition').value.trim(),
+            status: document.getElementById('pmEditStatus').value
+        };
+
+        var btn = document.getElementById('pmEditSaveBtn');
+        if (btn) btn.disabled = true;
+        app.fetchMutate('PUT', '/api/employees/' + encodeURIComponent(id), payload, function () {
+            if (btn) btn.disabled = false;
+            app.closeModal('projectManagerModal');
+            app.showToast('Project manager updated', 'success');
+            loadProjects();
+        }, function (err) {
+            if (btn) btn.disabled = false;
+            app.showModalNotice('projectManagerModalNotice', err || 'Failed to update project manager.', 'error');
         });
     };
 

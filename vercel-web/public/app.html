@@ -297,6 +297,27 @@
                     <p>Manage your team across departments</p>
                 </div>
                 <div class="notice" id="employeesNotice"></div>
+                <div class="page-filters" id="employeesFilters">
+                    <div class="filter-item">
+                        <label for="employeeDeptFilter">Department</label>
+                        <select id="employeeDeptFilter">
+                            <option value="">All Departments</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="employeeStatusFilter">Status</label>
+                        <select id="employeeStatusFilter">
+                            <option value="">All Statuses</option>
+                            <option value="ACTIVE">Active</option>
+                            <option value="ON_LEAVE">On Leave</option>
+                            <option value="TERMINATED">Terminated</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-secondary btn-small" type="button" onclick="clearEmployeesFilters()">Clear
+                            Filters</button>
+                    </div>
+                </div>
                 <div class="kanban-board" id="employeesKanban">
                     <div class="kanban-column" id="colActive">
                         <div class="kanban-header kanban-header-active">
@@ -335,6 +356,46 @@
                     <p>Track project status and progress</p>
                 </div>
                 <div class="notice" id="projectsNotice"></div>
+                <div class="page-filters" id="projectsFilters">
+                    <div class="filter-item">
+                        <label for="projectDeptFilter">Department</label>
+                        <select id="projectDeptFilter">
+                            <option value="">All Departments</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="projectManagerFilter">Project Manager</label>
+                        <select id="projectManagerFilter">
+                            <option value="">All Managers</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="projectStatusFilter">Status</label>
+                        <select id="projectStatusFilter">
+                            <option value="">All Statuses</option>
+                            <option value="PLANNING">Planning</option>
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="COMPLETED">Completed</option>
+                            <option value="ON_HOLD">On Hold</option>
+                            <option value="CANCELLED">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-secondary btn-small" type="button" onclick="clearProjectsFilters()">Clear
+                            Filters</button>
+                    </div>
+                </div>
+
+                <div class="card" id="projectManagersCard" style="margin-bottom:16px;">
+                    <div class="card-header">
+                        <h3>Project Managers by Department</h3>
+                    </div>
+                    <div class="dept-stats-row" id="projectManagersStats"></div>
+                    <div class="dept-groups" id="projectManagersDeptGroups">
+                        <div class="loading-spinner visible"></div>
+                    </div>
+                </div>
+
                 <div class="kanban-board" id="projectsKanban">
                     <div class="kanban-column" id="colNew">
                         <div class="kanban-header kanban-header-new">
@@ -379,6 +440,24 @@
                     </div>
                 </div>
                 <div class="notice" id="financeNotice"></div>
+                <div class="page-filters" id="financeFilters">
+                    <div class="filter-item">
+                        <label for="invoiceStatusFilter">Payment Status</label>
+                        <select id="invoiceStatusFilter">
+                            <option value="">All</option>
+                            <option value="outstanding">Outstanding</option>
+                            <option value="paid">Paid</option>
+                        </select>
+                    </div>
+                    <div class="filter-item filter-item-wide">
+                        <label for="invoiceClientFilter">Client</label>
+                        <input type="text" id="invoiceClientFilter" placeholder="Filter by client...">
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-secondary btn-small" type="button" onclick="clearFinanceFilters()">Clear
+                            Filters</button>
+                    </div>
+                </div>
                 <div class="kanban-board" id="financeKanban">
                     <div class="kanban-column" id="colDue">
                         <div class="kanban-header kanban-header-due">
@@ -469,6 +548,35 @@
                     <h2>My Tasks</h2>
                     <p>Track your active and upcoming work items</p>
                 </div>
+                <div class="page-filters" id="empTasksFilters">
+                    <div class="filter-item">
+                        <label for="empTaskStatusFilter">Status</label>
+                        <select id="empTaskStatusFilter">
+                            <option value="">All Statuses</option>
+                            <option value="PLANNING">Planning</option>
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="COMPLETED">Completed</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="empTaskPriorityFilter">Priority</label>
+                        <select id="empTaskPriorityFilter">
+                            <option value="">All Priorities</option>
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HIGH">High</option>
+                            <option value="CRITICAL">Critical</option>
+                        </select>
+                    </div>
+                    <div class="filter-item filter-item-wide">
+                        <label for="empTaskSearchFilter">Search</label>
+                        <input type="text" id="empTaskSearchFilter" placeholder="Search task name...">
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-secondary btn-small" type="button" onclick="clearEmpTasksFilters()">Clear
+                            Filters</button>
+                    </div>
+                </div>
                 <div class="stats-row" id="empTasksStats"></div>
                 <div class="card">
                     <div class="card-header">
@@ -485,6 +593,42 @@
                 <div class="page-header">
                     <h2>My Projects</h2>
                     <p>Projects where you are assigned as a contributor</p>
+                </div>
+                <div class="page-filters" id="empProjectsFilters">
+                    <div class="filter-item">
+                        <label for="empProjectStatusFilter">Status</label>
+                        <select id="empProjectStatusFilter">
+                            <option value="">All Statuses</option>
+                            <option value="PLANNING">Planning</option>
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="COMPLETED">Completed</option>
+                            <option value="ON_HOLD">On Hold</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="empProjectPriorityFilter">Priority</label>
+                        <select id="empProjectPriorityFilter">
+                            <option value="">All Priorities</option>
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HIGH">High</option>
+                            <option value="CRITICAL">Critical</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="empProjectDepartmentFilter">Department</label>
+                        <select id="empProjectDepartmentFilter">
+                            <option value="">All Departments</option>
+                        </select>
+                    </div>
+                    <div class="filter-item filter-item-wide">
+                        <label for="empProjectSearchFilter">Search</label>
+                        <input type="text" id="empProjectSearchFilter" placeholder="Search project name...">
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-secondary btn-small" type="button" onclick="clearEmpProjectsFilters()">Clear
+                            Filters</button>
+                    </div>
                 </div>
                 <div class="stats-row" id="empProjectsStats"></div>
                 <div class="card">
@@ -577,6 +721,22 @@
                 <div class="page-header">
                     <h2>My Team</h2>
                     <p>Team members in your department</p>
+                </div>
+                <div class="page-filters" id="empTeamFilters">
+                    <div class="filter-item">
+                        <label for="empTeamDepartmentFilter">Department</label>
+                        <select id="empTeamDepartmentFilter">
+                            <option value="">All Departments</option>
+                        </select>
+                    </div>
+                    <div class="filter-item filter-item-wide">
+                        <label for="empTeamSearchFilter">Search</label>
+                        <input type="text" id="empTeamSearchFilter" placeholder="Search team member...">
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-secondary btn-small" type="button" onclick="clearEmpTeamFilters()">Clear
+                            Filters</button>
+                    </div>
                 </div>
                 <div class="stats-row" id="empTeamStats"></div>
                 <div class="card">
@@ -685,11 +845,11 @@
                 </div>
                 <div class="modal-field">
                     <label>Project Manager</label>
-                    <input type="text" id="projManager" placeholder="Jane Smith">
+                    <select id="projManager"></select>
                 </div>
                 <div class="modal-field">
                     <label>Department</label>
-                    <input type="text" id="projDepartment" placeholder="Engineering">
+                    <select id="projDepartment"></select>
                 </div>
                 <div class="modal-field">
                     <label>Status</label>

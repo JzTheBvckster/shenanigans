@@ -20,6 +20,41 @@
                     <p>Track project status and progress</p>
                 </div>
                 <div class="notice" id="projectsNotice"></div>
+
+                <div class="card" id="projectManagersSection" style="margin-bottom:16px;">
+                    <div class="card-header">
+                        <h3>Project Managers by Department</h3>
+                    </div>
+                    <div class="page-filters" id="projectManagersFilters" style="margin-top:12px;">
+                        <div class="filter-item">
+                            <label for="pmDeptFilter">Department</label>
+                            <select id="pmDeptFilter">
+                                <option value="">All Departments</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <label for="pmAssignedFilter">Assignment</label>
+                            <select id="pmAssignedFilter">
+                                <option value="">All</option>
+                                <option value="assigned">Assigned to Projects</option>
+                                <option value="unassigned">Not Assigned</option>
+                            </select>
+                        </div>
+                        <div class="filter-item filter-item-wide">
+                            <label for="pmSearchFilter">Search</label>
+                            <input type="text" id="pmSearchFilter" placeholder="Search by manager name or email...">
+                        </div>
+                        <div class="filter-actions">
+                            <button class="btn-secondary btn-small" type="button" onclick="clearProjectManagerFilters()">Clear
+                                Filters</button>
+                        </div>
+                    </div>
+                    <div class="dept-stats-row" id="projectManagersDeptStats"></div>
+                    <div class="dept-groups" id="projectManagersDeptGroups">
+                        <div class="loading-spinner visible"></div>
+                    </div>
+                </div>
+
                 <div class="kanban-board" id="projectsKanban">
                     <div class="kanban-column" id="colPendingApproval">
                         <div class="kanban-header kanban-header-pending-approval">
@@ -69,6 +104,46 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- Project Manager Edit Modal -->
+    <div class="modal-overlay hidden" id="projectManagerModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Edit Project Manager</h3>
+                <button class="modal-close" onclick="closeModal('projectManagerModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="pmEditId">
+                <div class="modal-row">
+                    <div class="modal-field"><label>First Name *</label><input type="text" id="pmEditFirstName"
+                            placeholder="Jane"></div>
+                    <div class="modal-field"><label>Last Name</label><input type="text" id="pmEditLastName"
+                            placeholder="Smith"></div>
+                </div>
+                <div class="modal-field"><label>Email *</label><input type="email" id="pmEditEmail"
+                        placeholder="jane@company.com"></div>
+                <div class="modal-row">
+                    <div class="modal-field"><label>Department</label><select id="pmEditDepartment"></select></div>
+                    <div class="modal-field"><label>Status</label>
+                        <select id="pmEditStatus">
+                            <option value="ACTIVE">Active</option>
+                            <option value="ON_LEAVE">On Leave</option>
+                            <option value="TERMINATED">Terminated</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-field"><label>Position</label><input type="text" id="pmEditPosition"
+                        placeholder="Project Manager"></div>
+                <div class="modal-notice" id="projectManagerModalNotice"></div>
+            </div>
+            <div class="modal-footer">
+                <div class="modal-footer-spacer"></div>
+                <button class="btn-modal-cancel" onclick="closeModal('projectManagerModal')">Cancel</button>
+                <button class="btn-modal-save" id="pmEditSaveBtn" onclick="saveProjectManagerFromProjectsPage()">Save
+                    Changes</button>
+            </div>
+        </div>
     </div>
 
     <!-- Project Modal -->

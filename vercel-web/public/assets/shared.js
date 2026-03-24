@@ -432,13 +432,6 @@ var ShenanigansApp = (function () {
             + menuBtn('/workspace/documents', 'empDocuments', 'documents', 'Documents', activePage)
             + menuBtn('/workspace/team', 'empTeam', 'team', 'My Team', activePage)
             + menuBtn('/workspace/profile', 'empProfile', 'profile', 'My Profile', activePage)
-            + '</div>'
-            + '<div class="menu-section">'
-            + '<div class="menu-header">PORTAL</div>'
-            + '<a href="/app" class="menu-btn secondary">' + svgIcon('dashboard')
-            + '<span class="menu-btn-text">&larr; Main Portal</span></a>'
-            + '</div>'
-            + '<div class="sidebar-spacer"></div>'
             + buildSystemInfoCard();
 
         return html;
@@ -455,13 +448,6 @@ var ShenanigansApp = (function () {
             + menuBtn('/pm-workspace/requests', 'pmRequests', 'requests', 'Leave Requests', activePage)
             + menuBtn('/pm-workspace/documents', 'pmDocuments', 'documents', 'Documents', activePage)
             + menuBtn('/pm-workspace/profile', 'pmProfile', 'profile', 'My Profile', activePage)
-            + '</div>'
-            + '<div class="menu-section">'
-            + '<div class="menu-header">PORTAL</div>'
-            + '<a href="/app" class="menu-btn secondary">' + svgIcon('dashboard')
-            + '<span class="menu-btn-text">&larr; Main Portal</span></a>'
-            + '</div>'
-            + '<div class="sidebar-spacer"></div>'
             + buildSystemInfoCard();
 
         return html;
