@@ -20,6 +20,30 @@
                     <p>Manage your team across departments</p>
                 </div>
                 <div class="notice" id="employeesNotice"></div>
+                <div class="page-filters" id="employeeFilters" style="margin-bottom:12px;">
+                    <div class="filter-item">
+                        <label for="empDeptFilter">Department</label>
+                        <select id="empDeptFilter">
+                            <option value="">All Departments</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="empStatusFilter">Status</label>
+                        <select id="empStatusFilter">
+                            <option value="">All Statuses</option>
+                            <option value="ACTIVE">Active</option>
+                            <option value="ON_LEAVE">On Leave</option>
+                            <option value="TERMINATED">Terminated</option>
+                        </select>
+                    </div>
+                    <div class="filter-item filter-item-wide">
+                        <label for="empNameFilter">Search</label>
+                        <input type="text" id="empNameFilter" placeholder="Search by name, email, or position...">
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-secondary btn-small" type="button" onclick="clearEmployeeFilters()">Clear Filters</button>
+                    </div>
+                </div>
                 <div class="dept-stats-row" id="employeesDeptStats"></div>
                 <div class="dept-groups" id="employeesDeptGroups">
                     <div class="loading-spinner visible"></div>
@@ -81,6 +105,7 @@
             showAddBtn: true,
             addBtnText: '+ Add Employee',
             onReady: function () {
+                initEmployeeFilters();
                 loadEmployees();
                 setupSearchFilter(filterEmployeeCards);
                 document.getElementById('headerAddBtn').addEventListener('click', function () { openEmployeeModal(null); });

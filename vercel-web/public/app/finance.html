@@ -26,6 +26,23 @@
                     </div>
                 </div>
                 <div class="notice" id="financeNotice"></div>
+                <div class="page-filters" id="financeFilters" style="margin-bottom:12px;">
+                    <div class="filter-item">
+                        <label for="financePaidFilter">Payment Status</label>
+                        <select id="financePaidFilter">
+                            <option value="">All</option>
+                            <option value="outstanding">Outstanding</option>
+                            <option value="paid">Paid</option>
+                        </select>
+                    </div>
+                    <div class="filter-item filter-item-wide">
+                        <label for="financeClientFilter">Search</label>
+                        <input type="text" id="financeClientFilter" placeholder="Search by client, ID, or project...">
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-secondary btn-small" type="button" onclick="clearFinanceFilters()">Clear Filters</button>
+                    </div>
+                </div>
                 <div class="kanban-board" id="financeKanban">
                     <div class="kanban-column" id="colDue">
                         <div class="kanban-header kanban-header-due">
@@ -89,7 +106,7 @@
             sidebar: 'admin',
             activePage: 'finance',
             subtitle: 'Financial Management',
-            onReady: function () { loadFinance(); }
+            onReady: function () { initFinanceFilters(); loadFinance(); }
         });
     </script>
 </body>

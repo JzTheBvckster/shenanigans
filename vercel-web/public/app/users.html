@@ -21,6 +21,33 @@
                 </div>
                 <div class="stats-row" id="userStats"></div>
                 <div class="notice" id="usersNotice"></div>
+                <div class="page-filters" id="userFilters" style="margin-bottom:12px;">
+                    <div class="filter-item">
+                        <label for="userRoleFilter">Role</label>
+                        <select id="userRoleFilter">
+                            <option value="">All Roles</option>
+                            <option value="EMPLOYEE">Employee</option>
+                            <option value="PROJECT_MANAGER">Project Manager</option>
+                            <option value="MANAGING_DIRECTOR">Managing Director</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="userApprovalFilter">Approval</label>
+                        <select id="userApprovalFilter">
+                            <option value="">All</option>
+                            <option value="md_pending">Awaiting MD</option>
+                            <option value="pm_pending">Awaiting PM</option>
+                            <option value="approved">Fully Approved</option>
+                        </select>
+                    </div>
+                    <div class="filter-item filter-item-wide">
+                        <label for="userSearchFilter">Search</label>
+                        <input type="text" id="userSearchFilter" placeholder="Search by name or email...">
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-secondary btn-small" type="button" onclick="clearUserFilters()">Clear Filters</button>
+                    </div>
+                </div>
 
                 <div class="card">
                     <div class="card-header">
@@ -88,6 +115,7 @@
             showSearch: true,
             searchPlaceholder: 'Search users...',
             onReady: function () {
+                initUserFilters();
                 loadUserManagement();
                 setupSearchFilter(filterUserCards);
             }

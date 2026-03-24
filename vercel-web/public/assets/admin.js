@@ -223,11 +223,66 @@
     window.loadEmployees = function () {
         app.fetchJson('/api/employees', function (data) {
             app.cachedData.employees = data;
-            renderEmployeeKanban(data);
+            populateEmployeeDeptFilter(data || []);
+            applyEmployeeFilters();
         }, function (err) {
             app.showNotice('employeesNotice', err || 'Failed to load employees.', 'error');
             document.getElementById('employeesDeptGroups').innerHTML = '';
         });
+    };
+
+    function populateEmployeeDeptFilter(employees) {
+        var sel = document.getElementById('empDeptFilter');
+        if (!sel) return;
+        var current = sel.value || '';
+        var depts = {};
+        (employees || []).forEach(function (e) {
+            var d = (e.department || '').trim();
+            if (d) depts[d] = true;
+        });
+        var sorted = Object.keys(depts).sort(function (a, b) { return a.localeCompare(b); });
+        sel.innerHTML = '<option value="">All Departments</option>' + sorted.map(function (d) {
+            return '<option value="' + app.esc(d) + '">' + app.esc(d) + '</option>';
+        }).join('');
+        if (current) sel.value = current;
+    }
+
+    window.initEmployeeFilters = function () {
+        var wrap = document.getElementById('employeeFilters');
+        if (!wrap || wrap.dataset.bound === '1') return;
+        wrap.dataset.bound = '1';
+        ['empDeptFilter', 'empStatusFilter'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.addEventListener('change', applyEmployeeFilters);
+        });
+        var search = document.getElementById('empNameFilter');
+        if (search) search.addEventListener('input', applyEmployeeFilters);
+    };
+
+    function applyEmployeeFilters() {
+        var employees = app.cachedData.employees || [];
+        var dept = ((document.getElementById('empDeptFilter') || {}).value || '').trim();
+        var status = ((document.getElementById('empStatusFilter') || {}).value || '').trim().toUpperCase();
+        var q = ((document.getElementById('empNameFilter') || {}).value || '').toLowerCase().trim();
+
+        var filtered = employees.filter(function (e) {
+            var matchesDept = !dept || (e.department || '') === dept;
+            var matchesStatus = !status || ((e.status || 'ACTIVE').toUpperCase() === status);
+            var hay = [app.buildName(e), e.email || '', e.position || '', e.department || ''].join(' ').toLowerCase();
+            var matchesQuery = !q || hay.indexOf(q) !== -1;
+            return matchesDept && matchesStatus && matchesQuery;
+        });
+        renderEmployeeKanban(filtered);
+    }
+
+    window.clearEmployeeFilters = function () {
+        var dept = document.getElementById('empDeptFilter');
+        var status = document.getElementById('empStatusFilter');
+        var q = document.getElementById('empNameFilter');
+        if (dept) dept.value = '';
+        if (status) status.value = '';
+        if (q) q.value = '';
+        applyEmployeeFilters();
     };
 
     function renderEmployeeKanban(employees) {
@@ -803,11 +858,44 @@
     window.loadFinance = function () {
         app.fetchJson('/api/finance/invoices', function (data) {
             app.cachedData.invoices = data;
-            renderInvoiceKanban(data);
+            applyFinanceFilters();
         }, function (err) {
             app.showNotice('financeNotice', err || 'Failed to load invoices.', 'error');
             clearKanbanSpinners('financeKanban');
         });
+    };
+
+    window.initFinanceFilters = function () {
+        var wrap = document.getElementById('financeFilters');
+        if (!wrap || wrap.dataset.bound === '1') return;
+        wrap.dataset.bound = '1';
+        var paid = document.getElementById('financePaidFilter');
+        var client = document.getElementById('financeClientFilter');
+        if (paid) paid.addEventListener('change', applyFinanceFilters);
+        if (client) client.addEventListener('input', applyFinanceFilters);
+    };
+
+    function applyFinanceFilters() {
+        var invoices = app.cachedData.invoices || [];
+        var paidState = ((document.getElementById('financePaidFilter') || {}).value || '').trim();
+        var q = ((document.getElementById('financeClientFilter') || {}).value || '').toLowerCase().trim();
+
+        var filtered = invoices.filter(function (inv) {
+            var matchesPaid = !paidState || (paidState === 'paid' ? !!inv.paid : !inv.paid);
+            var hay = [(inv.client || ''), (inv.id || ''), (inv.projectId || '')].join(' ').toLowerCase();
+            var matchesQuery = !q || hay.indexOf(q) !== -1;
+            return matchesPaid && matchesQuery;
+        });
+
+        renderInvoiceKanban(filtered);
+    }
+
+    window.clearFinanceFilters = function () {
+        var paid = document.getElementById('financePaidFilter');
+        var client = document.getElementById('financeClientFilter');
+        if (paid) paid.value = '';
+        if (client) client.value = '';
+        applyFinanceFilters();
     };
 
     function renderInvoiceKanban(invoices) {
@@ -989,14 +1077,9 @@
     };
 
     window.filterEmployeeCards = function (query) {
-        document.querySelectorAll('#employeesDeptGroups .employee-card').forEach(function (card) {
-            card.style.display = card.textContent.toLowerCase().includes(query) ? '' : 'none';
-        });
-        // Hide entire dept groups if all cards hidden
-        document.querySelectorAll('#employeesDeptGroups .dept-group').forEach(function (group) {
-            var visible = group.querySelectorAll('.employee-card:not([style*="display: none"])');
-            group.style.display = visible.length > 0 ? '' : 'none';
-        });
+        var input = document.getElementById('empNameFilter');
+        if (input) input.value = query || '';
+        applyEmployeeFilters();
     };
 
     window.filterProjectCards = function (query) {
@@ -1006,12 +1089,9 @@
     };
 
     window.filterUserCards = function (query) {
-        document.querySelectorAll('#allUsersList .user-row').forEach(function (row) {
-            row.style.display = row.textContent.toLowerCase().includes(query) ? '' : 'none';
-        });
-        document.querySelectorAll('#pendingUsersList .user-row').forEach(function (row) {
-            row.style.display = row.textContent.toLowerCase().includes(query) ? '' : 'none';
-        });
+        var input = document.getElementById('userSearchFilter');
+        if (input) input.value = query || '';
+        applyUserFilters();
     };
 
     /* ============================================================
@@ -1109,7 +1189,61 @@
                 }).join('');
             }
         }
+
+        applyUserFilters();
     }
+
+    window.initUserFilters = function () {
+        var wrap = document.getElementById('userFilters');
+        if (!wrap || wrap.dataset.bound === '1') return;
+        wrap.dataset.bound = '1';
+        ['userRoleFilter', 'userApprovalFilter'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.addEventListener('change', applyUserFilters);
+        });
+        var search = document.getElementById('userSearchFilter');
+        if (search) search.addEventListener('input', applyUserFilters);
+    };
+
+    function applyUserFilters() {
+        var role = ((document.getElementById('userRoleFilter') || {}).value || '').trim();
+        var approval = ((document.getElementById('userApprovalFilter') || {}).value || '').trim();
+        var q = ((document.getElementById('userSearchFilter') || {}).value || '').toLowerCase().trim();
+
+        document.querySelectorAll('#allUsersList .user-row').forEach(function (row) {
+            var rowRole = (row.querySelector('.badge') || {}).textContent || '';
+            var text = (row.textContent || '').toLowerCase();
+            var hasMdPmApproved = text.indexOf('md + pm approved') !== -1;
+            var hasMdOnly = text.indexOf('md approved only') !== -1;
+            var awaitingMd = text.indexOf('awaiting md approval') !== -1 || text.indexOf('not approved') !== -1;
+
+            var roleOk = !role || text.indexOf(role.replace(/_/g, ' ').toLowerCase()) !== -1 || rowRole.toUpperCase().indexOf(role.replace(/_/g, ' ')) !== -1;
+            var approvalOk = !approval
+                || (approval === 'approved' && hasMdPmApproved)
+                || (approval === 'pm_pending' && hasMdOnly)
+                || (approval === 'md_pending' && awaitingMd);
+            var queryOk = !q || text.indexOf(q) !== -1;
+            row.style.display = roleOk && approvalOk && queryOk ? '' : 'none';
+        });
+
+        document.querySelectorAll('#pendingUsersList .user-row').forEach(function (row) {
+            var text = (row.textContent || '').toLowerCase();
+            var roleOk = !role || text.indexOf(role.replace(/_/g, ' ').toLowerCase()) !== -1;
+            var approvalOk = !approval || approval === 'md_pending' || approval === 'pm_pending';
+            var queryOk = !q || text.indexOf(q) !== -1;
+            row.style.display = roleOk && approvalOk && queryOk ? '' : 'none';
+        });
+    }
+
+    window.clearUserFilters = function () {
+        var role = document.getElementById('userRoleFilter');
+        var approval = document.getElementById('userApprovalFilter');
+        var q = document.getElementById('userSearchFilter');
+        if (role) role.value = '';
+        if (approval) approval.value = '';
+        if (q) q.value = '';
+        applyUserFilters();
+    };
 
     window.approveUserFromManagement = function (id) {
         if (!id) return;
