@@ -325,6 +325,9 @@
 
     function renderDeptGroup(deptName, members, isUnassigned) {
         members.sort(function (a, b) {
+            var aPm = isProjectManagerRecord(a) ? 0 : 1;
+            var bPm = isProjectManagerRecord(b) ? 0 : 1;
+            if (aPm !== bPm) return aPm - bPm;
             return ((a.fullName || a.firstName || '') + '').localeCompare((b.fullName || b.firstName || '') + '');
         });
         var cls = isUnassigned ? ' dept-group-warning' : '';
@@ -335,19 +338,25 @@
             + '<div class="dept-group-cards">' + members.map(renderEmployeeCard).join('') + '</div></div>';
     }
 
+    function isProjectManagerRecord(emp) {
+        var role = String(emp && emp.role || '').toUpperCase().replace(/\s+/g, '_');
+        if (role === 'PROJECT_MANAGER') return true;
+        var position = String(emp && emp.position || '').toLowerCase();
+        return position.indexOf('project manager') !== -1;
+    }
+
     function renderEmployeeCard(e) {
         var name = app.buildName(e);
         var id = app.esc(e.id || '');
         var status = (e.status || 'ACTIVE').toUpperCase();
         var statusClass = 'employee-status-' + status.toLowerCase();
-        var hasDept = !!(e.department && e.department.trim());
+        var phoneText = e.phone ? ('Phone: ' + e.phone) : 'Phone: Not provided';
         return '<div class="employee-card clickable" onclick="openEmployeeModal(\'' + id + '\')">'
             + '<div class="employee-card-top"><div class="employee-avatar">' + app.initials(name) + '</div>'
             + '<div class="employee-card-info"><div class="name">' + app.esc(name) + '</div>'
             + '<div class="position">' + app.esc(e.position || 'No position') + '</div></div></div>'
-            + (e.department ? '<div class="employee-card-dept">' + app.esc(e.department) + '</div>' : '<div class="employee-card-dept dept-missing"><button class="btn-set-dept" onclick="event.stopPropagation();openQuickDeptModal(\'' + id + '\',\'' + app.esc(name).replace(/'/g, '') + '\')">+ Set Department</button></div>')
+            + '<div class="employee-card-dept">' + app.esc(phoneText) + '</div>'
             + (e.email ? '<div class="employee-card-contact">Email: ' + app.esc(e.email) + '</div>' : '')
-            + (e.phone ? '<div class="employee-card-phone">Phone: ' + app.esc(e.phone) + '</div>' : '')
             + '<div class="employee-card-meta">'
             + (e.hireDate ? '<span>Hired ' + app.formatTimestamp(e.hireDate) + '</span>' : '<span></span>')
             + '<span class="employee-status-badge ' + statusClass + '">' + app.formatStatus(status) + '</span>'
@@ -715,6 +724,11 @@
         var priorityClass = 'priority-' + (p.priority || 'medium').toLowerCase();
         var id = app.esc(p.id || '');
         var desc = p.description ? (p.description.length > 80 ? p.description.substring(0, 80) + '...' : p.description) : '';
+        var dept = p.department || 'Unassigned';
+        var status = app.formatStatus(p.status || 'PLANNING');
+        var budget = '$' + app.formatMoney(p.budget || 0);
+        var spent = '$' + app.formatMoney(p.spent || 0);
+        var teamCount = (p.teamMemberIds || []).length;
         var dueHtml = '';
         if (p.endDate) {
             var isOverdue = p.endDate < Date.now() && (p.status || '').toUpperCase() !== 'COMPLETED';
@@ -724,6 +738,8 @@
             + '<div class="card-name">' + app.esc(p.name || 'Untitled') + '</div>'
             + '<div class="card-manager">' + app.esc(p.projectManager || 'Unassigned') + '</div>'
             + (desc ? '<div class="card-description">' + app.esc(desc) + '</div>' : '')
+            + '<div class="project-meta"><span>Department: ' + app.esc(dept) + '</span><span>Status: ' + app.esc(status) + '</span></div>'
+            + '<div class="project-meta"><span>Budget: ' + app.esc(budget) + '</span><span>Spent: ' + app.esc(spent) + '</span><span>Team: ' + teamCount + '</span></div>'
             + '<span class="card-priority ' + priorityClass + '">' + app.esc(app.formatStatus(p.priority || 'MEDIUM')) + '</span>'
             + dueHtml
             + '<div class="card-progress-row"><div class="card-progress"><div class="card-progress-fill" style="width:' + pct + '%"></div></div>'
@@ -742,23 +758,6 @@
         // Populate department select
         var deptSel = document.getElementById('projDepartment');
 
-        // Populate project manager select
-        var mgrSel = document.getElementById('projManager');
-        function populatePMSelect(selectedVal) {
-            mgrSel.innerHTML = '<option value="">Unassigned</option>';
-            app.fetchJson('/api/employees?projectManagers=true', function (pms) {
-                (pms || []).forEach(function (pm) {
-                    var name = pm.displayName || pm.email || 'Unknown';
-                    var opt = document.createElement('option');
-                    opt.value = name;
-                    opt.setAttribute('data-id', pm.id || '');
-                    opt.textContent = name;
-                    if (name === selectedVal) opt.selected = true;
-                    mgrSel.appendChild(opt);
-                });
-            }, function () {});
-        }
-
         if (isEdit) {
             var proj = findCached('projects', id);
             if (proj) {
@@ -767,7 +766,6 @@
                 document.getElementById('projName').value = proj.name || '';
                 document.getElementById('projDescription').value = proj.description || '';
                 deptSel.innerHTML = app.deptOptions(proj.department || '');
-                populatePMSelect(proj.projectManager || '');
                 document.getElementById('projStatus').value = (proj.status || 'PLANNING').toUpperCase();
                 document.getElementById('projPriority').value = (proj.priority || 'MEDIUM').toUpperCase();
                 document.getElementById('projBudget').value = proj.budget || '';
@@ -782,7 +780,6 @@
                 document.getElementById(fid).value = '';
             });
             deptSel.innerHTML = app.deptOptions('');
-            populatePMSelect('');
             document.getElementById('projStatus').value = 'PENDING_APPROVAL';
             document.getElementById('projPriority').value = 'MEDIUM';
             document.getElementById('projCompletion').value = '0';
@@ -796,13 +793,9 @@
         if (!name) { app.showModalNotice('projModalNotice', 'Project name is required.', 'error'); return; }
 
         var id = document.getElementById('projId').value;
-        var mgrSel = document.getElementById('projManager');
-        var mgrOpt = mgrSel.options[mgrSel.selectedIndex];
         var payload = {
             name: name,
             description: document.getElementById('projDescription').value.trim(),
-            projectManager: mgrSel.value || '',
-            projectManagerId: mgrOpt ? (mgrOpt.getAttribute('data-id') || '') : '',
             department: document.getElementById('projDepartment').value,
             status: document.getElementById('projStatus').value,
             priority: document.getElementById('projPriority').value,
