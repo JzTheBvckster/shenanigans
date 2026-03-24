@@ -32,6 +32,9 @@ module.exports = withSecurity(async function handler(req, res) {
             body.createdAt = now;
             body.updatedAt = now;
             if (!body.status) body.status = "PLANNING";
+            body.createdById = session.user.uid || "";
+            body.createdByName = session.user.displayName || session.user.email || "";
+            if (!body.projectManagerId) body.projectManagerId = "";
             const docRef = await db.collection(COLLECTION).add(body);
             return res.status(201).json({ ok: true, data: { id: docRef.id } });
         }

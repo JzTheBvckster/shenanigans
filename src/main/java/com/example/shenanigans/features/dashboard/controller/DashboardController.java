@@ -1392,6 +1392,13 @@ public class DashboardController {
             return;
         }
 
+        // Redirect project managers to PM workspace
+        if (user.isProjectManager()) {
+            Platform.runLater(
+                    () -> navigateTo("features/project_manager/view/pm_workspace_view"));
+            return;
+        }
+
         if (user.isManagingDirector()) {
             // Managing Directors have access to all features
             financeButton.setVisible(true);

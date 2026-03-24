@@ -363,7 +363,9 @@ public class RegisterController {
   private void navigateToDashboard() {
     try {
       User user = SessionManager.getInstance().getCurrentUser();
-      if (user != null && user.isEmployee()) {
+      if (user != null && user.isProjectManager()) {
+        setRootOnCurrentScene("features/project_manager/view/pm_workspace_view");
+      } else if (user != null && user.isEmployee()) {
         setRootOnCurrentScene("features/employee_dashboard/view/employee_dashboard_view");
       } else {
         setRootOnCurrentScene("features/dashboard/view/dashboard_view");

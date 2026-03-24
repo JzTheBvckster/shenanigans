@@ -96,28 +96,33 @@
     // ---- Approval Queue ----
     function loadApprovalQueue() {
         if (!app.isMD()) return;
-        app.fetchJson('/api/employees', function (employees) {
-            var pending = employees.filter(function (e) { return e.mdApproved === false; });
-            var card = document.getElementById('approvalQueueCard');
+        var card = document.getElementById('approvalQueueCard');
+        if (card) card.classList.remove('hidden');
+        app.fetchJson('/api/employees?pendingUsers=true', function (pendingUsers) {
+            var pending = pendingUsers || [];
             var countEl = document.getElementById('approvalQueueCount');
             var listEl = document.getElementById('approvalQueueList');
             if (!card) return;
 
+            countEl.textContent = pending.length;
             if (pending.length > 0) {
-                card.classList.remove('hidden');
-                countEl.textContent = pending.length;
                 listEl.innerHTML = pending.map(function (e) {
                     var name = app.buildName(e);
                     var eid = app.esc(e.id || '');
                     return '<div class="approval-item"><div class="avatar">' + app.initials(name) + '</div>'
                         + '<div class="info"><div class="name">' + app.esc(name) + '</div>'
-                        + '<div class="role">' + app.esc(e.position || e.department || 'Employee') + '</div></div>'
+                        + '<div class="role">' + app.esc(e.role || e.position || 'Employee') + '</div></div>'
                         + '<div class="approval-actions">'
                         + '<button class="btn-approve" onclick="approveEmployee(\'' + eid + '\')" data-id="' + eid + '">Approve</button>'
                         + '</div></div>';
                 }).join('');
             } else {
-                card.classList.add('hidden');
+                listEl.innerHTML = '<p style="color:var(--ink-faint);padding:8px 0">No pending registrations</p>';
+            }
+        }, function (err) {
+            if (card) {
+                var listEl = document.getElementById('approvalQueueList');
+                if (listEl) listEl.innerHTML = '<p style="color:#ef4444;padding:8px 0">Failed to load: ' + app.esc(err || 'Unknown error') + '</p>';
             }
         });
     }
@@ -126,11 +131,11 @@
         if (!id) return;
         var btn = document.querySelector('.btn-approve[data-id="' + id + '"]');
         if (btn) { btn.textContent = 'Approving...'; btn.disabled = true; }
-        fetch('/api/employees/' + encodeURIComponent(id), {
+        fetch('/api/employees/' + encodeURIComponent(id) + '?approveUser=true', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify({ mdApproved: true })
+            body: JSON.stringify({})
         }).then(function (r) { return r.json(); }).then(function (res) {
             if (res.ok) {
                 app.showToast('Employee approved', 'success');
@@ -219,24 +224,58 @@
             renderEmployeeKanban(data);
         }, function (err) {
             app.showNotice('employeesNotice', err || 'Failed to load employees.', 'error');
-            clearKanbanSpinners('employeesKanban');
+            document.getElementById('employeesDeptGroups').innerHTML = '';
         });
     };
 
     function renderEmployeeKanban(employees) {
-        var active = [], leave = [], terminated = [];
+        // Group by department
+        var groups = {};
+        var noDept = [];
         employees.forEach(function (e) {
-            var status = (e.status || 'ACTIVE').toUpperCase();
-            if (status === 'ON_LEAVE') leave.push(e);
-            else if (status === 'TERMINATED') terminated.push(e);
-            else active.push(e);
+            var dept = (e.department || '').trim();
+            if (!dept) { noDept.push(e); return; }
+            if (!groups[dept]) groups[dept] = [];
+            groups[dept].push(e);
         });
-        document.getElementById('countActive').textContent = active.length;
-        document.getElementById('countLeave').textContent = leave.length;
-        document.getElementById('countTerminated').textContent = terminated.length;
-        renderCards('cardsActive', active, renderEmployeeCard, 'No active employees');
-        renderCards('cardsLeave', leave, renderEmployeeCard, 'No employees on leave');
-        renderCards('cardsTerminated', terminated, renderEmployeeCard, 'No terminated employees');
+        var sortedDepts = Object.keys(groups).sort(function (a, b) { return a.localeCompare(b); });
+
+        // Stats
+        var active = employees.filter(function (e) { return (e.status || 'ACTIVE').toUpperCase() === 'ACTIVE'; }).length;
+        var deptCount = sortedDepts.length + (noDept.length > 0 ? 1 : 0);
+        var statsEl = document.getElementById('employeesDeptStats');
+        if (statsEl) {
+            statsEl.innerHTML =
+                '<div class="stat-card stat-card-blue"><div class="stat-number">' + employees.length + '</div><div class="stat-label">Total</div><div class="stat-sub">All employees</div></div>'
+                + '<div class="stat-card stat-card-green"><div class="stat-number">' + active + '</div><div class="stat-label">Active</div><div class="stat-sub">Currently working</div></div>'
+                + '<div class="stat-card stat-card-purple"><div class="stat-number">' + deptCount + '</div><div class="stat-label">Departments</div><div class="stat-sub">Org groups</div></div>'
+                + (noDept.length > 0 ? '<div class="stat-card stat-card-orange"><div class="stat-number">' + noDept.length + '</div><div class="stat-label">No Dept</div><div class="stat-sub">Need assignment</div></div>' : '');
+        }
+
+        var html = '';
+        // Unassigned group first (highlighted)
+        if (noDept.length > 0) {
+            html += renderDeptGroup('Unassigned', noDept, true);
+        }
+        sortedDepts.forEach(function (dept) {
+            html += renderDeptGroup(dept, groups[dept], false);
+        });
+        if (employees.length === 0) {
+            html = '<div class="empty-state">No employees found. Click "+ Add Employee" to get started.</div>';
+        }
+        document.getElementById('employeesDeptGroups').innerHTML = html;
+    }
+
+    function renderDeptGroup(deptName, members, isUnassigned) {
+        members.sort(function (a, b) {
+            return ((a.fullName || a.firstName || '') + '').localeCompare((b.fullName || b.firstName || '') + '');
+        });
+        var cls = isUnassigned ? ' dept-group-warning' : '';
+        return '<div class="dept-group' + cls + '">'
+            + '<div class="dept-group-header">'
+            + '<span class="dept-group-name">' + app.esc(deptName) + '</span>'
+            + '<span class="dept-group-count">' + members.length + ' employee' + (members.length === 1 ? '' : 's') + '</span></div>'
+            + '<div class="dept-group-cards">' + members.map(renderEmployeeCard).join('') + '</div></div>';
     }
 
     function renderEmployeeCard(e) {
@@ -244,11 +283,12 @@
         var id = app.esc(e.id || '');
         var status = (e.status || 'ACTIVE').toUpperCase();
         var statusClass = 'employee-status-' + status.toLowerCase();
+        var hasDept = !!(e.department && e.department.trim());
         return '<div class="employee-card clickable" onclick="openEmployeeModal(\'' + id + '\')">'
             + '<div class="employee-card-top"><div class="employee-avatar">' + app.initials(name) + '</div>'
             + '<div class="employee-card-info"><div class="name">' + app.esc(name) + '</div>'
             + '<div class="position">' + app.esc(e.position || 'No position') + '</div></div></div>'
-            + (e.department ? '<div class="employee-card-dept">' + app.esc(e.department) + '</div>' : '')
+            + (e.department ? '<div class="employee-card-dept">' + app.esc(e.department) + '</div>' : '<div class="employee-card-dept dept-missing"><button class="btn-set-dept" onclick="event.stopPropagation();openQuickDeptModal(\'' + id + '\',\'' + app.esc(name).replace(/'/g, '') + '\')">+ Set Department</button></div>')
             + (e.email ? '<div class="employee-card-contact">Email: ' + app.esc(e.email) + '</div>' : '')
             + (e.phone ? '<div class="employee-card-phone">Phone: ' + app.esc(e.phone) + '</div>' : '')
             + '<div class="employee-card-meta">'
@@ -263,6 +303,7 @@
         var isEdit = !!id;
         document.getElementById('employeeModalTitle').textContent = isEdit ? 'Edit Employee' : 'Add Employee';
         document.getElementById('empDeleteBtn').classList.toggle('hidden', !isEdit);
+        document.getElementById('empDepartment').innerHTML = app.deptOptions('');
 
         if (isEdit) {
             var emp = findCached('employees', id);
@@ -272,16 +313,17 @@
                 document.getElementById('empLastName').value = emp.lastName || '';
                 document.getElementById('empEmail').value = emp.email || '';
                 document.getElementById('empPhone').value = emp.phone || '';
-                document.getElementById('empDepartment').value = emp.department || '';
+                document.getElementById('empDepartment').innerHTML = app.deptOptions(emp.department || '');
                 document.getElementById('empPosition').value = emp.position || '';
                 document.getElementById('empStatus').value = (emp.status || 'ACTIVE').toUpperCase();
                 document.getElementById('empSalary').value = emp.salary || '';
                 document.getElementById('empHireDate').value = emp.hireDate ? app.toDateInput(emp.hireDate) : '';
             }
         } else {
-            ['empId', 'empFirstName', 'empLastName', 'empEmail', 'empPhone', 'empDepartment', 'empPosition', 'empSalary', 'empHireDate'].forEach(function (fid) {
+            ['empId', 'empFirstName', 'empLastName', 'empEmail', 'empPhone', 'empPosition', 'empSalary', 'empHireDate'].forEach(function (fid) {
                 document.getElementById(fid).value = '';
             });
+            document.getElementById('empDepartment').innerHTML = app.deptOptions('');
             document.getElementById('empStatus').value = 'ACTIVE';
         }
         document.getElementById('employeeModal').classList.remove('hidden');
@@ -349,17 +391,21 @@
     };
 
     function renderProjectKanban(projects) {
-        var newP = [], inProgress = [], completed = [];
+        var pending = [], newP = [], inProgress = [], completed = [];
         projects.forEach(function (p) {
             var status = (p.status || '').toUpperCase();
             if (status === 'COMPLETED') completed.push(p);
             else if (status === 'IN_PROGRESS') inProgress.push(p);
+            else if (status === 'PENDING_APPROVAL') pending.push(p);
+            else if (status === 'ARCHIVED') { /* filtered out of active board */ }
             else newP.push(p);
         });
+        document.getElementById('countPendingApproval').textContent = pending.length;
         document.getElementById('countNew').textContent = newP.length;
         document.getElementById('countInProgress').textContent = inProgress.length;
         document.getElementById('countCompleted').textContent = completed.length;
-        renderCards('cardsNew', newP, renderProjectCard, 'No new projects');
+        renderCards('cardsPendingApproval', pending, renderProjectCard, 'No pending projects');
+        renderCards('cardsNew', newP, renderProjectCard, 'No planning projects');
         renderCards('cardsInProgress', inProgress, renderProjectCard, 'No projects in progress');
         renderCards('cardsCompleted', completed, renderProjectCard, 'No completed projects');
     }
@@ -390,15 +436,38 @@
         var isEdit = !!id;
         document.getElementById('projectModalTitle').textContent = isEdit ? 'Edit Project' : 'Add Project';
         document.getElementById('projDeleteBtn').classList.toggle('hidden', !isEdit);
+        // Archive button: show only for COMPLETED projects
+        var archiveBtn = document.getElementById('projArchiveBtn');
+
+        // Populate department select
+        var deptSel = document.getElementById('projDepartment');
+
+        // Populate project manager select
+        var mgrSel = document.getElementById('projManager');
+        function populatePMSelect(selectedVal) {
+            mgrSel.innerHTML = '<option value="">Unassigned</option>';
+            app.fetchJson('/api/employees?projectManagers=true', function (pms) {
+                (pms || []).forEach(function (pm) {
+                    var name = pm.displayName || pm.email || 'Unknown';
+                    var opt = document.createElement('option');
+                    opt.value = name;
+                    opt.setAttribute('data-id', pm.id || '');
+                    opt.textContent = name;
+                    if (name === selectedVal) opt.selected = true;
+                    mgrSel.appendChild(opt);
+                });
+            }, function () {});
+        }
 
         if (isEdit) {
             var proj = findCached('projects', id);
             if (proj) {
+                if (archiveBtn) archiveBtn.classList.toggle('hidden', (proj.status || '').toUpperCase() !== 'COMPLETED');
                 document.getElementById('projId').value = proj.id || '';
                 document.getElementById('projName').value = proj.name || '';
                 document.getElementById('projDescription').value = proj.description || '';
-                document.getElementById('projManager').value = proj.projectManager || '';
-                document.getElementById('projDepartment').value = proj.department || '';
+                deptSel.innerHTML = app.deptOptions(proj.department || '');
+                populatePMSelect(proj.projectManager || '');
                 document.getElementById('projStatus').value = (proj.status || 'PLANNING').toUpperCase();
                 document.getElementById('projPriority').value = (proj.priority || 'MEDIUM').toUpperCase();
                 document.getElementById('projBudget').value = proj.budget || '';
@@ -408,10 +477,13 @@
                 document.getElementById('projEndDate').value = proj.endDate ? app.toDateInput(proj.endDate) : '';
             }
         } else {
-            ['projId', 'projName', 'projDescription', 'projManager', 'projDepartment', 'projBudget', 'projSpent', 'projStartDate', 'projEndDate'].forEach(function (fid) {
+            if (archiveBtn) archiveBtn.classList.add('hidden');
+            ['projId', 'projName', 'projDescription', 'projBudget', 'projSpent', 'projStartDate', 'projEndDate'].forEach(function (fid) {
                 document.getElementById(fid).value = '';
             });
-            document.getElementById('projStatus').value = 'PLANNING';
+            deptSel.innerHTML = app.deptOptions('');
+            populatePMSelect('');
+            document.getElementById('projStatus').value = 'PENDING_APPROVAL';
             document.getElementById('projPriority').value = 'MEDIUM';
             document.getElementById('projCompletion').value = '0';
         }
@@ -424,11 +496,14 @@
         if (!name) { app.showModalNotice('projModalNotice', 'Project name is required.', 'error'); return; }
 
         var id = document.getElementById('projId').value;
+        var mgrSel = document.getElementById('projManager');
+        var mgrOpt = mgrSel.options[mgrSel.selectedIndex];
         var payload = {
             name: name,
             description: document.getElementById('projDescription').value.trim(),
-            projectManager: document.getElementById('projManager').value.trim(),
-            department: document.getElementById('projDepartment').value.trim(),
+            projectManager: mgrSel.value || '',
+            projectManagerId: mgrOpt ? (mgrOpt.getAttribute('data-id') || '') : '',
+            department: document.getElementById('projDepartment').value,
             status: document.getElementById('projStatus').value,
             priority: document.getElementById('projPriority').value,
             budget: parseFloat(document.getElementById('projBudget').value) || 0,
@@ -447,12 +522,21 @@
             document.getElementById('projSaveBtn').disabled = false;
             app.closeModal('projectModal');
             app.showToast(isEdit ? 'Project updated' : 'Project created', 'success');
+            // Activity log
+            adminLogActivity(isEdit ? 'UPDATE' : 'CREATE', 'project', id || '', payload.name, '', isEdit ? 'Project updated' : 'Project created: ' + payload.name);
             loadProjects();
         }, function (err) {
             document.getElementById('projSaveBtn').disabled = false;
             app.showModalNotice('projModalNotice', err || 'Failed to save project.', 'error');
         });
     };
+
+    function adminLogActivity(action, entityType, entityId, entityName, projectId, details) {
+        app.fetchMutate('POST', '/api/workspace/activity-logs', {
+            action: action, entityType: entityType, entityId: entityId || '',
+            entityName: entityName || '', projectId: projectId || entityId || '', details: details || ''
+        }, function () {}, function () {});
+    }
 
     window.deleteProject = function () {
         var id = document.getElementById('projId').value;
@@ -660,8 +744,13 @@
     };
 
     window.filterEmployeeCards = function (query) {
-        document.querySelectorAll('#employeesKanban .employee-card').forEach(function (card) {
+        document.querySelectorAll('#employeesDeptGroups .employee-card').forEach(function (card) {
             card.style.display = card.textContent.toLowerCase().includes(query) ? '' : 'none';
+        });
+        // Hide entire dept groups if all cards hidden
+        document.querySelectorAll('#employeesDeptGroups .dept-group').forEach(function (group) {
+            var visible = group.querySelectorAll('.employee-card:not([style*="display: none"])');
+            group.style.display = visible.length > 0 ? '' : 'none';
         });
     };
 
@@ -670,6 +759,265 @@
             card.style.display = card.textContent.toLowerCase().includes(query) ? '' : 'none';
         });
     };
+
+    window.filterUserCards = function (query) {
+        document.querySelectorAll('#allUsersList .user-row').forEach(function (row) {
+            row.style.display = row.textContent.toLowerCase().includes(query) ? '' : 'none';
+        });
+        document.querySelectorAll('#pendingUsersList .user-row').forEach(function (row) {
+            row.style.display = row.textContent.toLowerCase().includes(query) ? '' : 'none';
+        });
+    };
+
+    /* ============================================================
+       USER MANAGEMENT (MD only)
+       ============================================================ */
+    var allUsersCache = [];
+
+    window.loadUserManagement = function () {
+        if (!app.isMD()) {
+            app.showNotice('usersNotice', 'Access restricted to Managing Directors.', 'error');
+            return;
+        }
+        var pendingDone = false, allDone = false;
+        var pendingData = [], allData = [];
+
+        app.fetchJson('/api/employees?pendingUsers=true', function (data) {
+            pendingData = data || [];
+            pendingDone = true;
+            if (allDone) renderUserManagement(pendingData, allData);
+        }, function () { pendingData = []; pendingDone = true; if (allDone) renderUserManagement(pendingData, allData); });
+
+        app.fetchJson('/api/employees?allUsers=true', function (data) {
+            allData = data || [];
+            allUsersCache = allData;
+            allDone = true;
+            if (pendingDone) renderUserManagement(pendingData, allData);
+        }, function () { allData = []; allUsersCache = []; allDone = true; if (pendingDone) renderUserManagement(pendingData, allData); });
+    };
+
+    function renderUserManagement(pending, allUsers) {
+        var approved = allUsers.filter(function (u) { return u.mdApproved === true; }).length;
+        var statsEl = document.getElementById('userStats');
+        if (statsEl) {
+            statsEl.innerHTML =
+                '<div class="stat-card stat-card-blue"><div class="stat-number">' + allUsers.length + '</div><div class="stat-label">Total Users</div><div class="stat-sub">All registered accounts</div></div>'
+                + '<div class="stat-card stat-card-orange"><div class="stat-number">' + pending.length + '</div><div class="stat-label">Pending</div><div class="stat-sub">Awaiting approval</div></div>'
+                + '<div class="stat-card stat-card-green"><div class="stat-number">' + approved + '</div><div class="stat-label">Approved</div><div class="stat-sub">Active users</div></div>';
+        }
+
+        // Pending approvals
+        var pendingEl = document.getElementById('pendingUsersList');
+        if (pendingEl) {
+            if (pending.length === 0) {
+                pendingEl.innerHTML = '<div class="empty-state">No pending registrations.</div>';
+            } else {
+                pendingEl.innerHTML = pending.map(function (u) {
+                    var name = app.buildName(u);
+                    var uid = app.esc(u.id || '');
+                    return '<div class="user-row">'
+                        + '<div class="user-row-avatar">' + app.initials(name) + '</div>'
+                        + '<div class="user-row-info"><div class="user-row-name">' + app.esc(name) + '</div>'
+                        + '<div class="user-row-email">' + app.esc(u.email || '') + '</div></div>'
+                        + '<span class="badge badge-muted">' + app.esc(app.formatRole(u.role)) + '</span>'
+                        + '<div class="user-row-actions">'
+                        + '<button class="btn-approve-sm" onclick="approveUserFromManagement(\'' + uid + '\')">Approve</button>'
+                        + '</div></div>';
+                }).join('');
+            }
+        }
+
+        // All users
+        var allEl = document.getElementById('allUsersList');
+        if (allEl) {
+            if (allUsers.length === 0) {
+                allEl.innerHTML = '<div class="empty-state">No registered users.</div>';
+            } else {
+                allEl.innerHTML = allUsers.map(function (u) {
+                    var name = app.buildName(u);
+                    var uid = app.esc(u.id || '');
+                    var roleClass = u.role === 'MANAGING_DIRECTOR' ? 'badge-blue' : u.role === 'PROJECT_MANAGER' ? 'badge-orange' : 'badge-green';
+                    var approvedBadge = u.mdApproved === true ? '<span class="badge badge-green">Approved</span>' : '<span class="badge badge-muted">Not Approved</span>';
+                    return '<div class="user-row">'
+                        + '<div class="user-row-avatar">' + app.initials(name) + '</div>'
+                        + '<div class="user-row-info"><div class="user-row-name">' + app.esc(name) + '</div>'
+                        + '<div class="user-row-email">' + app.esc(u.email || '') + '</div></div>'
+                        + '<span class="badge ' + roleClass + '">' + app.esc(app.formatRole(u.role)) + '</span>'
+                        + approvedBadge
+                        + '<button class="btn-edit-sm" onclick="openUserRoleModal(\'' + uid + '\')">Edit Role</button>'
+                        + '</div>';
+                }).join('');
+            }
+        }
+    }
+
+    window.approveUserFromManagement = function (id) {
+        if (!id) return;
+        app.fetchMutate('PUT', '/api/employees/' + encodeURIComponent(id) + '?approveUser=true', {}, function () {
+            app.showToast('User approved', 'success');
+            loadUserManagement();
+        }, function (err) {
+            app.showToast(err || 'Approval failed', 'error');
+        });
+    };
+
+    window.openUserRoleModal = function (id) {
+        app.clearModalNotice('userRoleModalNotice');
+        var user = null;
+        for (var i = 0; i < allUsersCache.length; i++) {
+            if (allUsersCache[i].id === id) { user = allUsersCache[i]; break; }
+        }
+        if (!user) { app.showToast('User not found', 'error'); return; }
+        document.getElementById('editUserId').value = user.id;
+        document.getElementById('editUserName').value = app.buildName(user);
+        document.getElementById('editUserEmail').value = user.email || '';
+        document.getElementById('editUserRole').value = user.role || 'EMPLOYEE';
+        document.getElementById('userRoleModal').classList.remove('hidden');
+    };
+
+    window.saveUserRole = function () {
+        var id = document.getElementById('editUserId').value;
+        var role = document.getElementById('editUserRole').value;
+        if (!id || !role) return;
+        var btn = document.getElementById('userRoleSaveBtn');
+        if (btn) btn.disabled = true;
+        app.fetchMutate('PUT', '/api/employees/' + encodeURIComponent(id) + '?updateRole=true', { role: role }, function () {
+            if (btn) btn.disabled = false;
+            app.closeModal('userRoleModal');
+            app.showToast('Role updated', 'success');
+            loadUserManagement();
+        }, function (err) {
+            if (btn) btn.disabled = false;
+            app.showModalNotice('userRoleModalNotice', err || 'Failed to update role.', 'error');
+        });
+    };
+
+    /* ============================================================
+       REPORTS & ACTIVITY
+       ============================================================ */
+    var activityLogsCache = [];
+
+    window.loadReports = function () {
+        // Load project data for report
+        app.fetchJson('/api/projects', function (projects) {
+            var active = projects.filter(function (p) { return p.status === 'IN_PROGRESS'; }).length;
+            var totalBudget = projects.reduce(function (s, p) { return s + (p.budget || 0); }, 0);
+            var totalSpent = projects.reduce(function (s, p) { return s + (p.spent || 0); }, 0);
+            var completed = projects.filter(function (p) { return p.status === 'COMPLETED'; }).length;
+
+            var statsEl = document.getElementById('reportStats');
+            if (statsEl) {
+                statsEl.innerHTML =
+                    '<div class="stat-card stat-card-blue"><div class="stat-number">' + projects.length + '</div><div class="stat-label">Total Projects</div></div>'
+                    + '<div class="stat-card stat-card-green"><div class="stat-number">' + active + '</div><div class="stat-label">Active</div></div>'
+                    + '<div class="stat-card stat-card-purple"><div class="stat-number">' + completed + '</div><div class="stat-label">Completed</div></div>'
+                    + '<div class="stat-card stat-card-orange"><div class="stat-number">$' + totalBudget.toLocaleString() + '</div><div class="stat-label">Total Budget</div></div>';
+            }
+
+            var tbody = document.getElementById('projectReportBody');
+            if (tbody) {
+                if (projects.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8">No projects found.</td></tr>';
+                } else {
+                    tbody.innerHTML = projects.filter(function (p) { return p.status !== 'ARCHIVED'; }).map(function (p) {
+                        var pct = p.completionPercentage || 0;
+                        var deadline = p.endDate ? app.formatTimestamp(p.endDate) : '-';
+                        var isOverdue = p.endDate && p.endDate < Date.now() && p.status !== 'COMPLETED';
+                        return '<tr' + (isOverdue ? ' class="row-overdue"' : '') + '>'
+                            + '<td>' + app.esc(p.name || 'Untitled') + '</td>'
+                            + '<td><span class="badge badge-muted">' + app.esc(app.formatStatus(p.status || '')) + '</span></td>'
+                            + '<td>' + app.esc(p.projectManager || '-') + '</td>'
+                            + '<td><div class="card-progress"><div class="card-progress-fill" style="width:' + pct + '%"></div></div> ' + pct + '%</td>'
+                            + '<td>$' + (p.budget || 0).toLocaleString() + '</td>'
+                            + '<td>$' + (p.spent || 0).toLocaleString() + '</td>'
+                            + '<td>' + ((p.teamMemberIds || []).length) + '</td>'
+                            + '<td class="' + (isOverdue ? 'overdue' : '') + '">' + deadline + '</td></tr>';
+                    }).join('');
+                }
+            }
+        });
+
+        // Load activity logs
+        app.fetchJson('/api/workspace/activity-logs?limit=100', function (logs) {
+            activityLogsCache = logs || [];
+            renderActivityLogs(activityLogsCache);
+        }, function () {
+            document.getElementById('activityLogList').innerHTML = '<div class="empty-state">Could not load activity logs.</div>';
+        });
+    };
+
+    function renderActivityLogs(logs) {
+        var el = document.getElementById('activityLogList');
+        if (!el) return;
+        if (!logs || logs.length === 0) {
+            el.innerHTML = '<div class="empty-state">No activity logged yet.</div>';
+            return;
+        }
+        el.innerHTML = logs.map(function (l) {
+            var iconMap = { CREATE: '+', UPDATE: '~', DELETE: 'x', COMMENT: '"', SUBMIT_REVIEW: '✓', STATUS_CHANGE: '→' };
+            var icon = iconMap[l.action] || '•';
+            var time = l.createdAt ? app.formatTimestamp(l.createdAt) : '';
+            return '<div class="activity-log-item">'
+                + '<span class="activity-icon">' + icon + '</span>'
+                + '<div class="activity-info">'
+                + '<span class="activity-text"><strong>' + app.esc(l.userName || 'Unknown') + '</strong> '
+                + app.esc(l.details || l.action || '') + '</span>'
+                + '<span class="activity-meta">' + app.esc((l.entityType || '').replace(/_/g, ' ')) + ' &middot; ' + time + '</span>'
+                + '</div></div>';
+        }).join('');
+    }
+
+    window.filterActivityLogs = function () {
+        var filter = (document.getElementById('activityFilter') || {}).value || '';
+        if (!filter) { renderActivityLogs(activityLogsCache); return; }
+        var filtered = activityLogsCache.filter(function (l) { return l.entityType === filter; });
+        renderActivityLogs(filtered);
+    };
+
+    /* ============================================================
+       ARCHIVE
+       ============================================================ */
+    window.archiveProject = function () {
+        var id = document.getElementById('projId').value;
+        if (!id) return;
+        if (!confirm('Archive this project? It will be removed from the active board.')) return;
+        app.fetchMutate('PUT', '/api/projects/' + encodeURIComponent(id), { status: 'ARCHIVED' }, function () {
+            app.closeModal('projectModal');
+            app.showToast('Project archived', 'success');
+            adminLogActivity('ARCHIVE', 'project', id, '', '', 'Project archived');
+            loadProjects();
+        }, function (err) {
+            app.showModalNotice('projModalNotice', err || 'Failed to archive.', 'error');
+        });
+    };
+
+    window.toggleArchivedProjects = function () {
+        var list = document.getElementById('archivedProjectsList');
+        if (!list) return;
+        var isHidden = list.classList.toggle('hidden');
+        var btn = list.previousElementSibling;
+        if (btn && btn.tagName === 'BUTTON') btn.textContent = isHidden ? 'Show Archived Projects' : 'Hide Archived Projects';
+        if (!isHidden) renderArchivedProjects();
+    };
+
+    function renderArchivedProjects() {
+        var list = document.getElementById('archivedProjectsList');
+        var countEl = document.getElementById('archivedCount');
+        if (!list) return;
+        var projects = app.cachedData.projects || [];
+        var archived = projects.filter(function (p) { return (p.status || '').toUpperCase() === 'ARCHIVED'; });
+        if (countEl) countEl.textContent = archived.length;
+        if (archived.length === 0) {
+            list.innerHTML = '<p class="kanban-empty"><span class="msg">No archived projects.</span></p>';
+            return;
+        }
+        list.innerHTML = archived.map(function (p) {
+            return '<div class="project-card archived-card" onclick="openProjectModal(\'' + app.esc(p.id) + '\')">'
+                + '<div class="card-title">' + app.esc(p.name) + '</div>'
+                + '<div class="card-meta">' + app.esc(p.department || 'No dept') + '</div>'
+                + '</div>';
+        }).join('');
+    }
 
     /* ============================================================
        GENERIC HELPERS

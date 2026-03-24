@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Profile — Shenanigans</title>
+    <title>Leave Requests — Shenanigans</title>
     <link rel="stylesheet" href="/assets/styles.css">
 </head>
 
@@ -14,14 +14,17 @@
         <aside class="app-sidebar" id="appSidebar"></aside>
 
         <main class="app-content" id="appContent">
-            <section class="page-view" id="pageEmpProfile">
+            <section class="page-view" id="pagePmRequests">
                 <div class="page-header">
-                    <h2>My Profile</h2>
-                    <p>Your employee profile overview</p>
+                    <h2>Leave Requests</h2>
+                    <p>Review and manage team leave requests</p>
                 </div>
-                <div class="stats-row" id="empProfileStats"></div>
+                <div class="stats-row" id="pmRequestsStats"></div>
                 <div class="card">
-                    <div id="empProfileContent">
+                    <div class="card-header">
+                        <h3>Team Requests</h3>
+                    </div>
+                    <div id="pmRequestsList">
                         <div class="loading-spinner visible"></div>
                     </div>
                 </div>
@@ -30,13 +33,13 @@
     </div>
 
     <script src="/assets/shared.js?v=6"></script>
-    <script src="/assets/employee.js?v=6"></script>
+    <script src="/assets/pm.js?v=6"></script>
     <script>
         ShenanigansApp.init({
-            sidebar: 'employee',
-            activePage: 'empProfile',
-            subtitle: 'Employee Workspace',
-            onReady: function () { loadEmpProfile(); }
+            sidebar: 'pm',
+            activePage: 'pmRequests',
+            subtitle: 'PM Workspace',
+            onReady: function () { loadPMRequests(); }
         });
     </script>
 </body>

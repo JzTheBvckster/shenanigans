@@ -19,6 +19,7 @@ public final class SessionManager {
   private String refreshToken;
   private String selectedEmployeeId;
   private String selectedEmployeeSection;
+  private String selectedPMSection;
   private boolean sidebarExpanded = true;
   // Theme preference for the current session: false = light, true = dark
   private boolean darkMode = false;
@@ -61,6 +62,7 @@ public final class SessionManager {
     this.refreshToken = null;
     this.selectedEmployeeId = null;
     this.selectedEmployeeSection = null;
+    this.selectedPMSection = null;
     LOGGER.info("Session cleared for: " + email);
   }
 
@@ -159,6 +161,29 @@ public final class SessionManager {
   /** Clears selected employee workspace section. */
   public void clearSelectedEmployeeSection() {
     this.selectedEmployeeSection = null;
+  }
+
+  /**
+   * Stores current PM workspace section for PM portal navigation.
+   *
+   * @param section section key to persist (e.g., MANAGED_PROJECTS)
+   */
+  public void setSelectedPMSection(String section) {
+    this.selectedPMSection = section;
+  }
+
+  /**
+   * Returns currently selected PM workspace section.
+   *
+   * @return section key or null
+   */
+  public String getSelectedPMSection() {
+    return selectedPMSection;
+  }
+
+  /** Clears selected PM workspace section. */
+  public void clearSelectedPMSection() {
+    this.selectedPMSection = null;
   }
 
   /**

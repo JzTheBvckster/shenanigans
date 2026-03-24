@@ -7,13 +7,14 @@ import java.util.logging.Logger;
 /** Reusable view navigation helper for JavaFX controllers. */
 public final class ViewNavigator {
 
-  private ViewNavigator() {}
+  private ViewNavigator() {
+  }
 
   /**
    * Navigates to the given view path.
    *
    * @param fxmlPath target FXML path without extension
-   * @param logger logger for error reporting
+   * @param logger   logger for error reporting
    */
   public static void navigateTo(String fxmlPath, Logger logger) {
     navigateTo(fxmlPath, logger, "Failed to navigate to " + fxmlPath);
@@ -36,6 +37,16 @@ public final class ViewNavigator {
   public static void redirectToDashboard(Logger logger) {
     navigateTo(
         "features/dashboard/view/dashboard_view", logger, "Failed to redirect to main dashboard");
+  }
+
+  /**
+   * Navigates to the PM workspace view.
+   *
+   * @param logger logger for error reporting
+   */
+  public static void redirectToPMWorkspace(Logger logger) {
+    navigateTo(
+        "features/project_manager/view/pm_workspace_view", logger, "Failed to redirect to PM workspace");
   }
 
   private static void navigateTo(String fxmlPath, Logger logger, String failureMessage) {

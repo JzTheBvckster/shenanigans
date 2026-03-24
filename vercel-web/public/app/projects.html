@@ -21,9 +21,18 @@
                 </div>
                 <div class="notice" id="projectsNotice"></div>
                 <div class="kanban-board" id="projectsKanban">
+                    <div class="kanban-column" id="colPendingApproval">
+                        <div class="kanban-header kanban-header-pending-approval">
+                            <span class="title">Pending Approval</span>
+                            <span class="count" id="countPendingApproval">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cardsPendingApproval">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
                     <div class="kanban-column" id="colNew">
                         <div class="kanban-header kanban-header-new">
-                            <span class="title">New / Planning</span>
+                            <span class="title">Planning</span>
                             <span class="count" id="countNew">0</span>
                         </div>
                         <div class="kanban-cards" id="cardsNew">
@@ -49,6 +58,15 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Archived Projects -->
+                <div class="archived-section">
+                    <button class="btn-toggle-archived" onclick="toggleArchivedProjects()">
+                        <span id="archivedToggleText">Show Archived Projects</span>
+                        <span class="archived-count" id="archivedCount">0</span>
+                    </button>
+                    <div class="archived-list hidden" id="archivedProjectsList"></div>
+                </div>
             </section>
         </main>
     </div>
@@ -66,15 +84,15 @@
                         placeholder="Project Alpha"></div>
                 <div class="modal-field"><label>Description</label><textarea id="projDescription" rows="3"
                         placeholder="Project description..."></textarea></div>
-                <div class="modal-field"><label>Project Manager</label><input type="text" id="projManager"
-                        placeholder="Jane Smith"></div>
-                <div class="modal-field"><label>Department</label><input type="text" id="projDepartment"
-                        placeholder="Engineering"></div>
+                <div class="modal-field"><label>Project Manager</label><select id="projManager"></select></div>
+                <div class="modal-field"><label>Department</label><select id="projDepartment"></select></div>
                 <div class="modal-field"><label>Status</label>
                     <select id="projStatus">
+                        <option value="PENDING_APPROVAL">Pending Approval</option>
                         <option value="PLANNING">Planning</option>
                         <option value="IN_PROGRESS">In Progress</option>
                         <option value="COMPLETED">Completed</option>
+                        <option value="ARCHIVED">Archived</option>
                         <option value="ON_HOLD">On Hold</option>
                         <option value="CANCELLED">Cancelled</option>
                     </select>
@@ -103,6 +121,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn-modal-delete hidden" id="projDeleteBtn" onclick="deleteProject()">Delete</button>
+                <button class="btn-modal-archive hidden" id="projArchiveBtn" onclick="archiveProject()">Archive</button>
                 <div class="modal-footer-spacer"></div>
                 <button class="btn-modal-cancel" onclick="closeModal('projectModal')">Cancel</button>
                 <button class="btn-modal-save" id="projSaveBtn" onclick="saveProject()">Save</button>
@@ -110,8 +129,8 @@
         </div>
     </div>
 
-    <script src="/assets/shared.js"></script>
-    <script src="/assets/admin.js"></script>
+    <script src="/assets/shared.js?v=6"></script>
+    <script src="/assets/admin.js?v=6"></script>
     <script>
         ShenanigansApp.init({
             sidebar: 'admin',

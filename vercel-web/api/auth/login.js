@@ -48,8 +48,10 @@ module.exports = withSecurity(async function handler(req, res) {
         const sessionId = await createSession(user, authResp.idToken, authResp.refreshToken);
         setSessionCookie(res, sessionId);
 
-        const isMD = user.role && user.role.toUpperCase().replace(/\s+/g, '_') === 'MANAGING_DIRECTOR';
-        const redirect = isMD ? '/app' : '/workspace';
+        const normalRole = user.role ? user.role.toUpperCase().replace(/\s+/g, '_') : '';
+        const isMD = normalRole === 'MANAGING_DIRECTOR';
+        const isPM = normalRole === 'PROJECT_MANAGER';
+        const redirect = isMD ? '/app' : isPM ? '/pm-workspace' : '/workspace';
         return res.status(200).json({
             ok: true,
             data: {

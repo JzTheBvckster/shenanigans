@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Board — Shenanigans</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+</head>
+
+<body>
+    <div class="app-shell" id="appShell">
+        <header class="app-header" id="appHeader"></header>
+        <aside class="app-sidebar" id="appSidebar"></aside>
+
+        <main class="app-content" id="appContent">
+            <section class="page-view" id="pagePmTasks">
+                <div class="page-header">
+                    <h2>Task Board</h2>
+                    <p>Create, assign, and track project tasks</p>
+                </div>
+                <div class="stats-row" id="pmTasksStats"></div>
+
+                <div class="task-filters">
+                    <select id="taskProjectFilter" onchange="filterPMTasks()">
+                        <option value="">All Projects</option>
+                    </select>
+                    <select id="taskAssigneeFilter" onchange="filterPMTasks()">
+                        <option value="">All Assignees</option>
+                    </select>
+                    <button class="btn-primary" onclick="openTaskModal()">+ Create Task</button>
+                </div>
+
+                <div class="kanban-board" id="tasksKanban">
+                    <div class="kanban-column">
+                        <div class="kanban-column-header">
+                            <span class="kanban-title">To Do</span>
+                            <span class="kanban-count" id="countTodo">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cardsTodo">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+                    <div class="kanban-column">
+                        <div class="kanban-column-header">
+                            <span class="kanban-title">In Progress</span>
+                            <span class="kanban-count" id="countTaskInProgress">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cardsTaskInProgress">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+                    <div class="kanban-column">
+                        <div class="kanban-column-header">
+                            <span class="kanban-title">Under Review</span>
+                            <span class="kanban-count" id="countTaskUnderReview">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cardsTaskUnderReview">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+                    <div class="kanban-column">
+                        <div class="kanban-column-header">
+                            <span class="kanban-title">Completed</span>
+                            <span class="kanban-count" id="countTaskCompleted">0</span>
+                        </div>
+                        <div class="kanban-cards" id="cardsTaskCompleted">
+                            <div class="loading-spinner visible"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Task Modal -->
+    <div class="modal-overlay hidden" id="taskModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="taskModalTitle">Create Task</h3>
+                <button class="modal-close" onclick="closeModal('taskModal')">&times;</button>
+            </div>
+            <div id="taskModalNotice"></div>
+            <div class="modal-body">
+                <input type="hidden" id="taskId">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>Title *</label>
+                        <input type="text" id="taskTitle" placeholder="Task title">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Description</label>
+                        <textarea id="taskDescription" rows="3" placeholder="Task description"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Project *</label>
+                        <select id="taskProject">
+                            <option value="">Select project…</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Assign To</label>
+                        <select id="taskAssignee">
+                            <option value="">Unassigned</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Priority</label>
+                        <select id="taskPriority">
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM" selected>Medium</option>
+                            <option value="HIGH">High</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="taskStatus">
+                            <option value="TODO">To Do</option>
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="UNDER_REVIEW">Under Review</option>
+                            <option value="COMPLETED">Completed</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Due Date</label>
+                        <input type="date" id="taskDueDate">
+                    </div>
+                </div>
+                <!-- Task Comments -->
+                <div class="task-comments-section hidden" id="taskCommentsSection">
+                    <label>Comments</label>
+                    <div class="task-comments-list" id="taskCommentsList"></div>
+                    <div class="task-comment-input">
+                        <textarea id="taskCommentText" rows="2" placeholder="Add a comment..." maxlength="2000"></textarea>
+                        <button class="btn-comment-send" onclick="postTaskComment()">Send</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal-cancel" onclick="closeModal('taskModal')">Cancel</button>
+                <button class="btn-modal-delete hidden" id="taskDeleteBtn" onclick="deletePMTask()">Delete</button>
+                <button class="btn-modal-save" id="taskSaveBtn" onclick="savePMTask()">Save Task</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/assets/shared.js?v=6"></script>
+    <script src="/assets/pm.js?v=6"></script>
+    <script>
+        ShenanigansApp.init({
+            sidebar: 'pm',
+            activePage: 'pmTasks',
+            subtitle: 'PM Workspace',
+            onReady: function () { loadPMTasks(); }
+        });
+    </script>
+</body>
+
+</html>

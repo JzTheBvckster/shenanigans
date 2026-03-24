@@ -395,6 +395,7 @@
 
     function buildName(e) {
         if (e.fullName) return e.fullName;
+        if (e.displayName) return e.displayName;
         var first = e.firstName || '';
         var last = e.lastName || '';
         return (first + ' ' + last).trim() || 'Unknown';
@@ -933,16 +934,16 @@
     // ---- Approval Queue (MD only) ----
     function loadApprovalQueue() {
         if (!isMD()) return;
-        fetchJson('/api/employees', function (employees) {
-            var pending = employees.filter(function (e) { return e.mdApproved === false; });
-            var card = document.getElementById('approvalQueueCard');
+        var card = document.getElementById('approvalQueueCard');
+        if (card) card.classList.remove('hidden');
+        fetchJson('/api/employees?pendingUsers=true', function (pendingUsers) {
+            var pending = pendingUsers || [];
             var countEl = document.getElementById('approvalQueueCount');
             var listEl = document.getElementById('approvalQueueList');
             if (!card) return;
 
+            countEl.textContent = pending.length;
             if (pending.length > 0) {
-                card.classList.remove('hidden');
-                countEl.textContent = pending.length;
                 listEl.innerHTML = pending.map(function (e) {
                     var name = buildName(e);
                     var eid = esc(e.id || '');
@@ -950,7 +951,7 @@
                         + '<div class="avatar">' + initials(name) + '</div>'
                         + '<div class="info">'
                         + '<div class="name">' + esc(name) + '</div>'
-                        + '<div class="role">' + esc(e.position || e.department || 'Employee') + '</div>'
+                        + '<div class="role">' + esc(e.role || e.position || 'Employee') + '</div>'
                         + '</div>'
                         + '<div class="approval-actions">'
                         + '<button class="btn-approve" onclick="approveEmployee(\'' + eid + '\')" data-id="' + eid + '">Approve</button>'
@@ -958,7 +959,12 @@
                         + '</div>';
                 }).join('');
             } else {
-                card.classList.add('hidden');
+                listEl.innerHTML = '<p style="color:var(--ink-faint);padding:8px 0">No pending registrations</p>';
+            }
+        }, function (err) {
+            if (card) {
+                var listEl = document.getElementById('approvalQueueList');
+                if (listEl) listEl.innerHTML = '<p style="color:#ef4444;padding:8px 0">Failed to load queue: ' + esc(err || 'Unknown error') + '</p>';
             }
         });
     }
@@ -967,11 +973,11 @@
         if (!id) return;
         var btn = document.querySelector('.btn-approve[data-id="' + id + '"]');
         if (btn) { btn.textContent = 'Approving...'; btn.disabled = true; }
-        fetch('/api/employees/' + encodeURIComponent(id), {
+        fetch('/api/employees/' + encodeURIComponent(id) + '?approveUser=true', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify({ mdApproved: true })
+            body: JSON.stringify({})
         }).then(function (r) { return r.json(); }).then(function (res) {
             if (res.ok) {
                 showToast('Employee approved', 'success');

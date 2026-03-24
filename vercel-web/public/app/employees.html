@@ -20,34 +20,9 @@
                     <p>Manage your team across departments</p>
                 </div>
                 <div class="notice" id="employeesNotice"></div>
-                <div class="kanban-board" id="employeesKanban">
-                    <div class="kanban-column" id="colActive">
-                        <div class="kanban-header kanban-header-active">
-                            <span class="title">Active</span>
-                            <span class="count" id="countActive">0</span>
-                        </div>
-                        <div class="kanban-cards" id="cardsActive">
-                            <div class="loading-spinner visible"></div>
-                        </div>
-                    </div>
-                    <div class="kanban-column" id="colLeave">
-                        <div class="kanban-header kanban-header-leave">
-                            <span class="title">On Leave</span>
-                            <span class="count" id="countLeave">0</span>
-                        </div>
-                        <div class="kanban-cards" id="cardsLeave">
-                            <div class="loading-spinner visible"></div>
-                        </div>
-                    </div>
-                    <div class="kanban-column" id="colTerminated">
-                        <div class="kanban-header kanban-header-terminated">
-                            <span class="title">Terminated</span>
-                            <span class="count" id="countTerminated">0</span>
-                        </div>
-                        <div class="kanban-cards" id="cardsTerminated">
-                            <div class="loading-spinner visible"></div>
-                        </div>
-                    </div>
+                <div class="dept-stats-row" id="employeesDeptStats"></div>
+                <div class="dept-groups" id="employeesDeptGroups">
+                    <div class="loading-spinner visible"></div>
                 </div>
             </section>
         </main>
@@ -70,8 +45,7 @@
                         placeholder="john@company.com"></div>
                 <div class="modal-field"><label>Phone</label><input type="text" id="empPhone"
                         placeholder="+1 234 567 890"></div>
-                <div class="modal-field"><label>Department</label><input type="text" id="empDepartment"
-                        placeholder="Engineering"></div>
+                <div class="modal-field"><label>Department</label><select id="empDepartment"></select></div>
                 <div class="modal-field"><label>Position</label><input type="text" id="empPosition"
                         placeholder="Software Engineer"></div>
                 <div class="modal-field"><label>Status</label>
@@ -95,8 +69,8 @@
         </div>
     </div>
 
-    <script src="/assets/shared.js"></script>
-    <script src="/assets/admin.js"></script>
+    <script src="/assets/shared.js?v=6"></script>
+    <script src="/assets/admin.js?v=6"></script>
     <script>
         ShenanigansApp.init({
             sidebar: 'admin',

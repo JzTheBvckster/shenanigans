@@ -97,40 +97,179 @@
     }
 
     /* ============================================================
-       MY TASKS
+       MY TASKS (real Firestore tasks via workspace API)
        ============================================================ */
     window.loadEmpTasks = function () {
-        ensureEmpData(function (employees, projects) {
-            var assigned = findAssignedProjects(projects);
-            var tasks = assigned.filter(function (p) { return isEmpActive(p) || isEmpOverdue(p); })
-                .sort(function (a, b) { return (a.endDate || Infinity) - (b.endDate || Infinity); });
-            var dueToday = tasks.filter(function (p) { return empDueText(p.endDate) === 'Due today'; }).length;
-            var overdue = tasks.filter(isEmpOverdue).length;
-            var completed = assigned.filter(isEmpCompleted).length;
+        app.fetchJson('/api/workspace/tasks', function (tasks) {
+            empTasksCache = tasks;
+            var active = tasks.filter(function (t) { return (t.status || '').toUpperCase() !== 'COMPLETED'; });
+            var completed = tasks.filter(function (t) { return (t.status || '').toUpperCase() === 'COMPLETED'; });
+            var overdue = tasks.filter(function (t) {
+                return t.dueDate && t.dueDate < Date.now() && (t.status || '').toUpperCase() !== 'COMPLETED';
+            });
+            var dueToday = active.filter(function (t) {
+                if (!t.dueDate) return false;
+                var ts = t.dueDate > 1e12 ? t.dueDate : t.dueDate * 1000;
+                var due = new Date(ts); var now = new Date();
+                return due.toDateString() === now.toDateString();
+            });
 
             document.getElementById('empTasksStats').innerHTML =
-                empStatCard(tasks.length, 'Total Tasks', 'Assigned work items', 'blue') +
-                empStatCard(dueToday, 'Due Today', 'Needs attention now', 'orange') +
-                empStatCard(overdue, 'Overdue', 'Follow up required', 'purple') +
-                empStatCard(completed, 'Completed', 'Delivered items', 'green');
+                empStatCard(active.length, 'Active Tasks', 'Work items assigned to you', 'blue') +
+                empStatCard(dueToday.length, 'Due Today', 'Needs attention now', 'orange') +
+                empStatCard(overdue.length, 'Overdue', 'Follow up required', 'purple') +
+                empStatCard(completed.length, 'Completed', 'Delivered items', 'green');
 
             var html = '';
-            if (tasks.length === 0) {
+            if (active.length === 0 && completed.length === 0) {
                 html = '<div class="empty-state">No assigned tasks. You are all caught up!</div>';
             } else {
-                tasks.forEach(function (p) {
-                    var priority = isEmpOverdue(p) ? 'high' : 'medium';
-                    html += '<div class="emp-task-row">'
+                // Show active tasks first, then completed
+                var display = active.concat(completed);
+                display.forEach(function (t) {
+                    var isComp = (t.status || '').toUpperCase() === 'COMPLETED';
+                    var isOver = t.dueDate && t.dueDate < Date.now() && !isComp;
+                    var priority = (t.priority || 'MEDIUM').toLowerCase();
+                    var dueText = empDueText(t.dueDate);
+                    var statusLabel = (t.status || 'TODO').replace(/_/g, ' ');
+
+                    var nextStatus = null;
+                    var nextLabel = '';
+                    var s = (t.status || 'TODO').toUpperCase();
+                    if (s === 'TODO') { nextStatus = 'IN_PROGRESS'; nextLabel = 'Start'; }
+                    else if (s === 'IN_PROGRESS') { nextStatus = 'UNDER_REVIEW'; nextLabel = 'Submit for Review'; }
+                    else if (s === 'UNDER_REVIEW') { nextStatus = null; nextLabel = ''; }
+
+                    var tid = app.esc(t.id || '');
+                    html += '<div class="emp-task-row clickable' + (isComp ? ' task-completed' : '') + '" onclick="openEmpTaskDetail(\'' + tid + '\')">'
                         + '<div class="priority-dot priority-' + priority + '"></div>'
-                        + '<div class="emp-task-info"><div class="emp-task-name">' + app.esc(p.name || 'Untitled') + '</div>'
-                        + '<div class="emp-task-meta"><span class="badge badge-muted">' + app.esc(app.formatStatus(p.status)) + '</span> '
-                        + '<span class="emp-task-due' + (priority === 'high' ? ' urgent' : '') + '">' + empDueText(p.endDate) + '</span></div></div>'
-                        + '<span class="emp-task-pct">' + (p.completionPercentage || 0) + '%</span></div>';
+                        + '<div class="emp-task-info"><div class="emp-task-name">' + app.esc(t.title || 'Untitled') + '</div>'
+                        + '<div class="emp-task-meta">'
+                        + '<span class="badge badge-muted">' + app.esc(statusLabel) + '</span> '
+                        + (t.projectName ? '<span class="emp-task-project">' + app.esc(t.projectName) + '</span> ' : '')
+                        + '<span class="emp-task-due' + (isOver ? ' urgent' : '') + '">' + dueText + '</span>'
+                        + '</div></div>';
+                    if (nextStatus) {
+                        html += '<button class="emp-task-status-btn" onclick="updateEmpTaskStatus(\'' + tid + '\',\'' + nextStatus + '\')">' + nextLabel + '</button>';
+                    } else if (s === 'UNDER_REVIEW') {
+                        html += '<span class="badge badge-orange">Under Review</span>';
+                    } else {
+                        html += '<span class="badge badge-green">Done</span>';
+                    }
+                    html += '</div>';
                 });
             }
             document.getElementById('empTasksList').innerHTML = html;
+        }, function () {
+            document.getElementById('empTasksStats').innerHTML =
+                empStatCard(0, 'Active Tasks', 'Work items assigned to you', 'blue') +
+                empStatCard(0, 'Due Today', 'Needs attention now', 'orange') +
+                empStatCard(0, 'Overdue', 'Follow up required', 'purple') +
+                empStatCard(0, 'Completed', 'Delivered items', 'green');
+            document.getElementById('empTasksList').innerHTML = '<div class="empty-state">Could not load tasks. Try reloading.</div>';
         });
     };
+
+    window.updateEmpTaskStatus = function (taskId, newStatus) {
+        if (!taskId || !newStatus) return;
+        app.fetchMutate('PUT', '/api/workspace/tasks/' + encodeURIComponent(taskId), { status: newStatus }, function () {
+            app.showToast('Task updated', 'success');
+            // Log activity
+            var task = null;
+            for (var i = 0; i < empTasksCache.length; i++) {
+                if (empTasksCache[i].id === taskId) { task = empTasksCache[i]; break; }
+            }
+            if (newStatus === 'UNDER_REVIEW' && task) {
+                // Notify PM (task creator)
+                if (task.createdBy) {
+                    app.fetchMutate('POST', '/api/workspace/notifications', {
+                        recipientId: task.createdBy,
+                        type: 'TASK_REVIEW',
+                        message: 'Task submitted for review: ' + (task.title || 'Untitled'),
+                        entityId: taskId,
+                        entityType: 'task',
+                        link: '/pm-workspace/tasks'
+                    }, function () {}, function () {});
+                }
+                empLogActivity('SUBMIT_REVIEW', 'task', taskId, task ? task.title : '', task ? task.projectId : '', 'Submitted task for review');
+            } else {
+                empLogActivity('STATUS_CHANGE', 'task', taskId, task ? task.title : '', task ? task.projectId : '', 'Status changed to ' + newStatus);
+            }
+            loadEmpTasks();
+        }, function (err) {
+            app.showToast(err || 'Failed to update task', 'error');
+        });
+    };
+
+    var empTasksCache = [];
+
+    window.openEmpTaskDetail = function (taskId) {
+        var task = null;
+        for (var i = 0; i < empTasksCache.length; i++) {
+            if (empTasksCache[i].id === taskId) { task = empTasksCache[i]; break; }
+        }
+        if (!task) return;
+        document.getElementById('empTaskModalTitle').textContent = task.title || 'Task Details';
+        var statusLabel = (task.status || 'TODO').replace(/_/g, ' ');
+        var dueText = task.dueDate ? app.formatTimestamp(task.dueDate) : 'No due date';
+        var priorityLabel = (task.priority || 'MEDIUM').replace(/_/g, ' ');
+        document.getElementById('empTaskDetail').innerHTML =
+            '<div class="task-detail-grid">'
+            + '<div class="detail-row"><span class="detail-label">Status</span><span class="badge badge-muted">' + app.esc(statusLabel) + '</span></div>'
+            + '<div class="detail-row"><span class="detail-label">Priority</span><span class="card-priority priority-' + (task.priority || 'MEDIUM').toLowerCase() + '">' + app.esc(priorityLabel) + '</span></div>'
+            + '<div class="detail-row"><span class="detail-label">Project</span><span>' + app.esc(task.projectName || 'None') + '</span></div>'
+            + '<div class="detail-row"><span class="detail-label">Due Date</span><span>' + dueText + '</span></div>'
+            + (task.description ? '<div class="detail-row full-width"><span class="detail-label">Description</span><p>' + app.esc(task.description) + '</p></div>' : '')
+            + '</div>';
+        // Load comments
+        loadEmpTaskComments(taskId);
+        document.getElementById('empTaskModal').dataset.taskId = taskId;
+        document.getElementById('empTaskModal').classList.remove('hidden');
+    };
+
+    function loadEmpTaskComments(taskId) {
+        var list = document.getElementById('empTaskCommentsList');
+        if (!list) return;
+        list.innerHTML = '<div class="loading-spinner visible"></div>';
+        app.fetchJson('/api/workspace/comments?taskId=' + encodeURIComponent(taskId), function (comments) {
+            if (!comments || comments.length === 0) {
+                list.innerHTML = '<div class="comment-empty">No comments yet.</div>';
+                return;
+            }
+            list.innerHTML = comments.map(function (c) {
+                var time = c.createdAt ? app.formatTimestamp(c.createdAt) : '';
+                return '<div class="comment-item">'
+                    + '<div class="comment-header"><strong>' + app.esc(c.authorName || 'Unknown') + '</strong>'
+                    + '<span class="comment-role">' + app.esc((c.authorRole || '').replace(/_/g, ' ')) + '</span>'
+                    + '<span class="comment-time">' + time + '</span></div>'
+                    + '<div class="comment-text">' + app.esc(c.text) + '</div></div>';
+            }).join('');
+        }, function () {
+            list.innerHTML = '<div class="comment-empty">Failed to load comments.</div>';
+        });
+    }
+
+    window.postEmpTaskComment = function () {
+        var modal = document.getElementById('empTaskModal');
+        var taskId = modal ? modal.dataset.taskId : '';
+        var textEl = document.getElementById('empTaskCommentText');
+        var text = (textEl.value || '').trim();
+        if (!taskId || !text) return;
+        app.fetchMutate('POST', '/api/workspace/comments', { taskId: taskId, text: text }, function () {
+            textEl.value = '';
+            loadEmpTaskComments(taskId);
+            empLogActivity('COMMENT', 'task', taskId, '', '', 'Added a comment');
+        }, function (err) {
+            app.showToast(err || 'Failed to post comment', 'error');
+        });
+    };
+
+    function empLogActivity(action, entityType, entityId, entityName, projectId, details) {
+        app.fetchMutate('POST', '/api/workspace/activity-logs', {
+            action: action, entityType: entityType, entityId: entityId,
+            entityName: entityName, projectId: projectId, details: details
+        }, function () {}, function () {});
+    }
 
     /* ============================================================
        MY PROJECTS
@@ -421,33 +560,71 @@
             var team = employees.filter(function (e) {
                 if ((e.status || '').toUpperCase() !== 'ACTIVE') return false;
                 if (me && e.id === me.id) return false;
-                if (!dept) return true;
-                return (e.department || '').toLowerCase() === dept;
-            }).sort(function (a, b) {
-                return ((a.fullName || a.firstName || '') + '').localeCompare((b.fullName || b.firstName || '') + '');
+                return true;
             });
 
+            // Group by department
+            var groups = {};
+            var noDept = [];
+            team.forEach(function (e) {
+                var d = (e.department || '').trim();
+                if (!d) { noDept.push(e); return; }
+                if (!groups[d]) groups[d] = [];
+                groups[d].push(e);
+            });
+            var sortedDepts = Object.keys(groups).sort(function (a, b) {
+                // Current user's dept comes first
+                if (dept) {
+                    if (a.toLowerCase() === dept) return -1;
+                    if (b.toLowerCase() === dept) return 1;
+                }
+                return a.localeCompare(b);
+            });
+            var deptCount = sortedDepts.length + (noDept.length > 0 ? 1 : 0);
+
             document.getElementById('empTeamStats').innerHTML =
-                empStatCard(dept ? dept.toUpperCase() : 'All', 'Department', 'Team scope', 'green') +
-                empStatCard(team.length, 'Members', 'Active colleagues', 'blue') +
-                empStatCard(assigned.length, 'Shared Projects', 'Projects in your queue', 'purple');
+                empStatCard(dept ? dept.toUpperCase() : 'All', 'My Dept', 'Your department', 'green') +
+                empStatCard(team.length, 'Colleagues', 'Active team members', 'blue') +
+                empStatCard(deptCount, 'Departments', 'Org groups', 'purple');
 
             var html = '';
             if (team.length === 0) {
-                html = '<div class="empty-state">No team members found in your department.</div>';
+                html = '<div class="empty-state">No team members found.</div>';
             } else {
-                team.slice(0, 12).forEach(function (e) {
-                    var name = app.buildName(e);
-                    html += '<div class="emp-team-row">'
-                        + '<div class="emp-team-avatar">' + app.initials(name) + '</div>'
-                        + '<div class="emp-team-info"><div class="emp-team-name">' + app.esc(name) + '</div>'
-                        + '<div class="emp-team-meta">' + app.esc(e.position || 'No position') + ' \u2022 ' + app.esc(e.email || '') + '</div></div>'
-                        + '<span class="badge badge-green">' + app.esc(e.status || 'ACTIVE') + '</span></div>';
+                sortedDepts.forEach(function (d) {
+                    var isMine = dept && d.toLowerCase() === dept;
+                    html += renderEmpTeamDeptGroup(d, groups[d], false, isMine);
                 });
+                if (noDept.length > 0) {
+                    html += renderEmpTeamDeptGroup('Unassigned', noDept, true, false);
+                }
             }
             document.getElementById('empTeamList').innerHTML = html;
         });
     };
+
+    function renderEmpTeamDeptGroup(deptName, members, isUnassigned, isMyDept) {
+        members.sort(function (a, b) {
+            return ((a.fullName || a.firstName || '') + '').localeCompare((b.fullName || b.firstName || '') + '');
+        });
+        var cls = isUnassigned ? ' dept-group-warning' : (isMyDept ? ' dept-group-mine' : '');
+        var rows = members.map(function (e) {
+            var name = app.buildName(e);
+            return '<div class="emp-team-row">'
+                + '<div class="emp-team-avatar">' + app.initials(name) + '</div>'
+                + '<div class="emp-team-info"><div class="emp-team-name">' + app.esc(name) + '</div>'
+                + '<div class="emp-team-meta">' + app.esc(e.position || 'No position') + ' \u2022 ' + app.esc(e.email || '') + '</div></div>'
+                + '<span class="badge badge-green">' + app.esc(e.status || 'ACTIVE') + '</span>'
+                + (isUnassigned ? ' <button class="btn-set-dept-sm" onclick="openQuickDeptModal(\'' + app.esc(e.id || '') + '\',\'' + app.esc(name).replace(/'/g, '') + '\')">Set Dept</button>' : '')
+                + '</div>';
+        }).join('');
+        var label = isMyDept ? deptName + ' (Your Department)' : deptName;
+        return '<div class="dept-group' + cls + '">'
+            + '<div class="dept-group-header">'
+            + '<span class="dept-group-name">' + app.esc(label) + '</span>'
+            + '<span class="dept-group-count">' + members.length + ' member' + (members.length === 1 ? '' : 's') + '</span></div>'
+            + '<div class="dept-group-list">' + rows + '</div></div>';
+    }
 
     /* ============================================================
        MY PROFILE

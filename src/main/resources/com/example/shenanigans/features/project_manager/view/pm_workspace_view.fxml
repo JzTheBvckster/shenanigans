@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
+<?import javafx.scene.shape.SVGPath?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="com.example.shenanigans.features.project_manager.controller.PMWorkspaceController"
+    stylesheets="@../styles/pm_workspace.css" styleClass="workspace-root">
+  <!-- Header -->
+  <top>
+    <VBox styleClass="header-container">
+      <HBox alignment="CENTER_LEFT" spacing="16" styleClass="header">
+        <padding>
+          <Insets top="16" right="28" bottom="16" left="28"/>
+        </padding>
+        <HBox alignment="CENTER_LEFT" spacing="12">
+          <StackPane styleClass="logo-container">
+            <Circle radius="20" styleClass="logo-circle"/>
+            <Label styleClass="logo-letter" text="S"/>
+          </StackPane>
+          <VBox spacing="2">
+            <Label text="Shenanigans" styleClass="app-title"/>
+            <Label text="PM Workspace" styleClass="app-subtitle"/>
+          </VBox>
+        </HBox>
+        <Region HBox.hgrow="ALWAYS"/>
+        <HBox alignment="CENTER_RIGHT" spacing="16">
+          <VBox alignment="CENTER_RIGHT" spacing="2">
+            <Label fx:id="welcomeLabel" styleClass="welcome-text" text="Welcome!"/>
+            <Label fx:id="emailLabel" styleClass="email-text" text=""/>
+          </VBox>
+          <VBox alignment="CENTER" spacing="4">
+            <StackPane styleClass="avatar-container">
+              <Circle radius="22" styleClass="avatar-circle"/>
+              <Label fx:id="avatarLabel" styleClass="avatar-letter" text="P"/>
+            </StackPane>
+            <Label fx:id="roleLabel" styleClass="role-badge-small" text="PROJECT MANAGER"/>
+          </VBox>
+          <Button text="Sign Out" styleClass="logout-button" onAction="#handleLogout"/>
+        </HBox>
+      </HBox>
+    </VBox>
+  </top>
+
+  <!-- Sidebar -->
+  <left>
+    <VBox fx:id="sidebarContent" prefWidth="270" spacing="6" styleClass="workspace-sidebar">
+      <padding>
+        <Insets top="20" right="16" bottom="20" left="16"/>
+      </padding>
+      <HBox alignment="CENTER">
+        <Label styleClass="role-badge" text="PROJECT MANAGER"/>
+      </HBox>
+      <Region prefHeight="12"/>
+      <Label styleClass="menu-header" text="MANAGEMENT"/>
+      <VBox spacing="4" styleClass="menu-section">
+        <Button fx:id="overviewButton" graphicTextGap="12" maxWidth="Infinity"
+                        styleClass="menu-button,menu-button-active" text="Overview" onAction="#handleOverview">
+          <graphic>
+            <SVGPath content="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" styleClass="menu-icon-svg" scaleX="0.75" scaleY="0.75"/>
+          </graphic>
+        </Button>
+        <Button fx:id="managedProjectsButton" graphicTextGap="12" maxWidth="Infinity"
+                        styleClass="menu-button" text="Managed Projects" onAction="#handleManagedProjects">
+          <graphic>
+            <SVGPath content="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" styleClass="menu-icon-svg" scaleX="0.75" scaleY="0.75"/>
+          </graphic>
+        </Button>
+        <Button fx:id="myTeamButton" graphicTextGap="12" maxWidth="Infinity"
+                        styleClass="menu-button" text="My Team" onAction="#handleMyTeam">
+          <graphic>
+            <SVGPath content="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z" styleClass="menu-icon-svg" scaleX="0.75" scaleY="0.75"/>
+          </graphic>
+        </Button>
+        <Button fx:id="teamTimesheetsButton" graphicTextGap="12" maxWidth="Infinity"
+                        styleClass="menu-button" text="Team Timesheets" onAction="#handleTeamTimesheets">
+          <graphic>
+            <SVGPath content="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" styleClass="menu-icon-svg" scaleX="0.75" scaleY="0.75"/>
+          </graphic>
+        </Button>
+        <Button fx:id="leaveRequestsButton" graphicTextGap="12" maxWidth="Infinity"
+                        styleClass="menu-button" text="Leave Requests" onAction="#handleLeaveRequests">
+          <graphic>
+            <SVGPath content="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" styleClass="menu-icon-svg" scaleX="0.75" scaleY="0.75"/>
+          </graphic>
+        </Button>
+      </VBox>
+      <Region prefHeight="12"/>
+      <Label styleClass="menu-header" text="RESOURCES"/>
+      <VBox spacing="4" styleClass="menu-section">
+        <Button fx:id="documentsButton" graphicTextGap="12" maxWidth="Infinity"
+                        styleClass="menu-button" text="Documents" onAction="#handleDocuments">
+          <graphic>
+            <SVGPath content="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" styleClass="menu-icon-svg" scaleX="0.75" scaleY="0.75"/>
+          </graphic>
+        </Button>
+      </VBox>
+      <Region VBox.vgrow="ALWAYS"/>
+      <VBox spacing="8" styleClass="work-status-card">
+        <Label styleClass="work-status-title" text="WORK STATUS"/>
+        <HBox alignment="CENTER_LEFT" spacing="8">
+          <Region fx:id="workStatusDot" styleClass="status-dot,status-dot-online"/>
+          <Label fx:id="workStatusTextLabel" styleClass="work-status-text" text="Online"/>
+        </HBox>
+        <Label fx:id="workStatusTimeLabel" styleClass="work-status-time" text="Status synced just now"/>
+      </VBox>
+      <Region prefHeight="8"/>
+      <Button fx:id="profileButton" graphicTextGap="12" maxWidth="Infinity"
+                    styleClass="menu-button,menu-button-secondary" text="My Profile" onAction="#handleProfile">
+        <graphic>
+          <SVGPath content="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" styleClass="menu-icon-svg" scaleX="0.75" scaleY="0.75"/>
+        </graphic>
+      </Button>
+      <Button fx:id="backToDashboardButton" text="Back to Dashboard" maxWidth="Infinity"
+                    styleClass="back-button" onAction="#handleBackToDashboard">
+        <graphic>
+          <SVGPath content="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" styleClass="back-icon-svg" scaleX="0.7" scaleY="0.7"/>
+        </graphic>
+      </Button>
+    </VBox>
+  </left>
+
+  <!-- Main Content -->
+  <center>
+    <ScrollPane fitToHeight="true" fitToWidth="true" styleClass="content-scroll">
+      <VBox alignment="TOP_LEFT" spacing="24" styleClass="content-area">
+        <padding>
+          <Insets top="28" right="32" bottom="32" left="32"/>
+        </padding>
+        <HBox alignment="CENTER_LEFT" spacing="16">
+          <VBox spacing="6" HBox.hgrow="ALWAYS">
+            <Label fx:id="sectionTitleLabel" styleClass="page-title" text="Overview"/>
+            <Label fx:id="sectionSubtitleLabel" styleClass="page-subtitle" text="Your management workspace at a glance"/>
+          </VBox>
+          <ProgressIndicator fx:id="loadingIndicator" visible="false" maxWidth="24" maxHeight="24"/>
+          <Button fx:id="refreshButton" styleClass="refresh-button" text="Refresh" onAction="#handleRefresh"/>
+        </HBox>
+        <!-- Stats Row -->
+        <HBox fx:id="statsContainer" spacing="16" styleClass="stats-container"/>
+        <!-- Primary Content Grid -->
+        <HBox fx:id="contentGrid" spacing="24">
+          <VBox fx:id="primaryContent" spacing="20" HBox.hgrow="ALWAYS"/>
+          <VBox fx:id="secondaryContent" prefWidth="340" spacing="20"/>
+        </HBox>
+        <Label fx:id="sectionStatusLabel" text="" styleClass="status-ok"/>
+      </VBox>
+    </ScrollPane>
+  </center>
+</BorderPane>

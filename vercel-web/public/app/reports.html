@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports — Shenanigans</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+</head>
+
+<body>
+    <div class="app-shell" id="appShell">
+        <header class="app-header" id="appHeader"></header>
+        <aside class="app-sidebar" id="appSidebar"></aside>
+
+        <main class="app-content" id="appContent">
+            <section class="page-view" id="pageReports">
+                <div class="page-header">
+                    <h2>Reports &amp; Activity</h2>
+                    <p>Project reports, activity logs, and system analytics</p>
+                </div>
+                <div class="stats-row" id="reportStats"></div>
+
+                <!-- Project Summary Report -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Project Summary</h3>
+                    </div>
+                    <div class="report-table-wrap">
+                        <table class="report-table" id="projectReportTable">
+                            <thead>
+                                <tr>
+                                    <th>Project</th>
+                                    <th>Status</th>
+                                    <th>PM</th>
+                                    <th>Progress</th>
+                                    <th>Budget</th>
+                                    <th>Spent</th>
+                                    <th>Team</th>
+                                    <th>Deadline</th>
+                                </tr>
+                            </thead>
+                            <tbody id="projectReportBody">
+                                <tr><td colspan="8"><div class="loading-spinner visible"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Activity Log -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Recent Activity Log</h3>
+                        <div class="card-header-actions">
+                            <select id="activityFilter" onchange="filterActivityLogs()">
+                                <option value="">All Types</option>
+                                <option value="project">Projects</option>
+                                <option value="task">Tasks</option>
+                                <option value="milestone">Milestones</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="activityLogList">
+                        <div class="loading-spinner visible"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/assets/shared.js?v=6"></script>
+    <script src="/assets/admin.js?v=6"></script>
+    <script>
+        ShenanigansApp.init({
+            sidebar: 'admin',
+            activePage: 'reports',
+            subtitle: 'Reports & Analytics',
+            onReady: function () { loadReports(); }
+        });
+    </script>
+</body>
+
+</html>

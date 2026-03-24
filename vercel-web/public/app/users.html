@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management — Shenanigans</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+</head>
+
+<body>
+    <div class="app-shell" id="appShell">
+        <header class="app-header" id="appHeader"></header>
+        <aside class="app-sidebar" id="appSidebar"></aside>
+
+        <main class="app-content" id="appContent">
+            <section class="page-view" id="pageUsers">
+                <div class="page-header">
+                    <h2>User Management</h2>
+                    <p>Manage system users, roles, and access</p>
+                </div>
+                <div class="stats-row" id="userStats"></div>
+                <div class="notice" id="usersNotice"></div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Pending Approvals</h3>
+                    </div>
+                    <div id="pendingUsersList">
+                        <div class="loading-spinner visible"></div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:16px">
+                    <div class="card-header">
+                        <h3>All Users</h3>
+                    </div>
+                    <div id="allUsersList">
+                        <div class="loading-spinner visible"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Edit User Role Modal -->
+    <div class="modal-overlay hidden" id="userRoleModal">
+        <div class="modal-card modal-card-sm">
+            <div class="modal-header">
+                <h3 id="userRoleModalTitle">Edit User</h3>
+                <button class="modal-close" onclick="closeModal('userRoleModal')">&times;</button>
+            </div>
+            <div id="userRoleModalNotice"></div>
+            <div class="modal-body">
+                <input type="hidden" id="editUserId">
+                <div class="modal-field">
+                    <label>Name</label>
+                    <input type="text" id="editUserName" disabled>
+                </div>
+                <div class="modal-field">
+                    <label>Email</label>
+                    <input type="text" id="editUserEmail" disabled>
+                </div>
+                <div class="modal-field">
+                    <label>Role</label>
+                    <select id="editUserRole">
+                        <option value="EMPLOYEE">Employee</option>
+                        <option value="PROJECT_MANAGER">Project Manager</option>
+                        <option value="MANAGING_DIRECTOR">Managing Director</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal-cancel" onclick="closeModal('userRoleModal')">Cancel</button>
+                <button class="btn-modal-save" id="userRoleSaveBtn" onclick="saveUserRole()">Save Role</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/assets/shared.js?v=6"></script>
+    <script src="/assets/admin.js?v=6"></script>
+    <script>
+        ShenanigansApp.init({
+            sidebar: 'admin',
+            activePage: 'users',
+            subtitle: 'User Management',
+            showSearch: true,
+            searchPlaceholder: 'Search users...',
+            onReady: function () {
+                loadUserManagement();
+                setupSearchFilter(filterUserCards);
+            }
+        });
+    </script>
+</body>
+
+</html>

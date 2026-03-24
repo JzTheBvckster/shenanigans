@@ -56,6 +56,14 @@
             "dest": "/api/workspace/[...path].js"
         },
         {
+            "src": "/pm-workspace/tasks",
+            "dest": "/public/pm-workspace/tasks.html"
+        },
+        {
+            "src": "/app/users",
+            "dest": "/public/app/users.html"
+        },
+        {
             "src": "/app/employees",
             "dest": "/public/app/employees.html"
         },
@@ -70,6 +78,10 @@
         {
             "src": "/app/settings",
             "dest": "/public/app/settings.html"
+        },
+        {
+            "src": "/app/reports",
+            "dest": "/public/app/reports.html"
         },
         {
             "src": "/app",
@@ -104,12 +116,44 @@
             "dest": "/public/workspace/index.html"
         },
         {
+            "src": "/pm-workspace/team",
+            "dest": "/public/pm-workspace/team.html"
+        },
+        {
+            "src": "/pm-workspace/timesheet",
+            "dest": "/public/pm-workspace/timesheet.html"
+        },
+        {
+            "src": "/pm-workspace/requests",
+            "dest": "/public/pm-workspace/requests.html"
+        },
+        {
+            "src": "/pm-workspace/documents",
+            "dest": "/public/pm-workspace/documents.html"
+        },
+        {
+            "src": "/pm-workspace/profile",
+            "dest": "/public/pm-workspace/profile.html"
+        },
+        {
+            "src": "/pm-workspace",
+            "dest": "/public/pm-workspace/index.html"
+        },
+        {
             "src": "/assets/(.*)",
             "dest": "/public/assets/$1"
         },
         {
             "src": "/(.*)",
             "dest": "/public/$1"
+        }
+    ],
+    "headers": [
+        {
+            "source": "/assets/(.*)",
+            "headers": [
+                { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+            ]
         }
     ]
 }

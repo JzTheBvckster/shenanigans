@@ -32,8 +32,33 @@
         </main>
     </div>
 
-    <script src="/assets/shared.js"></script>
-    <script src="/assets/employee.js"></script>
+    <!-- Task Detail Modal (Employee) -->
+    <div class="modal-overlay hidden" id="empTaskModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="empTaskModalTitle">Task Details</h3>
+                <button class="modal-close" onclick="closeModal('empTaskModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="empTaskDetail"></div>
+                <!-- Task Comments -->
+                <div class="task-comments-section" id="empTaskCommentsSection">
+                    <label>Comments</label>
+                    <div class="task-comments-list" id="empTaskCommentsList"></div>
+                    <div class="task-comment-input">
+                        <textarea id="empTaskCommentText" rows="2" placeholder="Add a comment..." maxlength="2000"></textarea>
+                        <button class="btn-comment-send" onclick="postEmpTaskComment()">Send</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal-cancel" onclick="closeModal('empTaskModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/assets/shared.js?v=6"></script>
+    <script src="/assets/employee.js?v=6"></script>
     <script>
         ShenanigansApp.init({
             sidebar: 'employee',

@@ -6,6 +6,17 @@ var ShenanigansApp = (function () {
     app.currentUser = null;
     app.cachedData = {};
 
+    /* Predefined departments */
+    app.DEPARTMENTS = ['Engineering', 'Marketing', 'Finance', 'Human Resources', 'Operations'];
+
+    app.deptOptions = function (selected) {
+        var html = '<option value="">Select department…</option>';
+        app.DEPARTMENTS.forEach(function (d) {
+            html += '<option value="' + app.esc(d) + '"' + (d === selected ? ' selected' : '') + '>' + app.esc(d) + '</option>';
+        });
+        return html;
+    };
+
     /* ============================================================
        UTILITIES
        ============================================================ */
@@ -45,6 +56,7 @@ var ShenanigansApp = (function () {
 
     app.buildName = function (e) {
         if (e.fullName) return e.fullName;
+        if (e.displayName) return e.displayName;
         var first = e.firstName || '';
         var last = e.lastName || '';
         return (first + ' ' + last).trim() || 'Unknown';
@@ -237,6 +249,78 @@ var ShenanigansApp = (function () {
     };
 
     /* ============================================================
+       NOTIFICATIONS
+       ============================================================ */
+    var notifPollTimer = null;
+
+    function loadNotifications() {
+        app.fetchJson('/api/workspace/notifications', function (notifs) {
+            var unread = notifs.filter(function (n) { return !n.read; });
+            var badge = document.getElementById('notifBadge');
+            if (badge) {
+                if (unread.length > 0) {
+                    badge.textContent = unread.length > 99 ? '99+' : unread.length;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
+            var list = document.getElementById('notifDropdownList');
+            if (list) {
+                if (notifs.length === 0) {
+                    list.innerHTML = '<div class="notif-empty">No notifications</div>';
+                } else {
+                    list.innerHTML = notifs.slice(0, 20).map(function (n) {
+                        var time = n.createdAt ? app.formatTimestamp(n.createdAt) : '';
+                        var readClass = n.read ? ' notif-read' : '';
+                        return '<div class="notif-item' + readClass + '" onclick="handleNotifClick(\'' + app.esc(n.id) + '\',\'' + app.esc(n.link || '') + '\')">'
+                            + '<div class="notif-message">' + app.esc(n.message || '') + '</div>'
+                            + '<div class="notif-meta"><span>' + app.esc(n.senderName || '') + '</span><span>' + time + '</span></div>'
+                            + '</div>';
+                    }).join('');
+                }
+            }
+        }, function () {});
+    }
+
+    window.toggleNotifDropdown = function () {
+        var dd = document.getElementById('notifDropdown');
+        if (dd) dd.classList.toggle('hidden');
+    };
+
+    window.handleNotifClick = function (notifId, link) {
+        // Mark as read
+        app.fetchMutate('PUT', '/api/workspace/notifications', { id: notifId }, function () {
+            loadNotifications();
+        }, function () {});
+        // Navigate if link provided
+        if (link) window.location.href = link;
+        var dd = document.getElementById('notifDropdown');
+        if (dd) dd.classList.add('hidden');
+    };
+
+    window.markAllNotifsRead = function () {
+        app.fetchMutate('PUT', '/api/workspace/notifications', { markAllRead: true }, function () {
+            app.showToast('All notifications marked as read', 'success');
+            loadNotifications();
+        }, function () {});
+    };
+
+    function startNotifPolling() {
+        loadNotifications();
+        notifPollTimer = setInterval(loadNotifications, 60000); // Poll every 60s
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function (e) {
+        var wrap = document.getElementById('headerNotifWrap');
+        var dd = document.getElementById('notifDropdown');
+        if (wrap && dd && !wrap.contains(e.target)) {
+            dd.classList.add('hidden');
+        }
+    });
+
+    /* ============================================================
        LAYOUT BUILDERS
        ============================================================ */
     var SVG_ICONS = {
@@ -277,6 +361,17 @@ var ShenanigansApp = (function () {
             html += '<button class="header-primary-btn" id="headerAddBtn">' + (config.addBtnText || '+ Add') + '</button>';
         }
 
+        // Notification bell
+        html += '<div class="header-notif-wrap" id="headerNotifWrap">'
+            + '<button class="header-notif-btn" id="headerNotifBtn" onclick="toggleNotifDropdown()">'
+            + '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>'
+            + '<span class="notif-badge hidden" id="notifBadge">0</span>'
+            + '</button>'
+            + '<div class="notif-dropdown hidden" id="notifDropdown">'
+            + '<div class="notif-dropdown-header"><span>Notifications</span><button class="btn-tiny" onclick="markAllNotifsRead()">Mark all read</button></div>'
+            + '<div class="notif-dropdown-list" id="notifDropdownList"><div class="notif-empty">No notifications</div></div>'
+            + '</div></div>';
+
         html += '<div class="header-user">'
             + '<div class="header-user-info">'
             + '<div class="welcome-text" id="headerWelcome">Welcome</div>'
@@ -307,6 +402,8 @@ var ShenanigansApp = (function () {
             + menuBtn('/app/employees', 'employees', 'employees', 'Employees', activePage)
             + menuBtn('/app/projects', 'projects', 'projects', 'Projects', activePage)
             + menuBtn('/app/finance', 'finance', 'finance', 'Finance', activePage)
+            + menuBtn('/app/users', 'users', 'team', 'Users', activePage)
+            + menuBtn('/app/reports', 'reports', 'documents', 'Reports', activePage)
             + '</div>'
             + '<div class="menu-section">'
             + '<a href="/app/settings" class="menu-btn secondary' + (activePage === 'settings' ? ' active' : '') + '" data-page="settings">'
@@ -347,6 +444,29 @@ var ShenanigansApp = (function () {
         return html;
     }
 
+    function buildPMSidebarHTML(activePage) {
+        var html = '<button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">&lsaquo;</button>'
+            + '<div class="menu-header">PM WORKSPACE</div>'
+            + '<div class="menu-section">'
+            + menuBtn('/pm-workspace', 'pmProjects', 'projects', 'Managed Projects', activePage)
+            + menuBtn('/pm-workspace/tasks', 'pmTasks', 'tasks', 'Task Board', activePage)
+            + menuBtn('/pm-workspace/team', 'pmTeam', 'team', 'My Team', activePage)
+            + menuBtn('/pm-workspace/timesheet', 'pmTimesheet', 'timesheet', 'Team Timesheets', activePage)
+            + menuBtn('/pm-workspace/requests', 'pmRequests', 'requests', 'Leave Requests', activePage)
+            + menuBtn('/pm-workspace/documents', 'pmDocuments', 'documents', 'Documents', activePage)
+            + menuBtn('/pm-workspace/profile', 'pmProfile', 'profile', 'My Profile', activePage)
+            + '</div>'
+            + '<div class="menu-section">'
+            + '<div class="menu-header">PORTAL</div>'
+            + '<a href="/app" class="menu-btn secondary">' + svgIcon('dashboard')
+            + '<span class="menu-btn-text">&larr; Main Portal</span></a>'
+            + '</div>'
+            + '<div class="sidebar-spacer"></div>'
+            + buildSystemInfoCard();
+
+        return html;
+    }
+
     function buildSystemInfoCard() {
         return '<div class="system-info-card">'
             + '<div class="title">System Status</div>'
@@ -366,6 +486,134 @@ var ShenanigansApp = (function () {
             + '<button class="btn-modal-delete" id="confirmDeleteBtn">Delete</button>'
             + '</div></div></div>';
     }
+
+    /* ============================================================
+       DEPARTMENT PROMPT (employee / PM workspaces)
+       ============================================================ */
+    function checkDepartment() {
+        if (sessionStorage.getItem('deptPromptDone')) return;
+        app.fetchJson('/api/employees', function (employees) {
+            if (!app.currentUser) return;
+            var uid = (app.currentUser.uid || '').toLowerCase();
+            var email = (app.currentUser.email || '').toLowerCase();
+            var name = (app.currentUser.displayName || '').toLowerCase();
+            var me = null;
+            for (var i = 0; i < employees.length; i++) {
+                var e = employees[i];
+                var eId = (e.id || '').toLowerCase();
+                var eEmail = (e.email || '').toLowerCase();
+                var eName = ((e.fullName || ((e.firstName || '') + ' ' + (e.lastName || '')).trim()) || '').toLowerCase();
+                if ((uid && eId === uid) || (email && eEmail === email) || (name && eName === name)) {
+                    me = e;
+                    break;
+                }
+            }
+            if (!me || (me.department && me.department.trim())) {
+                sessionStorage.setItem('deptPromptDone', '1');
+                return;
+            }
+            // Show department prompt modal
+            if (!document.getElementById('deptPromptModal')) {
+                document.body.insertAdjacentHTML('beforeend',
+                    '<div class="modal-overlay" id="deptPromptModal">'
+                    + '<div class="modal-card modal-card-sm">'
+                    + '<div class="modal-header"><h3>Department Required</h3></div>'
+                    + '<div class="modal-body">'
+                    + '<p style="margin-bottom:12px;color:var(--ink-sub)">Your department is not set. Please enter it to continue.</p>'
+                    + '<div class="modal-field"><label>Department *</label>'
+                    + '<select id="deptPromptInput">' + app.deptOptions('') + '</select></div>'
+                    + '<div class="modal-notice" id="deptPromptNotice"></div>'
+                    + '</div>'
+                    + '<div class="modal-footer">'
+                    + '<button class="btn-modal-save" id="deptPromptSaveBtn" onclick="saveDeptPrompt()">Save Department</button>'
+                    + '</div></div></div>');
+            } else {
+                document.getElementById('deptPromptModal').classList.remove('hidden');
+            }
+            window._deptPromptEmpId = me.id;
+        });
+    }
+
+    window.saveDeptPrompt = function () {
+        var input = document.getElementById('deptPromptInput');
+        var val = (input ? input.value.trim() : '');
+        if (!val) {
+            app.showModalNotice('deptPromptNotice', 'Department is required.', 'error');
+            return;
+        }
+        var id = window._deptPromptEmpId;
+        if (!id) return;
+        var btn = document.getElementById('deptPromptSaveBtn');
+        if (btn) btn.disabled = true;
+        app.fetchMutate('PUT', '/api/employees/' + encodeURIComponent(id), { department: val }, function () {
+            if (btn) btn.disabled = false;
+            sessionStorage.setItem('deptPromptDone', '1');
+            app.closeModal('deptPromptModal');
+            app.showToast('Department saved', 'success');
+            // Clear cached data so pages reload with updated dept
+            delete app.cachedData.empEmployees;
+            delete app.cachedData.pmEmployees;
+        }, function (err) {
+            if (btn) btn.disabled = false;
+            app.showModalNotice('deptPromptNotice', err || 'Failed to save department.', 'error');
+        });
+    };
+
+    /* ============================================================
+       QUICK DEPARTMENT ASSIGNMENT (admin / PM / employee views)
+       ============================================================ */
+    window.openQuickDeptModal = function (empId, empName) {
+        if (!document.getElementById('quickDeptModal')) {
+            document.body.insertAdjacentHTML('beforeend',
+                '<div class="modal-overlay hidden" id="quickDeptModal">'
+                + '<div class="modal-card modal-card-sm">'
+                + '<div class="modal-header"><h3 id="quickDeptTitle">Set Department</h3>'
+                + '<button class="modal-close" onclick="closeModal(\'quickDeptModal\')">&times;</button></div>'
+                + '<div class="modal-body">'
+                + '<p id="quickDeptDesc" style="margin-bottom:12px;color:var(--ink-sub)"></p>'
+                + '<input type="hidden" id="quickDeptEmpId">'
+                + '<div class="modal-field"><label>Department *</label>'
+                + '<select id="quickDeptInput">' + app.deptOptions('') + '</select></div>'
+                + '<div class="modal-notice" id="quickDeptNotice"></div>'
+                + '</div>'
+                + '<div class="modal-footer">'
+                + '<button class="btn-modal-cancel" onclick="closeModal(\'quickDeptModal\')">Cancel</button>'
+                + '<button class="btn-modal-save" id="quickDeptSaveBtn" onclick="saveQuickDept()">Save</button>'
+                + '</div></div></div>');
+        }
+        document.getElementById('quickDeptEmpId').value = empId || '';
+        document.getElementById('quickDeptDesc').textContent = 'Assign a department to ' + (empName || 'this employee') + '.';
+        document.getElementById('quickDeptInput').value = '';
+        app.clearModalNotice('quickDeptNotice');
+        document.getElementById('quickDeptModal').classList.remove('hidden');
+    };
+
+    window.saveQuickDept = function () {
+        var val = (document.getElementById('quickDeptInput').value || '').trim();
+        if (!val) {
+            app.showModalNotice('quickDeptNotice', 'Department is required.', 'error');
+            return;
+        }
+        var id = document.getElementById('quickDeptEmpId').value;
+        if (!id) return;
+        var btn = document.getElementById('quickDeptSaveBtn');
+        if (btn) btn.disabled = true;
+        app.fetchMutate('PUT', '/api/employees/' + encodeURIComponent(id), { department: val }, function () {
+            if (btn) btn.disabled = false;
+            app.closeModal('quickDeptModal');
+            app.showToast('Department assigned', 'success');
+            // Refresh the current page's data
+            delete app.cachedData.employees;
+            delete app.cachedData.empEmployees;
+            delete app.cachedData.pmEmployees;
+            if (typeof loadEmployees === 'function') loadEmployees();
+            if (typeof loadPMTeam === 'function') loadPMTeam();
+            if (typeof loadEmpTeam === 'function') loadEmpTeam();
+        }, function (err) {
+            if (btn) btn.disabled = false;
+            app.showModalNotice('quickDeptNotice', err || 'Failed to assign department.', 'error');
+        });
+    };
 
     /* ============================================================
        AUTH CHECK
@@ -418,6 +666,9 @@ var ShenanigansApp = (function () {
         if (config.sidebar === 'employee') {
             document.getElementById('appShell').classList.add('employee-theme');
             if (sidebar) sidebar.innerHTML = buildEmployeeSidebarHTML(config.activePage);
+        } else if (config.sidebar === 'pm') {
+            document.getElementById('appShell').classList.add('pm-theme');
+            if (sidebar) sidebar.innerHTML = buildPMSidebarHTML(config.activePage);
         } else {
             if (sidebar) sidebar.innerHTML = buildAdminSidebarHTML(config.activePage);
         }
@@ -433,6 +684,10 @@ var ShenanigansApp = (function () {
         checkSystemHealth();
         checkAuth(function () {
             applyUserInfo(config.sidebar);
+            startNotifPolling();
+            if (config.sidebar === 'employee' || config.sidebar === 'pm') {
+                checkDepartment();
+            }
             if (config.onReady) config.onReady();
         });
     };

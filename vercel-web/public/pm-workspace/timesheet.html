@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documents — Shenanigans</title>
+    <title>Team Timesheets — Shenanigans</title>
     <link rel="stylesheet" href="/assets/styles.css">
 </head>
 
@@ -14,24 +14,26 @@
         <aside class="app-sidebar" id="appSidebar"></aside>
 
         <main class="app-content" id="appContent">
-            <section class="page-view" id="pageEmpDocuments">
+            <section class="page-view" id="pagePmTimesheet">
                 <div class="page-header">
-                    <h2>Documents</h2>
-                    <p>Quick access to employee and project documents</p>
+                    <h2>Team Timesheets</h2>
+                    <p>Review time entries from your team members</p>
                 </div>
-                <div class="stats-row" id="empDocsStats"></div>
+                <div class="stats-row" id="pmTimesheetStats"></div>
                 <div class="content-grid">
                     <div class="card">
                         <div class="card-header">
-                            <h3>Company Documents</h3>
+                            <h3>Time Entries</h3>
                         </div>
-                        <div id="empCompanyDocs"></div>
+                        <div id="pmTimeEntries">
+                            <div class="loading-spinner visible"></div>
+                        </div>
                     </div>
                     <div class="card">
                         <div class="card-header">
-                            <h3>Project Briefs</h3>
+                            <h3>Team Summary</h3>
                         </div>
-                        <div id="empProjectDocs"></div>
+                        <div id="pmTeamSummary"></div>
                     </div>
                 </div>
             </section>
@@ -39,13 +41,13 @@
     </div>
 
     <script src="/assets/shared.js?v=6"></script>
-    <script src="/assets/employee.js?v=6"></script>
+    <script src="/assets/pm.js?v=6"></script>
     <script>
         ShenanigansApp.init({
-            sidebar: 'employee',
-            activePage: 'empDocuments',
-            subtitle: 'Employee Workspace',
-            onReady: function () { loadEmpDocuments(); }
+            sidebar: 'pm',
+            activePage: 'pmTimesheet',
+            subtitle: 'PM Workspace',
+            onReady: function () { loadPMTimesheet(); }
         });
     </script>
 </body>
