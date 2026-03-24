@@ -52,9 +52,10 @@ function parseCookie(cookieHeader) {
 
 function setSessionCookie(res, sessionId) {
     const maxAge = Math.floor(SESSION_TTL_MS / 1000);
+    const isSecure = String(res.req.headers["x-forwarded-proto"] || "").includes("https");
     res.setHeader(
         "Set-Cookie",
-        `${COOKIE_NAME}=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`
+        `${COOKIE_NAME}=${sessionId}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${isSecure ? "; Secure" : ""}`
     );
 }
 

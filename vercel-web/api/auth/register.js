@@ -12,7 +12,7 @@ module.exports = withSecurity(async function handler(req, res) {
     return res.status(405).json({ ok: false, error: "Method not allowed." });
   }
 
-  const { displayName, email, password, role } = req.body || {};
+  const { displayName, email, password, role, department } = req.body || {};
   if (!displayName || !email || !password) {
     return res.status(400).json({
       ok: false,
@@ -21,6 +21,13 @@ module.exports = withSecurity(async function handler(req, res) {
   }
 
   const normalizedRole = normalizeRole(role);
+  const normalizedDepartment = normalizeDepartment(department);
+  if (normalizedRole !== "MANAGING_DIRECTOR" && !normalizedDepartment) {
+    return res.status(400).json({
+      ok: false,
+      error: "Department is required for Employee and Project Manager accounts.",
+    });
+  }
 
   try {
     const authResp = await restAuth.signUp(email.trim(), password);
@@ -31,6 +38,9 @@ module.exports = withSecurity(async function handler(req, res) {
       displayName: displayName.trim(),
       role: normalizedRole,
       mdApproved: normalizedRole === "MANAGING_DIRECTOR",
+      pmApproved: normalizedRole === "MANAGING_DIRECTOR" || normalizedRole === "PROJECT_MANAGER",
+      department: normalizedDepartment,
+      createdAt: Date.now(),
     };
     await db.collection("users").doc(authResp.localId).set(user);
 
@@ -71,12 +81,18 @@ function normalizeRole(raw) {
   return "EMPLOYEE";
 }
 
+function normalizeDepartment(raw) {
+  return String(raw || "").trim();
+}
+
 function toUserPayload(u) {
   return {
     uid: u.uid || "",
     email: u.email || "",
     displayName: u.displayName || "",
     role: u.role || "",
+    department: u.department || "",
     mdApproved: !!u.mdApproved,
+    pmApproved: !!u.pmApproved,
   };
 }

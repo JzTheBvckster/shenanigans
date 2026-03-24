@@ -64,6 +64,24 @@
                         <div class="loading-spinner visible"></div>
                     </div>
                 </div>
+
+                <div class="card" style="margin-top:16px">
+                    <div class="card-header">
+                        <h3>Approval Audit Trail</h3>
+                        <div class="card-header-actions">
+                            <select id="approvalAuditFilter" onchange="filterApprovalAuditLogs()">
+                                <option value="">All Approval Events</option>
+                                <option value="MD_APPROVAL">MD Single Approvals</option>
+                                <option value="PM_APPROVAL">PM Single Approvals</option>
+                                <option value="BULK_MD_APPROVAL">MD Bulk Approvals</option>
+                                <option value="BULK_PM_APPROVAL">PM Bulk Approvals</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="approvalAuditList">
+                        <div class="loading-spinner visible"></div>
+                    </div>
+                </div>
             </section>
         </main>
     </div>

@@ -45,6 +45,14 @@ module.exports = withSecurity(async function handler(req, res) {
             });
         }
 
+        // Employees require a second approval by their department PM.
+        if (user.role === "EMPLOYEE" && user.pmApproved !== true) {
+            return res.status(403).json({
+                ok: false,
+                error: "Your account is pending Project Manager approval for your department.",
+            });
+        }
+
         const sessionId = await createSession(user, authResp.idToken, authResp.refreshToken);
         setSessionCookie(res, sessionId);
 
@@ -71,6 +79,8 @@ function toUserPayload(u) {
         email: u.email || "",
         displayName: u.displayName || "",
         role: u.role || "",
+        department: u.department || "",
         mdApproved: !!u.mdApproved,
+        pmApproved: !!u.pmApproved,
     };
 }

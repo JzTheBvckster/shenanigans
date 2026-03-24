@@ -656,7 +656,70 @@
     /* ============================================================
        MY TEAM
        ============================================================ */
+    var pmPendingApprovalsCache = [];
+
+    function loadPMDepartmentApprovals() {
+        var listEl = document.getElementById('pmDeptApprovalsList');
+        if (!listEl) return;
+
+        app.fetchJson('/api/employees?pendingUsers=true', function (users) {
+            pmPendingApprovalsCache = (users || []).filter(function (u) {
+                return u && u.role === 'EMPLOYEE' && u.mdApproved === true && u.pmApproved !== true;
+            });
+
+            if (!pmPendingApprovalsCache.length) {
+                listEl.innerHTML = '<div class="empty-state">No employees are waiting for your approval.</div>';
+                return;
+            }
+
+            listEl.innerHTML = pmPendingApprovalsCache.map(function (u) {
+                var name = app.buildName(u);
+                var uid = app.esc(u.id || '');
+                return '<div class="user-row">'
+                    + '<div class="user-row-avatar">' + app.initials(name) + '</div>'
+                    + '<div class="user-row-info"><div class="user-row-name">' + app.esc(name) + '</div>'
+                    + '<div class="user-row-email">' + app.esc(u.email || '') + '</div></div>'
+                    + '<span class="badge badge-muted">' + app.esc(u.department || 'No Department') + '</span>'
+                    + '<div class="user-row-actions">'
+                    + '<button class="btn-approve-sm" onclick="approvePMDepartmentEmployee(\'' + uid + '\')">Approve</button>'
+                    + '</div></div>';
+            }).join('');
+        }, function (err) {
+            pmPendingApprovalsCache = [];
+            listEl.innerHTML = '<div class="empty-state">Failed to load pending approvals.</div>';
+            if (err) app.showToast(err, 'error');
+        });
+    }
+
+    window.approvePMDepartmentEmployee = function (id) {
+        if (!id) return;
+        app.fetchMutate('PUT', '/api/employees/' + encodeURIComponent(id) + '?approveUser=true', {}, function () {
+            app.showToast('Employee approved', 'success');
+            loadPMDepartmentApprovals();
+        }, function (err) {
+            app.showToast(err || 'Approval failed', 'error');
+        });
+    };
+
+    window.approveAllPMDepartmentEmployees = function () {
+        var ids = (pmPendingApprovalsCache || []).map(function (u) { return u.id; }).filter(Boolean);
+        if (!ids.length) {
+            app.showToast('No pending employees to approve.', 'warning');
+            return;
+        }
+        app.showConfirm('Approve ' + ids.length + ' employee accounts in your department?', function () {
+            app.fetchMutate('PUT', '/api/employees?pmApproveUsers=true', { userIds: ids }, function (resp) {
+                var count = resp && resp.approvedCount ? resp.approvedCount : ids.length;
+                app.showToast(count + ' employee accounts approved', 'success');
+                loadPMDepartmentApprovals();
+            }, function (err) {
+                app.showToast(err || 'Bulk approval failed', 'error');
+            });
+        });
+    };
+
     window.loadPMTeam = function () {
+        loadPMDepartmentApprovals();
         ensurePMData(function (employees, projects) {
             var managed = findManagedProjects(projects);
             var team = findTeamMembers(employees, managed);

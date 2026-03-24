@@ -20,6 +20,15 @@
                     <p>Team members across your managed projects</p>
                 </div>
                 <div class="stats-row" id="pmTeamStats"></div>
+                <div class="card" style="margin-bottom:16px;">
+                    <div class="card-header">
+                        <h3>Department Employee Approvals</h3>
+                        <button class="btn-secondary" onclick="approveAllPMDepartmentEmployees()">Approve All</button>
+                    </div>
+                    <div id="pmDeptApprovalsList">
+                        <div class="loading-spinner visible"></div>
+                    </div>
+                </div>
                 <div class="card">
                     <div class="card-header">
                         <h3>Team Members</h3>

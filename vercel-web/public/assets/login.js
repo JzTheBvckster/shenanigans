@@ -20,6 +20,8 @@
     document.getElementById('loginPassword').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
     var regRole = document.getElementById('regRole');
     if (regRole) regRole.addEventListener('keydown', function (e) { if (e.key === 'Enter') doRegister(); });
+    if (regRole) regRole.addEventListener('change', syncDepartmentRequirement);
+    syncDepartmentRequirement();
 
     function showForm(name) {
         document.getElementById('loginForm').classList.toggle('hidden', name !== 'login');
@@ -50,6 +52,15 @@
     function setButtonDisabled(id, disabled) {
         var btn = document.getElementById(id);
         if (btn) btn.disabled = disabled;
+    }
+
+    function syncDepartmentRequirement() {
+        var roleEl = document.getElementById('regRole');
+        var deptEl = document.getElementById('regDepartment');
+        if (!roleEl || !deptEl) return;
+        var needsDepartment = roleEl.value && roleEl.value !== 'Managing Director';
+        deptEl.disabled = !needsDepartment;
+        if (!needsDepartment) deptEl.value = '';
     }
 
     // ---- Session probe ----
@@ -108,11 +119,16 @@
         var email = document.getElementById('regEmail').value.trim();
         var password = document.getElementById('regPassword').value;
         var role = document.getElementById('regRole').value;
+        var department = document.getElementById('regDepartment').value;
 
         if (!name) { showNotice('registerNotice', 'Please enter your full name.', 'error'); return; }
         if (!email) { showNotice('registerNotice', 'Please enter your email address.', 'error'); return; }
         if (!password || password.length < 6) { showNotice('registerNotice', 'Password must be at least 6 characters.', 'error'); return; }
         if (!role) { showNotice('registerNotice', 'Please select a role.', 'error'); return; }
+        if (role !== 'Managing Director' && !department) {
+            showNotice('registerNotice', 'Please select a department.', 'error');
+            return;
+        }
 
         setSpinner('registerSpinner', true);
         setButtonDisabled('registerBtn', true);
@@ -121,7 +137,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify({ displayName: name, email: email, password: password, role: role })
+            body: JSON.stringify({ displayName: name, email: email, password: password, role: role, department: department })
         })
             .then(function (r) { return r.json(); })
             .then(function (body) {
@@ -170,16 +186,16 @@
             });
     };
 
-    // ---- Password toggle ----
+    // ---- Password toggle (obscureText / !obscureText pattern) ----
     window.togglePasswordVisibility = function (inputId, btn) {
         var input = document.getElementById(inputId);
         if (!input) return;
-        if (input.type === 'password') {
-            input.type = 'text';
-            btn.textContent = 'Hide';
-        } else {
-            input.type = 'password';
-            btn.textContent = 'Show';
-        }
+
+        var obscureText = input.dataset.obscureText !== 'false';
+        obscureText = !obscureText;
+        input.dataset.obscureText = obscureText ? 'true' : 'false';
+
+        input.type = obscureText ? 'password' : 'text';
+        if (btn) btn.textContent = obscureText ? 'Show' : 'Hide';
     };
 })();

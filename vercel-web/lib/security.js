@@ -25,6 +25,27 @@ function withSecurity(handler, options = {}) {
     const { maxRequests, windowMs } = { ...DEFAULT_OPTIONS, ...options };
 
     return async function securedHandler(req, res) {
+        res.setHeader("X-Content-Type-Options", "nosniff");
+        res.setHeader("X-Frame-Options", "DENY");
+        res.setHeader("Referrer-Policy", "no-referrer");
+        res.setHeader("Cache-Control", "no-store");
+
+        if (req.method !== "GET" && req.method !== "HEAD") {
+            const contentType = String(req.headers["content-type"] || "").toLowerCase();
+            if (contentType && !contentType.includes("application/json")) {
+                return res.status(415).json({ ok: false, error: "Unsupported content type." });
+            }
+
+            const host = String(req.headers.host || "").toLowerCase();
+            const origin = String(req.headers.origin || "").toLowerCase();
+            const referer = String(req.headers.referer || "").toLowerCase();
+            const originHost = extractHost(origin);
+            const refererHost = extractHost(referer);
+            if ((originHost && originHost !== host) || (!originHost && refererHost && refererHost !== host)) {
+                return res.status(403).json({ ok: false, error: "Cross-site request blocked." });
+            }
+        }
+
         // --- Rate limiting ---
         const key = getClientKey(req);
         const result = checkLimit(key, maxRequests, windowMs);
@@ -57,3 +78,12 @@ function withSecurity(handler, options = {}) {
 }
 
 module.exports = { withSecurity };
+
+function extractHost(value) {
+    if (!value) return "";
+    try {
+        return new URL(value).host.toLowerCase();
+    } catch (_) {
+        return "";
+    }
+}

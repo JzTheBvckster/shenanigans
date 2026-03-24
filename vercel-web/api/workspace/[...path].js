@@ -1,6 +1,13 @@
 const { db } = require("../../lib/firebase");
 const { requireSession } = require("../../lib/session");
 const { withSecurity } = require("../../lib/security");
+const {
+    getActorContext,
+    canAccessDepartment,
+    isManagingDirector,
+    isEmployee,
+    isProjectManager,
+} = require("../../lib/access");
 
 /**
  * Consolidated workspace API handler.
@@ -9,6 +16,7 @@ const { withSecurity } = require("../../lib/security");
 module.exports = withSecurity(async function handler(req, res) {
     const session = await requireSession(req, res);
     if (!session) return;
+    const actor = await getActorContext(session);
 
     // Parse the resource from the URL path
     const url = req.url || "";
@@ -17,30 +25,58 @@ module.exports = withSecurity(async function handler(req, res) {
 
     switch (resource) {
         case "timesheets":
-            return handleTimesheets(req, res, session);
+            return handleTimesheets(req, res, session, actor);
         case "leave-requests":
-            return handleLeaveRequests(req, res, session);
+            return handleLeaveRequests(req, res, session, actor);
         case "documents":
-            return handleDocuments(req, res, session);
+            return handleDocuments(req, res, session, actor);
         case "tasks":
-            return handleTasks(req, res, session);
+            return handleTasks(req, res, session, actor);
         case "comments":
-            return handleComments(req, res, session);
+            return handleComments(req, res, session, actor);
         case "activity-logs":
-            return handleActivityLogs(req, res, session);
+            return handleActivityLogs(req, res, session, actor);
         case "notifications":
-            return handleNotifications(req, res, session);
+            return handleNotifications(req, res, session, actor);
         case "milestones":
-            return handleMilestones(req, res, session);
+            return handleMilestones(req, res, session, actor);
         default:
             return res.status(404).json({ ok: false, error: "Unknown workspace resource." });
     }
 }, { maxRequests: 30 });
 
+async function getProjectById(projectId) {
+    if (!projectId) return null;
+    const doc = await db.collection("projects").doc(String(projectId)).get();
+    if (!doc.exists) return null;
+    return { id: doc.id, ...doc.data() };
+}
+
+async function ensureProjectAccess(res, actor, projectId) {
+    const project = await getProjectById(projectId);
+    if (!project) {
+        res.status(404).json({ ok: false, error: "Project not found." });
+        return null;
+    }
+    if (!isManagingDirector(actor) && !canAccessDepartment(actor, project.department)) {
+        res.status(403).json({ ok: false, error: "Access denied for this department." });
+        return null;
+    }
+    return project;
+}
+
+async function getDepartmentEmployeeIds(department) {
+    if (!department) return new Set();
+    const snap = await db.collection("employees").where("department", "==", department).get();
+    const ids = new Set();
+    snap.docs.forEach((d) => ids.add(d.id));
+    return ids;
+}
+
 // ---------------------------------------------------------------------------
 // Timesheets
 // ---------------------------------------------------------------------------
-async function handleTimesheets(req, res, session) {
+async function handleTimesheets(req, res, session, actor) {
     const method = req.method;
     const uid = session.user.uid;
     const COLLECTION = "timesheets";
@@ -48,13 +84,16 @@ async function handleTimesheets(req, res, session) {
     switch (method) {
         case "GET": {
             let query = db.collection(COLLECTION);
-            if (session.user.role === "EMPLOYEE") {
+            if (isEmployee(actor)) {
                 query = query.where("employeeId", "==", uid);
             } else if (req.query && req.query.employeeId) {
                 query = query.where("employeeId", "==", req.query.employeeId);
             }
             const snapshot = await query.orderBy("date", "desc").get();
-            const entries = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+            let entries = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+            if (!isManagingDirector(actor) && !isEmployee(actor)) {
+                entries = entries.filter((entry) => canAccessDepartment(actor, entry.department));
+            }
             return res.status(200).json({ ok: true, data: entries });
         }
 
@@ -67,12 +106,15 @@ async function handleTimesheets(req, res, session) {
             if (isNaN(hours) || hours <= 0 || hours > 24) {
                 return res.status(400).json({ ok: false, error: "Hours must be between 0 and 24." });
             }
+            const project = await ensureProjectAccess(res, actor, body.projectId);
+            if (!project) return;
             const now = Date.now();
             const entry = {
                 employeeId: uid,
                 employeeName: session.user.displayName || "",
                 projectId: body.projectId,
                 projectName: body.projectName || "",
+                department: project.department || "",
                 date: Number(body.date),
                 hours: hours,
                 description: body.description || "",
@@ -88,9 +130,14 @@ async function handleTimesheets(req, res, session) {
             if (!entryId) {
                 return res.status(400).json({ ok: false, error: "Entry ID is required." });
             }
-            if (session.user.role === "EMPLOYEE") {
+            if (isEmployee(actor)) {
                 const doc = await db.collection(COLLECTION).doc(entryId).get();
                 if (!doc.exists || doc.data().employeeId !== uid) {
+                    return res.status(403).json({ ok: false, error: "Access denied." });
+                }
+            } else if (!isManagingDirector(actor)) {
+                const doc = await db.collection(COLLECTION).doc(entryId).get();
+                if (!doc.exists || !canAccessDepartment(actor, (doc.data() || {}).department)) {
                     return res.status(403).json({ ok: false, error: "Access denied." });
                 }
             }
@@ -107,7 +154,7 @@ async function handleTimesheets(req, res, session) {
 // ---------------------------------------------------------------------------
 // Leave Requests
 // ---------------------------------------------------------------------------
-async function handleLeaveRequests(req, res, session) {
+async function handleLeaveRequests(req, res, session, actor) {
     const method = req.method;
     const uid = session.user.uid;
     const COLLECTION = "leave_requests";
@@ -115,11 +162,15 @@ async function handleLeaveRequests(req, res, session) {
     switch (method) {
         case "GET": {
             let query = db.collection(COLLECTION);
-            if (session.user.role === "EMPLOYEE") {
+            if (isEmployee(actor)) {
                 query = query.where("employeeId", "==", uid);
             }
             const snapshot = await query.orderBy("createdAt", "desc").get();
-            const requests = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+            let requests = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+            if (!isManagingDirector(actor) && !isEmployee(actor)) {
+                const ids = await getDepartmentEmployeeIds(actor.department);
+                requests = requests.filter((r) => ids.has(r.employeeId));
+            }
             return res.status(200).json({ ok: true, data: requests });
         }
 
@@ -136,6 +187,7 @@ async function handleLeaveRequests(req, res, session) {
             const request = {
                 employeeId: uid,
                 employeeName: session.user.displayName || "",
+                department: actor.department || "",
                 type: body.type,
                 startDate: Number(body.startDate),
                 endDate: Number(body.endDate),
@@ -151,7 +203,7 @@ async function handleLeaveRequests(req, res, session) {
         }
 
         case "PUT": {
-            if (session.user.role === "EMPLOYEE") {
+            if (isEmployee(actor)) {
                 return res.status(403).json({ ok: false, error: "Only managers can approve or reject requests." });
             }
             const body = req.body || {};
@@ -162,6 +214,17 @@ async function handleLeaveRequests(req, res, session) {
             if (!validStatuses.includes(body.status)) {
                 return res.status(400).json({ ok: false, error: "Status must be APPROVED or REJECTED." });
             }
+            if (!isManagingDirector(actor)) {
+                const reqDoc = await db.collection(COLLECTION).doc(body.id).get();
+                if (!reqDoc.exists) {
+                    return res.status(404).json({ ok: false, error: "Request not found." });
+                }
+                const reqData = reqDoc.data() || {};
+                if (!canAccessDepartment(actor, reqData.department)) {
+                    return res.status(403).json({ ok: false, error: "Access denied for this department." });
+                }
+            }
+
             const now = Date.now();
             await db.collection(COLLECTION).doc(body.id).update({
                 status: body.status,
@@ -181,19 +244,25 @@ async function handleLeaveRequests(req, res, session) {
 // ---------------------------------------------------------------------------
 // Documents
 // ---------------------------------------------------------------------------
-async function handleDocuments(req, res, session) {
+async function handleDocuments(req, res, session, actor) {
     const method = req.method;
     const COLLECTION = "documents";
 
     switch (method) {
         case "GET": {
             const snapshot = await db.collection(COLLECTION).orderBy("createdAt", "desc").get();
-            const documents = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+            let documents = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+            if (!isManagingDirector(actor)) {
+                documents = documents.filter((doc) => {
+                    if (doc.department) return canAccessDepartment(actor, doc.department);
+                    return true;
+                });
+            }
             return res.status(200).json({ ok: true, data: documents });
         }
 
         case "POST": {
-            if (session.user.role === "EMPLOYEE") {
+            if (isEmployee(actor)) {
                 return res.status(403).json({ ok: false, error: "Only managers can add documents." });
             }
             const body = req.body || {};
@@ -204,12 +273,17 @@ async function handleDocuments(req, res, session) {
             if (!validCategories.includes(body.category)) {
                 return res.status(400).json({ ok: false, error: "Category must be POLICY, TEMPLATE, or PROJECT_BRIEF." });
             }
+            if (!isManagingDirector(actor) && body.department && !canAccessDepartment(actor, body.department)) {
+                return res.status(403).json({ ok: false, error: "Access denied for this department." });
+            }
+
             const now = Date.now();
             const doc = {
                 name: body.name,
                 description: body.description || "",
                 category: body.category,
                 relatedProjectId: body.relatedProjectId || null,
+                department: body.department || actor.department || "",
                 uploadedBy: session.user.displayName || session.user.email,
                 createdAt: now,
                 updatedAt: now
@@ -227,7 +301,7 @@ async function handleDocuments(req, res, session) {
 // ---------------------------------------------------------------------------
 // Tasks
 // ---------------------------------------------------------------------------
-async function handleTasks(req, res, session) {
+async function handleTasks(req, res, session, actor) {
     const method = req.method;
     const uid = session.user.uid;
     const role = session.user.role;
@@ -251,7 +325,10 @@ async function handleTasks(req, res, session) {
             }
 
             const snapshot = await firestoreQuery.get();
-            const tasks = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+            let tasks = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+            if (!isManagingDirector(actor)) {
+                tasks = tasks.filter((t) => canAccessDepartment(actor, t.department));
+            }
             tasks.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
             return res.status(200).json({ ok: true, data: tasks });
         }
@@ -264,6 +341,9 @@ async function handleTasks(req, res, session) {
             if (!body.title) {
                 return res.status(400).json({ ok: false, error: "Task title is required." });
             }
+            const project = await ensureProjectAccess(res, actor, body.projectId);
+            if (!project) return;
+
             const validStatuses = ["TODO", "IN_PROGRESS", "UNDER_REVIEW", "COMPLETED"];
             const validPriorities = ["LOW", "MEDIUM", "HIGH"];
             const now = Date.now();
@@ -277,6 +357,7 @@ async function handleTasks(req, res, session) {
                 status: validStatuses.includes(body.status) ? body.status : "TODO",
                 priority: validPriorities.includes(body.priority) ? body.priority : "MEDIUM",
                 dueDate: body.dueDate ? Number(body.dueDate) : null,
+                department: project.department || "",
                 createdBy: uid,
                 createdByName: session.user.displayName || session.user.email || "",
                 createdAt: now,
@@ -296,6 +377,9 @@ async function handleTasks(req, res, session) {
             }
 
             const existing = doc.data();
+            if (!isManagingDirector(actor) && !canAccessDepartment(actor, existing.department)) {
+                return res.status(403).json({ ok: false, error: "Access denied for this department." });
+            }
             // Employees can only update status of their own tasks
             if (role === "EMPLOYEE") {
                 if (existing.assignedTo !== uid) {
@@ -321,7 +405,12 @@ async function handleTasks(req, res, session) {
             if (body.status !== undefined) update.status = body.status;
             if (body.priority !== undefined) update.priority = body.priority;
             if (body.dueDate !== undefined) update.dueDate = body.dueDate ? Number(body.dueDate) : null;
-            if (body.projectId !== undefined) update.projectId = body.projectId;
+            if (body.projectId !== undefined) {
+                const project = await ensureProjectAccess(res, actor, body.projectId);
+                if (!project) return;
+                update.projectId = body.projectId;
+                update.department = project.department || existing.department || "";
+            }
             if (body.projectName !== undefined) update.projectName = body.projectName;
 
             await db.collection(COLLECTION).doc(taskId).update(update);
@@ -335,6 +424,13 @@ async function handleTasks(req, res, session) {
             if (!taskId) {
                 return res.status(400).json({ ok: false, error: "Task ID is required." });
             }
+            if (!isManagingDirector(actor)) {
+                const doc = await db.collection(COLLECTION).doc(taskId).get();
+                if (!doc.exists || !canAccessDepartment(actor, (doc.data() || {}).department)) {
+                    return res.status(403).json({ ok: false, error: "Access denied for this department." });
+                }
+            }
+
             await db.collection(COLLECTION).doc(taskId).delete();
             return res.status(200).json({ ok: true });
         }
@@ -348,7 +444,7 @@ async function handleTasks(req, res, session) {
 // ---------------------------------------------------------------------------
 // Comments (task comments)
 // ---------------------------------------------------------------------------
-async function handleComments(req, res, session) {
+async function handleComments(req, res, session, actor) {
     const method = req.method;
     const COLLECTION = "comments";
 
@@ -357,6 +453,13 @@ async function handleComments(req, res, session) {
             const taskId = req.query && req.query.taskId;
             if (!taskId) {
                 return res.status(400).json({ ok: false, error: "taskId query parameter is required." });
+            }
+            const taskDoc = await db.collection("tasks").doc(taskId).get();
+            if (!taskDoc.exists) {
+                return res.status(404).json({ ok: false, error: "Task not found." });
+            }
+            if (!isManagingDirector(actor) && !canAccessDepartment(actor, (taskDoc.data() || {}).department)) {
+                return res.status(403).json({ ok: false, error: "Access denied for this department." });
             }
             const snapshot = await db.collection(COLLECTION)
                 .where("taskId", "==", taskId)
@@ -374,9 +477,19 @@ async function handleComments(req, res, session) {
             if (body.text.length > 2000) {
                 return res.status(400).json({ ok: false, error: "Comment text must be under 2000 characters." });
             }
+            const taskDoc = await db.collection("tasks").doc(body.taskId).get();
+            if (!taskDoc.exists) {
+                return res.status(404).json({ ok: false, error: "Task not found." });
+            }
+            const task = taskDoc.data() || {};
+            if (!isManagingDirector(actor) && !canAccessDepartment(actor, task.department)) {
+                return res.status(403).json({ ok: false, error: "Access denied for this department." });
+            }
+
             const now = Date.now();
             const comment = {
                 taskId: body.taskId,
+                department: task.department || "",
                 text: body.text.trim(),
                 authorId: session.user.uid,
                 authorName: session.user.displayName || session.user.email || "",
@@ -400,6 +513,9 @@ async function handleComments(req, res, session) {
             if (session.user.role === "EMPLOYEE" && doc.data().authorId !== session.user.uid) {
                 return res.status(403).json({ ok: false, error: "Access denied." });
             }
+            if (!isManagingDirector(actor) && !canAccessDepartment(actor, (doc.data() || {}).department)) {
+                return res.status(403).json({ ok: false, error: "Access denied for this department." });
+            }
             await db.collection(COLLECTION).doc(commentId).delete();
             return res.status(200).json({ ok: true });
         }
@@ -413,7 +529,7 @@ async function handleComments(req, res, session) {
 // ---------------------------------------------------------------------------
 // Activity Logs (audit trail)
 // ---------------------------------------------------------------------------
-async function handleActivityLogs(req, res, session) {
+async function handleActivityLogs(req, res, session, actor) {
     const method = req.method;
     const COLLECTION = "activity_logs";
 
@@ -429,7 +545,10 @@ async function handleActivityLogs(req, res, session) {
             }
             const limit = Math.min(parseInt(query.limit) || 50, 200);
             const snapshot = await firestoreQuery.orderBy("createdAt", "desc").limit(limit).get();
-            const logs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+            let logs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+            if (!isManagingDirector(actor)) {
+                logs = logs.filter((l) => canAccessDepartment(actor, l.department));
+            }
             return res.status(200).json({ ok: true, data: logs });
         }
 
@@ -437,6 +556,9 @@ async function handleActivityLogs(req, res, session) {
             const body = req.body || {};
             if (!body.action || !body.entityType) {
                 return res.status(400).json({ ok: false, error: "action and entityType are required." });
+            }
+            if (!isManagingDirector(actor) && body.department && !canAccessDepartment(actor, body.department)) {
+                return res.status(403).json({ ok: false, error: "Access denied for this department." });
             }
             const now = Date.now();
             const log = {
@@ -446,6 +568,7 @@ async function handleActivityLogs(req, res, session) {
                 entityName: body.entityName || "",
                 projectId: body.projectId || "",
                 details: body.details || "",
+                department: body.department || actor.department || "",
                 userId: session.user.uid,
                 userName: session.user.displayName || session.user.email || "",
                 userRole: session.user.role || "",
@@ -464,7 +587,7 @@ async function handleActivityLogs(req, res, session) {
 // ---------------------------------------------------------------------------
 // Notifications
 // ---------------------------------------------------------------------------
-async function handleNotifications(req, res, session) {
+async function handleNotifications(req, res, session, actor) {
     const method = req.method;
     const uid = session.user.uid;
     const COLLECTION = "notifications";
@@ -487,6 +610,16 @@ async function handleNotifications(req, res, session) {
             }
             // Allow batch - recipientIds array
             const recipients = body.recipientIds || [body.recipientId];
+            if (!isManagingDirector(actor)) {
+                if (!Array.isArray(recipients) || recipients.length === 0) {
+                    return res.status(400).json({ ok: false, error: "At least one recipient is required." });
+                }
+                const allowed = await getDepartmentEmployeeIds(actor.department);
+                const allAllowed = recipients.every((rid) => allowed.has(rid));
+                if (!allAllowed) {
+                    return res.status(403).json({ ok: false, error: "Recipients must be in your department." });
+                }
+            }
             const now = Date.now();
             const batch = db.batch();
             const results = [];
@@ -540,7 +673,7 @@ async function handleNotifications(req, res, session) {
 // ---------------------------------------------------------------------------
 // Milestones
 // ---------------------------------------------------------------------------
-async function handleMilestones(req, res, session) {
+async function handleMilestones(req, res, session, actor) {
     const method = req.method;
     const role = session.user.role;
     const COLLECTION = "milestones";
@@ -556,7 +689,10 @@ async function handleMilestones(req, res, session) {
                 firestoreQuery = firestoreQuery.where("projectId", "==", query.projectId);
             }
             const snapshot = await firestoreQuery.orderBy("dueDate", "asc").get();
-            const milestones = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+            let milestones = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+            if (!isManagingDirector(actor)) {
+                milestones = milestones.filter((m) => canAccessDepartment(actor, m.department));
+            }
             return res.status(200).json({ ok: true, data: milestones });
         }
 
@@ -568,12 +704,16 @@ async function handleMilestones(req, res, session) {
             if (!body.title || !body.projectId) {
                 return res.status(400).json({ ok: false, error: "title and projectId are required." });
             }
+            const project = await ensureProjectAccess(res, actor, body.projectId);
+            if (!project) return;
+
             const now = Date.now();
             const milestone = {
                 title: body.title,
                 description: body.description || "",
                 projectId: body.projectId,
                 projectName: body.projectName || "",
+                department: project.department || "",
                 dueDate: body.dueDate ? Number(body.dueDate) : null,
                 status: body.status || "PENDING",
                 createdBy: session.user.uid,
@@ -592,6 +732,14 @@ async function handleMilestones(req, res, session) {
             if (!milestoneId) {
                 return res.status(400).json({ ok: false, error: "Milestone ID is required." });
             }
+            const milestoneDoc = await db.collection(COLLECTION).doc(milestoneId).get();
+            if (!milestoneDoc.exists) {
+                return res.status(404).json({ ok: false, error: "Milestone not found." });
+            }
+            if (!isManagingDirector(actor) && !canAccessDepartment(actor, (milestoneDoc.data() || {}).department)) {
+                return res.status(403).json({ ok: false, error: "Access denied for this department." });
+            }
+
             const body = req.body || {};
             const update = { updatedAt: Date.now() };
             if (body.title !== undefined) update.title = body.title;
@@ -609,6 +757,13 @@ async function handleMilestones(req, res, session) {
             if (!milestoneId) {
                 return res.status(400).json({ ok: false, error: "Milestone ID is required." });
             }
+            if (!isManagingDirector(actor)) {
+                const milestoneDoc = await db.collection(COLLECTION).doc(milestoneId).get();
+                if (!milestoneDoc.exists || !canAccessDepartment(actor, (milestoneDoc.data() || {}).department)) {
+                    return res.status(403).json({ ok: false, error: "Access denied for this department." });
+                }
+            }
+
             await db.collection(COLLECTION).doc(milestoneId).delete();
             return res.status(200).json({ ok: true });
         }

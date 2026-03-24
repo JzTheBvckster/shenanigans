@@ -1009,6 +1009,7 @@
        USER MANAGEMENT (MD only)
        ============================================================ */
     var allUsersCache = [];
+    var pendingUsersCache = [];
 
     window.loadUserManagement = function () {
         if (!app.isMD()) {
@@ -1020,9 +1021,10 @@
 
         app.fetchJson('/api/employees?pendingUsers=true', function (data) {
             pendingData = data || [];
+            pendingUsersCache = pendingData;
             pendingDone = true;
             if (allDone) renderUserManagement(pendingData, allData);
-        }, function () { pendingData = []; pendingDone = true; if (allDone) renderUserManagement(pendingData, allData); });
+        }, function () { pendingData = []; pendingUsersCache = []; pendingDone = true; if (allDone) renderUserManagement(pendingData, allData); });
 
         app.fetchJson('/api/employees?allUsers=true', function (data) {
             allData = data || [];
@@ -1051,11 +1053,13 @@
                 pendingEl.innerHTML = pending.map(function (u) {
                     var name = app.buildName(u);
                     var uid = app.esc(u.id || '');
+                    var stage = u.mdApproved === true ? '<span class="badge badge-orange">Awaiting PM Approval</span>' : '<span class="badge badge-muted">Awaiting MD Approval</span>';
                     return '<div class="user-row">'
                         + '<div class="user-row-avatar">' + app.initials(name) + '</div>'
                         + '<div class="user-row-info"><div class="user-row-name">' + app.esc(name) + '</div>'
                         + '<div class="user-row-email">' + app.esc(u.email || '') + '</div></div>'
                         + '<span class="badge badge-muted">' + app.esc(app.formatRole(u.role)) + '</span>'
+                        + stage
                         + '<div class="user-row-actions">'
                         + '<button class="btn-approve-sm" onclick="approveUserFromManagement(\'' + uid + '\')">Approve</button>'
                         + '</div></div>';
@@ -1073,7 +1077,18 @@
                     var name = app.buildName(u);
                     var uid = app.esc(u.id || '');
                     var roleClass = u.role === 'MANAGING_DIRECTOR' ? 'badge-blue' : u.role === 'PROJECT_MANAGER' ? 'badge-orange' : 'badge-green';
-                    var approvedBadge = u.mdApproved === true ? '<span class="badge badge-green">Approved</span>' : '<span class="badge badge-muted">Not Approved</span>';
+                    var approvedBadge = '';
+                    if (u.role === 'EMPLOYEE') {
+                        approvedBadge = (u.mdApproved === true && u.pmApproved === true)
+                            ? '<span class="badge badge-green">MD + PM Approved</span>'
+                            : (u.mdApproved === true
+                                ? '<span class="badge badge-orange">MD Approved Only</span>'
+                                : '<span class="badge badge-muted">Awaiting MD Approval</span>');
+                    } else {
+                        approvedBadge = u.mdApproved === true
+                            ? '<span class="badge badge-green">Approved</span>'
+                            : '<span class="badge badge-muted">Not Approved</span>';
+                    }
                     return '<div class="user-row">'
                         + '<div class="user-row-avatar">' + app.initials(name) + '</div>'
                         + '<div class="user-row-info"><div class="user-row-name">' + app.esc(name) + '</div>'
@@ -1094,6 +1109,27 @@
             loadUserManagement();
         }, function (err) {
             app.showToast(err || 'Approval failed', 'error');
+        });
+    };
+
+    window.bulkApproveUsersFromManagement = function () {
+        var pending = (pendingUsersCache || []).filter(function (u) {
+            return u && u.id && u.mdApproved !== true;
+        });
+        if (!pending.length) {
+            app.showToast('No MD-pending users to approve.', 'warning');
+            return;
+        }
+
+        var ids = pending.map(function (u) { return u.id; });
+        app.showConfirm('Approve ' + ids.length + ' pending users?', function () {
+            app.fetchMutate('PUT', '/api/employees?bulkApproveUsers=true', { userIds: ids }, function (resp) {
+                var count = resp && resp.approvedCount ? resp.approvedCount : ids.length;
+                app.showToast(count + ' users approved', 'success');
+                loadUserManagement();
+            }, function (err) {
+                app.showToast(err || 'Bulk approval failed', 'error');
+            });
         });
     };
 
@@ -1132,6 +1168,7 @@
        REPORTS & ACTIVITY
        ============================================================ */
     var activityLogsCache = [];
+     var approvalAuditLogsCache = [];
 
     window.loadReports = function () {
         // Load project data for report
@@ -1180,6 +1217,15 @@
         }, function () {
             document.getElementById('activityLogList').innerHTML = '<div class="empty-state">Could not load activity logs.</div>';
         });
+
+        // Load approval audit logs
+        app.fetchJson('/api/workspace/activity-logs?limit=200&entityType=approval', function (logs) {
+            approvalAuditLogsCache = logs || [];
+            renderApprovalAuditLogs(approvalAuditLogsCache);
+        }, function () {
+            var list = document.getElementById('approvalAuditList');
+            if (list) list.innerHTML = '<div class="empty-state">Could not load approval audit trail.</div>';
+        });
     };
 
     function renderActivityLogs(logs) {
@@ -1208,6 +1254,57 @@
         if (!filter) { renderActivityLogs(activityLogsCache); return; }
         var filtered = activityLogsCache.filter(function (l) { return l.entityType === filter; });
         renderActivityLogs(filtered);
+    };
+
+    function renderApprovalAuditLogs(logs) {
+        var el = document.getElementById('approvalAuditList');
+        if (!el) return;
+        if (!logs || logs.length === 0) {
+            el.innerHTML = '<div class="empty-state">No approval events logged yet.</div>';
+            return;
+        }
+        var labelMap = {
+            MD_APPROVAL: 'MD Approval',
+            PM_APPROVAL: 'PM Approval',
+            BULK_MD_APPROVAL: 'MD Bulk Approval',
+            BULK_PM_APPROVAL: 'PM Bulk Approval'
+        };
+        var iconMap = {
+            MD_APPROVAL: 'M',
+            PM_APPROVAL: 'P',
+            BULK_MD_APPROVAL: 'M+',
+            BULK_PM_APPROVAL: 'P+'
+        };
+
+        el.innerHTML = logs.map(function (l) {
+            var icon = iconMap[l.action] || 'A';
+            var eventLabel = labelMap[l.action] || app.formatStatus(l.action || 'APPROVAL');
+            var time = l.createdAt ? app.formatTimestamp(l.createdAt) : '';
+            var actor = l.userName || 'Unknown';
+            var target = l.entityName || 'Multiple users';
+            var dept = l.department || 'N/A';
+            var details = l.details || '';
+
+            return '<div class="activity-log-item">'
+                + '<span class="activity-icon">' + app.esc(icon) + '</span>'
+                + '<div class="activity-info">'
+                + '<span class="activity-text"><strong>' + app.esc(actor) + '</strong> performed <strong>' + app.esc(eventLabel) + '</strong> for <strong>' + app.esc(target) + '</strong>.</span>'
+                + '<span class="activity-meta">Department: ' + app.esc(dept) + ' &middot; ' + app.esc(time) + '</span>'
+                + (details ? '<span class="activity-meta">' + app.esc(details) + '</span>' : '')
+                + '</div></div>';
+        }).join('');
+    }
+
+    window.filterApprovalAuditLogs = function () {
+        var filter = (document.getElementById('approvalAuditFilter') || {}).value || '';
+        if (!filter) {
+            renderApprovalAuditLogs(approvalAuditLogsCache);
+            return;
+        }
+        var filtered = approvalAuditLogsCache.filter(function (l) {
+            return (l.action || '') === filter;
+        });
+        renderApprovalAuditLogs(filtered);
     };
 
     /* ============================================================
