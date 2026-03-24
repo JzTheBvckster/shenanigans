@@ -213,12 +213,13 @@ module.exports = withSecurity(async function handler(req, res) {
                 const batch = db.batch();
                 const approvedIds = [];
                 const userDocs = await Promise.all(userIds.map((id) => db.collection("users").doc(id).get()));
-                userDocs.forEach((doc) => {
+                for (const doc of userDocs) {
                     if (!doc.exists) return;
                     const user = doc.data() || {};
+                    const userDept = await resolveUserDepartment(doc.id, user);
                     if (user.role !== "EMPLOYEE") return;
                     if (user.mdApproved !== true || user.pmApproved === true) return;
-                    if (!canAccessDepartment(actor, user.department)) return;
+                    if (!canAccessDepartment(actor, userDept)) return;
                     batch.update(doc.ref, {
                         pmApproved: true,
                         pmApprovedAt: now,
@@ -226,7 +227,7 @@ module.exports = withSecurity(async function handler(req, res) {
                         updatedAt: now,
                     });
                     approvedIds.push(doc.id);
-                });
+                }
 
                 if (approvedIds.length === 0) {
                     return res.status(200).json({ ok: true, data: { approvedCount: 0, approvedIds: [] } });
@@ -298,7 +299,8 @@ module.exports = withSecurity(async function handler(req, res) {
                     if (user.mdApproved !== true) {
                         return res.status(400).json({ ok: false, error: "Managing Director approval is required first." });
                     }
-                    if (!canAccessDepartment(actor, user.department)) {
+                    const userDept = await resolveUserDepartment(entityId, user);
+                    if (!canAccessDepartment(actor, userDept)) {
                         return res.status(403).json({ ok: false, error: "Cannot approve employee outside your department." });
                     }
                     await ref.update({
@@ -314,7 +316,7 @@ module.exports = withSecurity(async function handler(req, res) {
                             sessionUser: session.user,
                             targetId: entityId,
                             targetName: user.displayName || user.email || entityId,
-                            department: user.department || actor.department || "",
+                            department: userDept || actor.department || "",
                             details: `Project Manager approved employee ${user.displayName || user.email || "user"}.`,
                         });
                     } catch (_) { /* non-blocking audit log */ }
@@ -402,4 +404,32 @@ async function writeApprovalAuditLog({ action, actor, sessionUser, targetId, tar
         createdAt: now,
         updatedAt: now,
     });
+}
+
+async function resolveUserDepartment(userId, userData) {
+    if (userData && userData.department) return userData.department;
+
+    if (userId) {
+        const employeeById = await db.collection(COLLECTION).doc(String(userId)).get();
+        if (employeeById.exists) {
+            const data = employeeById.data() || {};
+            if (data.department) return data.department;
+        }
+    }
+
+    const email = String((userData && userData.email) || "").trim();
+    if (email) {
+        const byEmail = await db.collection(COLLECTION).where("email", "==", email).limit(1).get();
+        if (!byEmail.empty) {
+            const data = byEmail.docs[0].data() || {};
+            if (data.department) return data.department;
+        }
+        const byEmailLower = await db.collection(COLLECTION).where("email", "==", email.toLowerCase()).limit(1).get();
+        if (!byEmailLower.empty) {
+            const data = byEmailLower.docs[0].data() || {};
+            if (data.department) return data.department;
+        }
+    }
+
+    return "";
 }

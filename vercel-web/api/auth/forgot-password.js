@@ -1,6 +1,9 @@
 const restAuth = require("../../lib/firebase-rest-auth");
 const { withSecurity } = require("../../lib/security");
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_EMAIL_LENGTH = 254;
+
 module.exports = withSecurity(async function handler(req, res) {
     if (req.method !== "POST") {
         res.setHeader("Allow", "POST");
@@ -8,12 +11,16 @@ module.exports = withSecurity(async function handler(req, res) {
     }
 
     const { email } = req.body || {};
-    if (!email) {
+    const safeEmail = String(email || "").trim().toLowerCase();
+    if (!safeEmail) {
         return res.status(400).json({ ok: false, error: "Email is required." });
+    }
+    if (safeEmail.length > MAX_EMAIL_LENGTH || !EMAIL_RE.test(safeEmail)) {
+        return res.status(400).json({ ok: false, error: "A valid email is required." });
     }
 
     try {
-        await restAuth.sendPasswordResetEmail(email.trim());
+        await restAuth.sendPasswordResetEmail(safeEmail);
     } catch (_) {
         // Always return success to avoid email enumeration
     }

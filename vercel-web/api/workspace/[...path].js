@@ -8,6 +8,7 @@ const {
     isEmployee,
     isProjectManager,
 } = require("../../lib/access");
+const { isValidDocId } = require("../../lib/sanitize");
 
 /**
  * Consolidated workspace API handler.
@@ -43,7 +44,19 @@ module.exports = withSecurity(async function handler(req, res) {
         default:
             return res.status(404).json({ ok: false, error: "Unknown workspace resource." });
     }
-}, { maxRequests: 30 });
+}, { maxRequests: 20, windowMs: 60 * 1000 });
+
+function parseResourceIdFromUrl(reqUrl, resource) {
+    const match = String(reqUrl || "").match(new RegExp(`/api/workspace/${resource}/([^?/]+)`));
+    if (!match) return "";
+    const id = decodeURIComponent(match[1] || "").trim();
+    return isValidDocId(id) ? id : "";
+}
+
+function parsePositiveTimestamp(value) {
+    const ts = Number(value);
+    return Number.isFinite(ts) && ts > 0 ? ts : 0;
+}
 
 async function getProjectById(projectId) {
     if (!projectId) return null;
@@ -63,6 +76,12 @@ async function ensureProjectAccess(res, actor, projectId) {
         return null;
     }
     return project;
+}
+
+function isAssigneeInProjectTeam(project, assigneeId) {
+    if (!project || !assigneeId) return false;
+    const team = Array.isArray(project.teamMemberIds) ? project.teamMemberIds : [];
+    return team.map((id) => String(id)).includes(String(assigneeId));
 }
 
 async function getDepartmentEmployeeIds(department) {
@@ -87,6 +106,9 @@ async function handleTimesheets(req, res, session, actor) {
             if (isEmployee(actor)) {
                 query = query.where("employeeId", "==", uid);
             } else if (req.query && req.query.employeeId) {
+                if (!isValidDocId(String(req.query.employeeId))) {
+                    return res.status(400).json({ ok: false, error: "Invalid employeeId." });
+                }
                 query = query.where("employeeId", "==", req.query.employeeId);
             }
             const snapshot = await query.orderBy("date", "desc").get();
@@ -102,20 +124,35 @@ async function handleTimesheets(req, res, session, actor) {
             if (!body.projectId || !body.date || !body.hours) {
                 return res.status(400).json({ ok: false, error: "projectId, date, and hours are required." });
             }
+            if (!isValidDocId(String(body.projectId))) {
+                return res.status(400).json({ ok: false, error: "Invalid projectId." });
+            }
+            const dateTs = parsePositiveTimestamp(body.date);
+            if (!dateTs) {
+                return res.status(400).json({ ok: false, error: "A valid date is required." });
+            }
             const hours = Number(body.hours);
             if (isNaN(hours) || hours <= 0 || hours > 24) {
                 return res.status(400).json({ ok: false, error: "Hours must be between 0 and 24." });
             }
             const project = await ensureProjectAccess(res, actor, body.projectId);
             if (!project) return;
+            if (body.assignedTo) {
+                if (!isValidDocId(String(body.assignedTo))) {
+                    return res.status(400).json({ ok: false, error: "Invalid assignee id." });
+                }
+                if (!isAssigneeInProjectTeam(project, body.assignedTo)) {
+                    return res.status(400).json({ ok: false, error: "Assignee must be a member of the selected project team." });
+                }
+            }
             const now = Date.now();
             const entry = {
                 employeeId: uid,
                 employeeName: session.user.displayName || "",
-                projectId: body.projectId,
+                projectId: String(body.projectId),
                 projectName: body.projectName || "",
                 department: project.department || "",
-                date: Number(body.date),
+                date: dateTs,
                 hours: hours,
                 description: body.description || "",
                 createdAt: now,
@@ -130,14 +167,23 @@ async function handleTimesheets(req, res, session, actor) {
             if (!entryId) {
                 return res.status(400).json({ ok: false, error: "Entry ID is required." });
             }
+            if (!isValidDocId(String(entryId))) {
+                return res.status(400).json({ ok: false, error: "Invalid entry ID." });
+            }
             if (isEmployee(actor)) {
                 const doc = await db.collection(COLLECTION).doc(entryId).get();
-                if (!doc.exists || doc.data().employeeId !== uid) {
+                if (!doc.exists) {
+                    return res.status(404).json({ ok: false, error: "Timesheet entry not found." });
+                }
+                if (doc.data().employeeId !== uid) {
                     return res.status(403).json({ ok: false, error: "Access denied." });
                 }
             } else if (!isManagingDirector(actor)) {
                 const doc = await db.collection(COLLECTION).doc(entryId).get();
-                if (!doc.exists || !canAccessDepartment(actor, (doc.data() || {}).department)) {
+                if (!doc.exists) {
+                    return res.status(404).json({ ok: false, error: "Timesheet entry not found." });
+                }
+                if (!canAccessDepartment(actor, (doc.data() || {}).department)) {
                     return res.status(403).json({ ok: false, error: "Access denied." });
                 }
             }
@@ -179,6 +225,14 @@ async function handleLeaveRequests(req, res, session, actor) {
             if (!body.type || !body.startDate || !body.endDate) {
                 return res.status(400).json({ ok: false, error: "type, startDate, and endDate are required." });
             }
+            const startDate = parsePositiveTimestamp(body.startDate);
+            const endDate = parsePositiveTimestamp(body.endDate);
+            if (!startDate || !endDate) {
+                return res.status(400).json({ ok: false, error: "Valid startDate and endDate are required." });
+            }
+            if (endDate < startDate) {
+                return res.status(400).json({ ok: false, error: "endDate must be on or after startDate." });
+            }
             const validTypes = ["ANNUAL", "SICK", "PERSONAL"];
             if (!validTypes.includes(body.type)) {
                 return res.status(400).json({ ok: false, error: "Type must be ANNUAL, SICK, or PERSONAL." });
@@ -189,8 +243,8 @@ async function handleLeaveRequests(req, res, session, actor) {
                 employeeName: session.user.displayName || "",
                 department: actor.department || "",
                 type: body.type,
-                startDate: Number(body.startDate),
-                endDate: Number(body.endDate),
+                startDate: startDate,
+                endDate: endDate,
                 reason: body.reason || "",
                 status: "PENDING",
                 reviewedBy: null,
@@ -210,15 +264,18 @@ async function handleLeaveRequests(req, res, session, actor) {
             if (!body.id || !body.status) {
                 return res.status(400).json({ ok: false, error: "id and status are required." });
             }
+            if (!isValidDocId(String(body.id))) {
+                return res.status(400).json({ ok: false, error: "Invalid request id." });
+            }
             const validStatuses = ["APPROVED", "REJECTED"];
             if (!validStatuses.includes(body.status)) {
                 return res.status(400).json({ ok: false, error: "Status must be APPROVED or REJECTED." });
             }
+            const reqDoc = await db.collection(COLLECTION).doc(body.id).get();
+            if (!reqDoc.exists) {
+                return res.status(404).json({ ok: false, error: "Request not found." });
+            }
             if (!isManagingDirector(actor)) {
-                const reqDoc = await db.collection(COLLECTION).doc(body.id).get();
-                if (!reqDoc.exists) {
-                    return res.status(404).json({ ok: false, error: "Request not found." });
-                }
                 const reqData = reqDoc.data() || {};
                 if (!canAccessDepartment(actor, reqData.department)) {
                     return res.status(403).json({ ok: false, error: "Access denied for this department." });
@@ -273,6 +330,17 @@ async function handleDocuments(req, res, session, actor) {
             if (!validCategories.includes(body.category)) {
                 return res.status(400).json({ ok: false, error: "Category must be POLICY, TEMPLATE, or PROJECT_BRIEF." });
             }
+            if (body.relatedProjectId && !isValidDocId(String(body.relatedProjectId))) {
+                return res.status(400).json({ ok: false, error: "Invalid relatedProjectId." });
+            }
+            let relatedProject = null;
+            if (body.relatedProjectId) {
+                relatedProject = await ensureProjectAccess(res, actor, body.relatedProjectId);
+                if (!relatedProject) return;
+                if (body.department && body.department !== relatedProject.department) {
+                    return res.status(400).json({ ok: false, error: "Document department must match related project department." });
+                }
+            }
             if (!isManagingDirector(actor) && body.department && !canAccessDepartment(actor, body.department)) {
                 return res.status(403).json({ ok: false, error: "Access denied for this department." });
             }
@@ -283,7 +351,7 @@ async function handleDocuments(req, res, session, actor) {
                 description: body.description || "",
                 category: body.category,
                 relatedProjectId: body.relatedProjectId || null,
-                department: body.department || actor.department || "",
+                department: body.department || (relatedProject && relatedProject.department) || actor.department || "",
                 uploadedBy: session.user.displayName || session.user.email,
                 createdAt: now,
                 updatedAt: now
@@ -308,8 +376,7 @@ async function handleTasks(req, res, session, actor) {
     const COLLECTION = "tasks";
 
     // Parse task ID from URL: /api/workspace/tasks/<id>
-    const urlParts = (req.url || "").split("/").filter(Boolean);
-    const taskId = urlParts.length >= 4 ? decodeURIComponent(urlParts[3].split("?")[0]) : null;
+    const taskId = parseResourceIdFromUrl(req.url, "tasks");
 
     switch (method) {
         case "GET": {
@@ -320,6 +387,9 @@ async function handleTasks(req, res, session, actor) {
             if (role === "EMPLOYEE") {
                 firestoreQuery = firestoreQuery.where("assignedTo", "==", uid);
             } else if (query.projectId) {
+                if (!isValidDocId(String(query.projectId))) {
+                    return res.status(400).json({ ok: false, error: "Invalid projectId." });
+                }
                 // PM/MD can filter by project
                 firestoreQuery = firestoreQuery.where("projectId", "==", query.projectId);
             }
@@ -338,8 +408,16 @@ async function handleTasks(req, res, session, actor) {
                 return res.status(403).json({ ok: false, error: "Only managers can create tasks." });
             }
             const body = req.body || {};
-            if (!body.title) {
+            const title = String(body.title || "").trim();
+            if (!title) {
                 return res.status(400).json({ ok: false, error: "Task title is required." });
+            }
+            if (!body.projectId || !isValidDocId(String(body.projectId))) {
+                return res.status(400).json({ ok: false, error: "A valid projectId is required." });
+            }
+            const dueDate = body.dueDate ? parsePositiveTimestamp(body.dueDate) : 0;
+            if (body.dueDate && !dueDate) {
+                return res.status(400).json({ ok: false, error: "Invalid dueDate." });
             }
             const project = await ensureProjectAccess(res, actor, body.projectId);
             if (!project) return;
@@ -348,7 +426,7 @@ async function handleTasks(req, res, session, actor) {
             const validPriorities = ["LOW", "MEDIUM", "HIGH"];
             const now = Date.now();
             const task = {
-                title: body.title,
+                title: title,
                 description: body.description || "",
                 projectId: body.projectId || "",
                 projectName: body.projectName || "",
@@ -356,7 +434,7 @@ async function handleTasks(req, res, session, actor) {
                 assignedToName: body.assignedToName || "",
                 status: validStatuses.includes(body.status) ? body.status : "TODO",
                 priority: validPriorities.includes(body.priority) ? body.priority : "MEDIUM",
-                dueDate: body.dueDate ? Number(body.dueDate) : null,
+                dueDate: dueDate || null,
                 department: project.department || "",
                 createdBy: uid,
                 createdByName: session.user.displayName || session.user.email || "",
@@ -398,20 +476,65 @@ async function handleTasks(req, res, session, actor) {
             // PM/MD can update all fields
             const body = req.body || {};
             const update = { updatedAt: Date.now() };
-            if (body.title !== undefined) update.title = body.title;
+            const validStatuses = ["TODO", "IN_PROGRESS", "UNDER_REVIEW", "COMPLETED"];
+            const validPriorities = ["LOW", "MEDIUM", "HIGH"];
+            let targetProject = null;
+
+            if (body.title !== undefined) {
+                const title = String(body.title || "").trim();
+                if (!title) {
+                    return res.status(400).json({ ok: false, error: "Task title cannot be empty." });
+                }
+                update.title = title;
+            }
             if (body.description !== undefined) update.description = body.description;
-            if (body.assignedTo !== undefined) update.assignedTo = body.assignedTo;
+            if (body.assignedTo !== undefined) {
+                if (body.assignedTo && !isValidDocId(String(body.assignedTo))) {
+                    return res.status(400).json({ ok: false, error: "Invalid assignee id." });
+                }
+                update.assignedTo = body.assignedTo;
+            }
             if (body.assignedToName !== undefined) update.assignedToName = body.assignedToName;
-            if (body.status !== undefined) update.status = body.status;
-            if (body.priority !== undefined) update.priority = body.priority;
-            if (body.dueDate !== undefined) update.dueDate = body.dueDate ? Number(body.dueDate) : null;
+            if (body.status !== undefined) {
+                if (!validStatuses.includes(body.status)) {
+                    return res.status(400).json({ ok: false, error: "Invalid task status." });
+                }
+                update.status = body.status;
+            }
+            if (body.priority !== undefined) {
+                if (!validPriorities.includes(body.priority)) {
+                    return res.status(400).json({ ok: false, error: "Invalid task priority." });
+                }
+                update.priority = body.priority;
+            }
+            if (body.dueDate !== undefined) {
+                const dueDate = body.dueDate ? parsePositiveTimestamp(body.dueDate) : 0;
+                if (body.dueDate && !dueDate) {
+                    return res.status(400).json({ ok: false, error: "Invalid dueDate." });
+                }
+                update.dueDate = dueDate || null;
+            }
             if (body.projectId !== undefined) {
+                if (!body.projectId || !isValidDocId(String(body.projectId))) {
+                    return res.status(400).json({ ok: false, error: "Invalid projectId." });
+                }
                 const project = await ensureProjectAccess(res, actor, body.projectId);
                 if (!project) return;
+                targetProject = project;
                 update.projectId = body.projectId;
                 update.department = project.department || existing.department || "";
             }
             if (body.projectName !== undefined) update.projectName = body.projectName;
+
+            if (body.assignedTo !== undefined && body.assignedTo) {
+                const projectToValidate = targetProject || await getProjectById(existing.projectId);
+                if (!projectToValidate) {
+                    return res.status(400).json({ ok: false, error: "Cannot validate assignee without a valid project." });
+                }
+                if (!isAssigneeInProjectTeam(projectToValidate, body.assignedTo)) {
+                    return res.status(400).json({ ok: false, error: "Assignee must be a member of the selected project team." });
+                }
+            }
 
             await db.collection(COLLECTION).doc(taskId).update(update);
             return res.status(200).json({ ok: true, data: { id: taskId, ...update } });
@@ -454,6 +577,9 @@ async function handleComments(req, res, session, actor) {
             if (!taskId) {
                 return res.status(400).json({ ok: false, error: "taskId query parameter is required." });
             }
+            if (!isValidDocId(String(taskId))) {
+                return res.status(400).json({ ok: false, error: "Invalid taskId." });
+            }
             const taskDoc = await db.collection("tasks").doc(taskId).get();
             if (!taskDoc.exists) {
                 return res.status(404).json({ ok: false, error: "Task not found." });
@@ -474,6 +600,13 @@ async function handleComments(req, res, session, actor) {
             if (!body.taskId || !body.text) {
                 return res.status(400).json({ ok: false, error: "taskId and text are required." });
             }
+            if (!isValidDocId(String(body.taskId))) {
+                return res.status(400).json({ ok: false, error: "Invalid taskId." });
+            }
+            const text = String(body.text || "").trim();
+            if (!text) {
+                return res.status(400).json({ ok: false, error: "Comment text is required." });
+            }
             if (body.text.length > 2000) {
                 return res.status(400).json({ ok: false, error: "Comment text must be under 2000 characters." });
             }
@@ -490,7 +623,7 @@ async function handleComments(req, res, session, actor) {
             const comment = {
                 taskId: body.taskId,
                 department: task.department || "",
-                text: body.text.trim(),
+                text: text,
                 authorId: session.user.uid,
                 authorName: session.user.displayName || session.user.email || "",
                 authorRole: session.user.role || "",
@@ -504,6 +637,9 @@ async function handleComments(req, res, session, actor) {
             const commentId = req.query && req.query.id;
             if (!commentId) {
                 return res.status(400).json({ ok: false, error: "Comment ID is required." });
+            }
+            if (!isValidDocId(String(commentId))) {
+                return res.status(400).json({ ok: false, error: "Invalid comment ID." });
             }
             const doc = await db.collection(COLLECTION).doc(commentId).get();
             if (!doc.exists) {
@@ -610,11 +746,18 @@ async function handleNotifications(req, res, session, actor) {
                 return res.status(400).json({ ok: false, error: "recipientId and message are required." });
             }
             // Allow batch - recipientIds array
-            const recipients = body.recipientIds || [body.recipientId];
+            const recipients = Array.isArray(body.recipientIds) ? body.recipientIds : [body.recipientId];
+            if (!recipients.length) {
+                return res.status(400).json({ ok: false, error: "At least one recipient is required." });
+            }
+            if (recipients.length > 100) {
+                return res.status(400).json({ ok: false, error: "Too many recipients in one request." });
+            }
+            const invalidRecipient = recipients.some((rid) => !isValidDocId(String(rid)));
+            if (invalidRecipient) {
+                return res.status(400).json({ ok: false, error: "Invalid recipient id in recipient list." });
+            }
             if (!isManagingDirector(actor)) {
-                if (!Array.isArray(recipients) || recipients.length === 0) {
-                    return res.status(400).json({ ok: false, error: "At least one recipient is required." });
-                }
                 const allowed = await getDepartmentEmployeeIds(actor.department);
                 const allAllowed = recipients.every((rid) => allowed.has(rid));
                 if (!allAllowed) {
@@ -666,6 +809,16 @@ async function handleNotifications(req, res, session, actor) {
             if (!body.id) {
                 return res.status(400).json({ ok: false, error: "Notification id is required." });
             }
+            if (!isValidDocId(String(body.id))) {
+                return res.status(400).json({ ok: false, error: "Invalid notification id." });
+            }
+            const notifDoc = await db.collection(COLLECTION).doc(body.id).get();
+            if (!notifDoc.exists) {
+                return res.status(404).json({ ok: false, error: "Notification not found." });
+            }
+            if ((notifDoc.data() || {}).recipientId !== uid) {
+                return res.status(403).json({ ok: false, error: "Access denied." });
+            }
             await db.collection(COLLECTION).doc(body.id).update({ read: true });
             return res.status(200).json({ ok: true });
         }
@@ -684,14 +837,16 @@ async function handleMilestones(req, res, session, actor) {
     const role = session.user.role;
     const COLLECTION = "milestones";
 
-    const urlParts = (req.url || "").split("/").filter(Boolean);
-    const milestoneId = urlParts.length >= 4 ? decodeURIComponent(urlParts[3].split("?")[0]) : null;
+    const milestoneId = parseResourceIdFromUrl(req.url, "milestones");
 
     switch (method) {
         case "GET": {
             const query = req.query || {};
             let firestoreQuery = db.collection(COLLECTION);
             if (query.projectId) {
+                if (!isValidDocId(String(query.projectId))) {
+                    return res.status(400).json({ ok: false, error: "Invalid projectId." });
+                }
                 firestoreQuery = firestoreQuery.where("projectId", "==", query.projectId);
             }
             const snapshot = await firestoreQuery.orderBy("dueDate", "asc").get();
@@ -707,21 +862,30 @@ async function handleMilestones(req, res, session, actor) {
                 return res.status(403).json({ ok: false, error: "Only managers can create milestones." });
             }
             const body = req.body || {};
-            if (!body.title || !body.projectId) {
+            const title = String(body.title || "").trim();
+            if (!title || !body.projectId) {
                 return res.status(400).json({ ok: false, error: "title and projectId are required." });
+            }
+            if (!isValidDocId(String(body.projectId))) {
+                return res.status(400).json({ ok: false, error: "Invalid projectId." });
+            }
+            const validStatuses = ["PENDING", "IN_PROGRESS", "COMPLETED", "BLOCKED"];
+            const dueDate = body.dueDate ? parsePositiveTimestamp(body.dueDate) : 0;
+            if (body.dueDate && !dueDate) {
+                return res.status(400).json({ ok: false, error: "Invalid dueDate." });
             }
             const project = await ensureProjectAccess(res, actor, body.projectId);
             if (!project) return;
 
             const now = Date.now();
             const milestone = {
-                title: body.title,
+                title: title,
                 description: body.description || "",
                 projectId: body.projectId,
                 projectName: body.projectName || "",
                 department: project.department || "",
-                dueDate: body.dueDate ? Number(body.dueDate) : null,
-                status: body.status || "PENDING",
+                dueDate: dueDate || null,
+                status: validStatuses.includes(body.status) ? body.status : "PENDING",
                 createdBy: session.user.uid,
                 createdByName: session.user.displayName || session.user.email || "",
                 createdAt: now,
@@ -748,10 +912,28 @@ async function handleMilestones(req, res, session, actor) {
 
             const body = req.body || {};
             const update = { updatedAt: Date.now() };
-            if (body.title !== undefined) update.title = body.title;
+            const validStatuses = ["PENDING", "IN_PROGRESS", "COMPLETED", "BLOCKED"];
+            if (body.title !== undefined) {
+                const title = String(body.title || "").trim();
+                if (!title) {
+                    return res.status(400).json({ ok: false, error: "Milestone title cannot be empty." });
+                }
+                update.title = title;
+            }
             if (body.description !== undefined) update.description = body.description;
-            if (body.dueDate !== undefined) update.dueDate = body.dueDate ? Number(body.dueDate) : null;
-            if (body.status !== undefined) update.status = body.status;
+            if (body.dueDate !== undefined) {
+                const dueDate = body.dueDate ? parsePositiveTimestamp(body.dueDate) : 0;
+                if (body.dueDate && !dueDate) {
+                    return res.status(400).json({ ok: false, error: "Invalid dueDate." });
+                }
+                update.dueDate = dueDate || null;
+            }
+            if (body.status !== undefined) {
+                if (!validStatuses.includes(body.status)) {
+                    return res.status(400).json({ ok: false, error: "Invalid milestone status." });
+                }
+                update.status = body.status;
+            }
             await db.collection(COLLECTION).doc(milestoneId).update(update);
             return res.status(200).json({ ok: true, data: { id: milestoneId, ...update } });
         }

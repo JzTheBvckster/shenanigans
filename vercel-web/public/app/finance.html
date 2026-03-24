@@ -28,6 +28,12 @@
                 <div class="notice" id="financeNotice"></div>
                 <div class="page-filters" id="financeFilters" style="margin-bottom:12px;">
                     <div class="filter-item">
+                        <label for="financeDeptFilter">Department</label>
+                        <select id="financeDeptFilter">
+                            <option value="">All Departments</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
                         <label for="financePaidFilter">Payment Status</label>
                         <select id="financePaidFilter">
                             <option value="">All</option>
@@ -43,25 +49,9 @@
                         <button class="btn-secondary btn-small" type="button" onclick="clearFinanceFilters()">Clear Filters</button>
                     </div>
                 </div>
-                <div class="kanban-board" id="financeKanban">
-                    <div class="kanban-column" id="colDue">
-                        <div class="kanban-header kanban-header-due">
-                            <span class="title">Due / Outstanding</span>
-                            <span class="count" id="countDue">0</span>
-                        </div>
-                        <div class="kanban-cards" id="cardsDue">
-                            <div class="loading-spinner visible"></div>
-                        </div>
-                    </div>
-                    <div class="kanban-column" id="colPaid">
-                        <div class="kanban-header kanban-header-paid">
-                            <span class="title">Paid</span>
-                            <span class="count" id="countPaid">0</span>
-                        </div>
-                        <div class="kanban-cards" id="cardsPaid">
-                            <div class="loading-spinner visible"></div>
-                        </div>
-                    </div>
+                <div class="dept-stats-row" id="financeDeptStats"></div>
+                <div class="dept-groups" id="financeDeptGroups">
+                    <div class="loading-spinner visible"></div>
                 </div>
             </section>
         </main>

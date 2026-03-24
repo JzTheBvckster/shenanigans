@@ -20,43 +20,41 @@
           </div>
           <div class="notice" id="projectsNotice"></div>
 
-          <div class="kanban-board" id="projectsKanban">
-            <div class="kanban-column" id="colPendingApproval">
-              <div class="kanban-header kanban-header-pending-approval">
-                <span class="title">Pending Approval</span>
-                <span class="count" id="countPendingApproval">0</span>
-              </div>
-              <div class="kanban-cards" id="cardsPendingApproval">
-                <div class="loading-spinner visible"></div>
-              </div>
+          <div class="page-filters" id="projectFilters" style="margin-bottom: 12px">
+            <div class="filter-item">
+              <label for="projDeptFilter">Department</label>
+              <select id="projDeptFilter">
+                <option value="">All Departments</option>
+              </select>
             </div>
-            <div class="kanban-column" id="colNew">
-              <div class="kanban-header kanban-header-new">
-                <span class="title">Planning</span>
-                <span class="count" id="countNew">0</span>
-              </div>
-              <div class="kanban-cards" id="cardsNew">
-                <div class="loading-spinner visible"></div>
-              </div>
+            <div class="filter-item">
+              <label for="projStatusFilter">Status</label>
+              <select id="projStatusFilter">
+                <option value="">All Statuses</option>
+                <option value="PENDING_APPROVAL">Pending Approval</option>
+                <option value="PLANNING">Planning</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="ON_HOLD">On Hold</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
             </div>
-            <div class="kanban-column" id="colInProgress">
-              <div class="kanban-header kanban-header-pending">
-                <span class="title">In Progress</span>
-                <span class="count" id="countInProgress">0</span>
-              </div>
-              <div class="kanban-cards" id="cardsInProgress">
-                <div class="loading-spinner visible"></div>
-              </div>
+            <div class="filter-item filter-item-wide">
+              <label for="projSearchFilter">Search</label>
+              <input
+                type="text"
+                id="projSearchFilter"
+                placeholder="Search by project name, manager, or department..."
+              />
             </div>
-            <div class="kanban-column" id="colCompleted">
-              <div class="kanban-header kanban-header-completed">
-                <span class="title">Completed</span>
-                <span class="count" id="countCompleted">0</span>
-              </div>
-              <div class="kanban-cards" id="cardsCompleted">
-                <div class="loading-spinner visible"></div>
-              </div>
+            <div class="filter-actions">
+              <button class="btn-secondary btn-small" type="button" onclick="clearProjectFilters()">Clear Filters</button>
             </div>
+          </div>
+
+          <div class="dept-stats-row" id="projectsDeptStats"></div>
+          <div class="dept-groups" id="projectsDeptGroups">
+            <div class="loading-spinner visible"></div>
           </div>
 
           <!-- Archived Projects -->
@@ -204,6 +202,7 @@
         showAddBtn: true,
         addBtnText: "+ Add Project",
         onReady: function () {
+          initProjectFilters();
           loadProjects();
           setupSearchFilter(filterProjectCards);
           document

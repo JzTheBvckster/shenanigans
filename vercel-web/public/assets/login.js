@@ -2,6 +2,8 @@
 (function () {
     'use strict';
 
+    var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     // Check if already authenticated
     checkSession();
 
@@ -58,7 +60,7 @@
         var roleEl = document.getElementById('regRole');
         var deptEl = document.getElementById('regDepartment');
         if (!roleEl || !deptEl) return;
-        var needsDepartment = roleEl.value && roleEl.value !== 'Managing Director';
+        var needsDepartment = !!roleEl.value;
         deptEl.disabled = !needsDepartment;
         if (!needsDepartment) deptEl.value = '';
     }
@@ -80,9 +82,13 @@
         clearAllNotices();
         var email = document.getElementById('loginEmail').value.trim();
         var password = document.getElementById('loginPassword').value;
+        var loginBtn = document.getElementById('loginBtn');
+        if (loginBtn && loginBtn.disabled) return;
 
         if (!email) { showNotice('loginNotice', 'Please enter your email address.', 'error'); return; }
+        if (!EMAIL_RE.test(email)) { showNotice('loginNotice', 'Please enter a valid email address.', 'error'); return; }
         if (!password) { showNotice('loginNotice', 'Please enter your password.', 'error'); return; }
+        if (password.length < 8 || password.length > 128) { showNotice('loginNotice', 'Password must be between 8 and 128 characters.', 'error'); return; }
 
         setSpinner('loginSpinner', true);
         setButtonDisabled('loginBtn', true);
@@ -120,12 +126,20 @@
         var password = document.getElementById('regPassword').value;
         var role = document.getElementById('regRole').value;
         var department = document.getElementById('regDepartment').value;
+        var registerBtn = document.getElementById('registerBtn');
+        if (registerBtn && registerBtn.disabled) return;
 
         if (!name) { showNotice('registerNotice', 'Please enter your full name.', 'error'); return; }
+        if (name.length < 2 || name.length > 100) { showNotice('registerNotice', 'Name must be between 2 and 100 characters.', 'error'); return; }
         if (!email) { showNotice('registerNotice', 'Please enter your email address.', 'error'); return; }
-        if (!password || password.length < 6) { showNotice('registerNotice', 'Password must be at least 6 characters.', 'error'); return; }
+        if (!EMAIL_RE.test(email)) { showNotice('registerNotice', 'Please enter a valid email address.', 'error'); return; }
+        if (!password || password.length < 8 || password.length > 128) { showNotice('registerNotice', 'Password must be between 8 and 128 characters.', 'error'); return; }
         if (!role) { showNotice('registerNotice', 'Please select a role.', 'error'); return; }
-        if (role !== 'Managing Director' && !department) {
+        if (role !== 'Employee' && role !== 'Project Manager') {
+            showNotice('registerNotice', 'Invalid role selected.', 'error');
+            return;
+        }
+        if (!department) {
             showNotice('registerNotice', 'Please select a department.', 'error');
             return;
         }
@@ -167,6 +181,7 @@
         clearAllNotices();
         var email = document.getElementById('forgotEmail').value.trim();
         if (!email) { showNotice('forgotNotice', 'Please enter your email address.', 'error'); return; }
+        if (!EMAIL_RE.test(email)) { showNotice('forgotNotice', 'Please enter a valid email address.', 'error'); return; }
 
         fetch('/api/auth/forgot-password', {
             method: 'POST',

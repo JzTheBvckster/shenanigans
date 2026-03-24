@@ -95,6 +95,12 @@
             + '<span class="emp-profile-value">' + app.esc(value) + '</span></div>';
     }
 
+    function startOfTodayMs() {
+        var d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d.getTime();
+    }
+
     /* ============================================================
        TASK BOARD (create, assign, track tasks)
        ============================================================ */
@@ -286,10 +292,21 @@
         app.clearModalNotice('taskModalNotice');
         var title = document.getElementById('taskTitle').value.trim();
         if (!title) { app.showModalNotice('taskModalNotice', 'Task title is required.', 'error'); return; }
+        var saveBtn = document.getElementById('taskSaveBtn');
+        if (saveBtn && saveBtn.disabled) return;
         var projSel = document.getElementById('taskProject');
+        if (!projSel || !projSel.value) {
+            app.showModalNotice('taskModalNotice', 'Please select a project.', 'error');
+            return;
+        }
         var projOpt = projSel.options[projSel.selectedIndex];
         var assignSel = document.getElementById('taskAssignee');
         var assignOpt = assignSel.options[assignSel.selectedIndex];
+        var dueDate = app.dateInputToMs('taskDueDate');
+        if (dueDate && dueDate < startOfTodayMs()) {
+            app.showModalNotice('taskModalNotice', 'Due date cannot be in the past.', 'error');
+            return;
+        }
 
         var id = document.getElementById('taskId').value;
         var payload = {
@@ -301,16 +318,16 @@
             assignedToName: assignOpt ? (assignOpt.getAttribute('data-name') || (assignSel.value ? assignOpt.textContent : '')) : '',
             priority: document.getElementById('taskPriority').value,
             status: document.getElementById('taskStatus').value,
-            dueDate: app.dateInputToMs('taskDueDate')
+            dueDate: dueDate
         };
 
         var isEdit = !!id;
         var url = isEdit ? '/api/workspace/tasks/' + encodeURIComponent(id) : '/api/workspace/tasks';
         var method = isEdit ? 'PUT' : 'POST';
 
-        document.getElementById('taskSaveBtn').disabled = true;
+        saveBtn.disabled = true;
         app.fetchMutate(method, url, payload, function () {
-            document.getElementById('taskSaveBtn').disabled = false;
+            saveBtn.disabled = false;
             app.closeModal('taskModal');
             app.showToast(isEdit ? 'Task updated' : 'Task created', 'success');
             // Activity log
@@ -330,7 +347,7 @@
             delete app.cachedData.pmProjects;
             loadPMTasks();
         }, function (err) {
-            document.getElementById('taskSaveBtn').disabled = false;
+            saveBtn.disabled = false;
             app.showModalNotice('taskModalNotice', err || 'Failed to save task.', 'error');
         });
     };
@@ -379,6 +396,10 @@
         var textEl = document.getElementById('taskCommentText');
         var text = (textEl.value || '').trim();
         if (!taskId || !text) return;
+        if (text.length > 2000) {
+            app.showToast('Comment must be under 2000 characters', 'warning');
+            return;
+        }
         app.fetchMutate('POST', '/api/workspace/comments', { taskId: taskId, text: text }, function () {
             textEl.value = '';
             loadTaskComments(taskId);
@@ -446,7 +467,10 @@
         ['pmProjName', 'pmProjDescription', 'pmProjBudget', 'pmProjSpent', 'pmProjStartDate', 'pmProjEndDate'].forEach(function (fid) {
             document.getElementById(fid).value = '';
         });
-        document.getElementById('pmProjDepartment').innerHTML = app.deptOptions('');
+        var deptSelect = document.getElementById('pmProjDepartment');
+        var pmDepartment = (app.currentUser && app.currentUser.department) ? app.currentUser.department : '';
+        deptSelect.innerHTML = app.deptOptions(pmDepartment);
+        deptSelect.disabled = !!pmDepartment;
         document.getElementById('pmProjPriority').value = 'MEDIUM';
 
         // Load employees from current PM's department for team selection
@@ -478,8 +502,28 @@
         app.clearModalNotice('pmProjNotice');
         var name = document.getElementById('pmProjName').value.trim();
         if (!name) { app.showModalNotice('pmProjNotice', 'Project name is required.', 'error'); return; }
+        var btn = document.getElementById('pmProjSaveBtn');
+        if (btn && btn.disabled) return;
         var dept = document.getElementById('pmProjDepartment').value;
         if (!dept) { app.showModalNotice('pmProjNotice', 'Department is required.', 'error'); return; }
+        var budget = parseFloat(document.getElementById('pmProjBudget').value);
+        var spent = parseFloat(document.getElementById('pmProjSpent').value);
+        var safeBudget = isNaN(budget) ? 0 : budget;
+        var safeSpent = isNaN(spent) ? 0 : spent;
+        if (safeBudget < 0 || safeSpent < 0) {
+            app.showModalNotice('pmProjNotice', 'Budget and spent values cannot be negative.', 'error');
+            return;
+        }
+        if (safeSpent > safeBudget && safeBudget > 0) {
+            app.showModalNotice('pmProjNotice', 'Spent cannot exceed budget.', 'error');
+            return;
+        }
+        var startDate = app.dateInputToMs('pmProjStartDate');
+        var endDate = app.dateInputToMs('pmProjEndDate');
+        if (startDate && endDate && endDate < startDate) {
+            app.showModalNotice('pmProjNotice', 'End date must be on or after start date.', 'error');
+            return;
+        }
 
         // Gather selected team members
         var teamIds = [];
@@ -501,16 +545,15 @@
             projectManagerId: pmId,
             priority: document.getElementById('pmProjPriority').value,
             status: 'PENDING_APPROVAL',
-            budget: parseFloat(document.getElementById('pmProjBudget').value) || 0,
-            spent: parseFloat(document.getElementById('pmProjSpent').value) || 0,
+            budget: safeBudget,
+            spent: safeSpent,
             completionPercentage: 0,
-            startDate: app.dateInputToMs('pmProjStartDate'),
-            endDate: app.dateInputToMs('pmProjEndDate'),
+            startDate: startDate,
+            endDate: endDate,
             teamMemberIds: teamIds,
             teamMemberNames: teamNames
         };
 
-        var btn = document.getElementById('pmProjSaveBtn');
         if (btn) btn.disabled = true;
         app.fetchMutate('POST', '/api/projects', payload, function () {
             if (btn) btn.disabled = false;
@@ -620,12 +663,17 @@
         var title = document.getElementById('milestoneTitle').value.trim();
         if (!title) { app.showToast('Milestone title is required', 'error'); return; }
         var mid = document.getElementById('milestoneId').value;
+        var dueDate = app.dateInputToMs('milestoneDueDate');
+        if (dueDate && dueDate < 0) {
+            app.showToast('Invalid milestone due date', 'error');
+            return;
+        }
         var payload = {
             title: title,
             description: document.getElementById('milestoneDesc').value.trim(),
             projectId: pmProjectDetailCache.id,
             projectName: pmProjectDetailCache.name || '',
-            dueDate: app.dateInputToMs('milestoneDueDate'),
+            dueDate: dueDate,
             status: document.getElementById('milestoneStatus').value
         };
         var isEdit = !!mid;
@@ -878,8 +926,8 @@
                     + '</div></div>'
                     + '<div class="request-actions">';
                 if (r.status === 'PENDING') {
-                    html += '<button class="btn-approve-sm" onclick="reviewLeaveRequest(\'' + rid + '\',\'APPROVED\')">Approve</button>'
-                        + '<button class="btn-reject-sm" onclick="reviewLeaveRequest(\'' + rid + '\',\'REJECTED\')">Reject</button>';
+                    html += '<button class="btn-approve-sm" data-request-id="' + rid + '" onclick="reviewLeaveRequest(\'' + rid + '\',\'APPROVED\')">Approve</button>'
+                        + '<button class="btn-reject-sm" data-request-id="' + rid + '" onclick="reviewLeaveRequest(\'' + rid + '\',\'REJECTED\')">Reject</button>';
                 } else {
                     html += '<span class="badge ' + badgeClass + '">' + app.esc(r.status) + '</span>';
                 }
@@ -891,14 +939,14 @@
 
     window.reviewLeaveRequest = function (id, status) {
         if (!id || !status) return;
-        var btn = document.querySelector('.btn-approve-sm[onclick*="' + id + '"], .btn-reject-sm[onclick*="' + id + '"]');
-        if (btn) btn.disabled = true;
+        var buttons = document.querySelectorAll('.request-actions button[data-request-id="' + id + '"]');
+        buttons.forEach(function (b) { b.disabled = true; });
         app.fetchMutate('PUT', '/api/workspace/leave-requests', { id: id, status: status }, function () {
             app.showToast('Request ' + status.toLowerCase(), 'success');
             loadPMRequests();
         }, function (err) {
             app.showToast(err || 'Failed to update request', 'error');
-            if (btn) btn.disabled = false;
+            buttons.forEach(function (b) { b.disabled = false; });
         });
     };
 
