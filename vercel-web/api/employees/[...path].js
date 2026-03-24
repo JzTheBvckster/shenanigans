@@ -355,7 +355,17 @@ module.exports = withSecurity(async function handler(req, res) {
             delete body.role;
             delete body.mdApproved;
             delete body.uid;
-            await db.collection(COLLECTION).doc(entityId).update(body);
+            const employeeRef = db.collection(COLLECTION).doc(entityId);
+            const existingEmployee = await employeeRef.get();
+            if (existingEmployee.exists) {
+                await employeeRef.update(body);
+            } else {
+                await employeeRef.set({
+                    createdAt: body.updatedAt,
+                    status: body.status || "ACTIVE",
+                    ...body,
+                }, { merge: true });
+            }
             return res.status(200).json({ ok: true, data: { id: entityId } });
         }
 

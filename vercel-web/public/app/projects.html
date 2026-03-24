@@ -16,44 +16,10 @@
         <main class="app-content" id="appContent">
             <section class="page-view" id="pageProjects">
                 <div class="page-header">
-                    <h2>Projects</h2>
+                    <h2>Projects <button type="button" class="heading-inline-link" onclick="scrollToProjectManagersSection()">(view project managers)</button></h2>
                     <p>Track project status and progress</p>
                 </div>
                 <div class="notice" id="projectsNotice"></div>
-
-                <div class="card" id="projectManagersSection" style="margin-bottom:16px;">
-                    <div class="card-header">
-                        <h3>Project Managers by Department</h3>
-                    </div>
-                    <div class="page-filters" id="projectManagersFilters" style="margin-top:12px;">
-                        <div class="filter-item">
-                            <label for="pmDeptFilter">Department</label>
-                            <select id="pmDeptFilter">
-                                <option value="">All Departments</option>
-                            </select>
-                        </div>
-                        <div class="filter-item">
-                            <label for="pmAssignedFilter">Assignment</label>
-                            <select id="pmAssignedFilter">
-                                <option value="">All</option>
-                                <option value="assigned">Assigned to Projects</option>
-                                <option value="unassigned">Not Assigned</option>
-                            </select>
-                        </div>
-                        <div class="filter-item filter-item-wide">
-                            <label for="pmSearchFilter">Search</label>
-                            <input type="text" id="pmSearchFilter" placeholder="Search by manager name or email...">
-                        </div>
-                        <div class="filter-actions">
-                            <button class="btn-secondary btn-small" type="button" onclick="clearProjectManagerFilters()">Clear
-                                Filters</button>
-                        </div>
-                    </div>
-                    <div class="dept-stats-row" id="projectManagersDeptStats"></div>
-                    <div class="dept-groups" id="projectManagersDeptGroups">
-                        <div class="loading-spinner visible"></div>
-                    </div>
-                </div>
 
                 <div class="kanban-board" id="projectsKanban">
                     <div class="kanban-column" id="colPendingApproval">
@@ -101,6 +67,40 @@
                         <span class="archived-count" id="archivedCount">0</span>
                     </button>
                     <div class="archived-list hidden" id="archivedProjectsList"></div>
+                </div>
+
+                <div class="card" id="projectManagersSection" style="margin-top:16px;">
+                    <div class="card-header">
+                        <h3>Project Managers by Department</h3>
+                    </div>
+                    <div class="page-filters" id="projectManagersFilters" style="margin-top:12px;">
+                        <div class="filter-item">
+                            <label for="pmDeptFilter">Department</label>
+                            <select id="pmDeptFilter">
+                                <option value="">All Departments</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <label for="pmAssignedFilter">Assignment</label>
+                            <select id="pmAssignedFilter">
+                                <option value="">All</option>
+                                <option value="assigned">Assigned to Projects</option>
+                                <option value="unassigned">Not Assigned</option>
+                            </select>
+                        </div>
+                        <div class="filter-item filter-item-wide">
+                            <label for="pmSearchFilter">Search</label>
+                            <input type="text" id="pmSearchFilter" placeholder="Search by manager name or email...">
+                        </div>
+                        <div class="filter-actions">
+                            <button class="btn-secondary btn-small" type="button" onclick="clearProjectManagerFilters()">Clear
+                                Filters</button>
+                        </div>
+                    </div>
+                    <div class="dept-stats-row" id="projectManagersDeptStats"></div>
+                    <div class="dept-groups" id="projectManagersDeptGroups">
+                        <div class="loading-spinner visible"></div>
+                    </div>
                 </div>
             </section>
         </main>

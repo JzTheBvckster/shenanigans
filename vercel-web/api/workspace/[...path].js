@@ -596,10 +596,11 @@ async function handleNotifications(req, res, session, actor) {
         case "GET": {
             const snapshot = await db.collection(COLLECTION)
                 .where("recipientId", "==", uid)
-                .orderBy("createdAt", "desc")
-                .limit(50)
                 .get();
-            const notifs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+            const notifs = snapshot.docs
+                .map((d) => ({ id: d.id, ...d.data() }))
+                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+                .slice(0, 50);
             return res.status(200).json({ ok: true, data: notifs });
         }
 
@@ -650,12 +651,17 @@ async function handleNotifications(req, res, session, actor) {
             if (body.markAllRead) {
                 const snapshot = await db.collection(COLLECTION)
                     .where("recipientId", "==", uid)
-                    .where("read", "==", false)
                     .get();
                 const batch = db.batch();
-                snapshot.docs.forEach((d) => batch.update(d.ref, { read: true }));
+                let updated = 0;
+                snapshot.docs.forEach((d) => {
+                    const data = d.data() || {};
+                    if (data.read === true) return;
+                    batch.update(d.ref, { read: true });
+                    updated += 1;
+                });
                 await batch.commit();
-                return res.status(200).json({ ok: true, data: { updated: snapshot.size } });
+                return res.status(200).json({ ok: true, data: { updated: updated } });
             }
             if (!body.id) {
                 return res.status(400).json({ ok: false, error: "Notification id is required." });

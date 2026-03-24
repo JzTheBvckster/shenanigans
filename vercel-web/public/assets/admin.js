@@ -464,6 +464,15 @@
         renderProjectManagersByDepartment(app.cachedData.projectManagers || [], app.cachedData.projects || []);
     };
 
+    window.scrollToProjectManagersSection = function () {
+        var section = document.getElementById('projectManagersSection');
+        if (!section) return;
+        section.classList.remove('hidden');
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        section.classList.remove('section-reveal-pulse');
+        setTimeout(function () { section.classList.add('section-reveal-pulse'); }, 20);
+    };
+
     function managerDisplayName(m) {
         return m.displayName || app.buildName(m) || m.email || 'Unknown';
     }
