@@ -42,6 +42,8 @@ module.exports = withSecurity(
         return handleNotifications(req, res, session, actor);
       case "milestones":
         return handleMilestones(req, res, session, actor);
+      case "team-chat":
+        return handleTeamChat(req, res, session, actor);
       default:
         return res
           .status(404)
@@ -98,6 +100,46 @@ function isAssigneeInProjectTeam(project, assigneeId) {
   return team.map((id) => String(id)).includes(String(assigneeId));
 }
 
+function canAccessProjectChat(project, session, actor) {
+  if (!project || !session || !session.user) return false;
+  if (isManagingDirector(actor)) return true;
+  if (!canAccessDepartment(actor, project.department)) return false;
+
+  const uid = String(session.user.uid || "")
+    .trim()
+    .toLowerCase();
+  const email = String(session.user.email || "")
+    .trim()
+    .toLowerCase();
+  const name = String(session.user.displayName || "")
+    .trim()
+    .toLowerCase();
+  const managerId = String(project.projectManagerId || "")
+    .trim()
+    .toLowerCase();
+  const managerName = String(project.projectManager || "")
+    .trim()
+    .toLowerCase();
+  const createdById = String(project.createdById || "")
+    .trim()
+    .toLowerCase();
+  const memberIds = Array.isArray(project.teamMemberIds)
+    ? project.teamMemberIds.map((id) =>
+        String(id || "")
+          .trim()
+          .toLowerCase(),
+      )
+    : [];
+
+  return (
+    (uid && uid === managerId) ||
+    (uid && uid === createdById) ||
+    (uid && memberIds.includes(uid)) ||
+    (name && name === managerName) ||
+    (email && email === managerName)
+  );
+}
+
 async function getDepartmentEmployeeIds(department) {
   if (!department) return new Set();
   const snap = await db
@@ -143,12 +185,10 @@ async function handleTimesheets(req, res, session, actor) {
     case "POST": {
       const body = req.body || {};
       if (!body.projectId || !body.date || !body.hours) {
-        return res
-          .status(400)
-          .json({
-            ok: false,
-            error: "projectId, date, and hours are required.",
-          });
+        return res.status(400).json({
+          ok: false,
+          error: "projectId, date, and hours are required.",
+        });
       }
       if (!isValidDocId(String(body.projectId))) {
         return res.status(400).json({ ok: false, error: "Invalid projectId." });
@@ -174,12 +214,10 @@ async function handleTimesheets(req, res, session, actor) {
             .json({ ok: false, error: "Invalid assignee id." });
         }
         if (!isAssigneeInProjectTeam(project, body.assignedTo)) {
-          return res
-            .status(400)
-            .json({
-              ok: false,
-              error: "Assignee must be a member of the selected project team.",
-            });
+          return res.status(400).json({
+            ok: false,
+            error: "Assignee must be a member of the selected project team.",
+          });
         }
       }
       const now = Date.now();
@@ -268,22 +306,18 @@ async function handleLeaveRequests(req, res, session, actor) {
     case "POST": {
       const body = req.body || {};
       if (!body.type || !body.startDate || !body.endDate) {
-        return res
-          .status(400)
-          .json({
-            ok: false,
-            error: "type, startDate, and endDate are required.",
-          });
+        return res.status(400).json({
+          ok: false,
+          error: "type, startDate, and endDate are required.",
+        });
       }
       const startDate = parsePositiveTimestamp(body.startDate);
       const endDate = parsePositiveTimestamp(body.endDate);
       if (!startDate || !endDate) {
-        return res
-          .status(400)
-          .json({
-            ok: false,
-            error: "Valid startDate and endDate are required.",
-          });
+        return res.status(400).json({
+          ok: false,
+          error: "Valid startDate and endDate are required.",
+        });
       }
       if (endDate < startDate) {
         return res
@@ -292,12 +326,10 @@ async function handleLeaveRequests(req, res, session, actor) {
       }
       const validTypes = ["ANNUAL", "SICK", "PERSONAL"];
       if (!validTypes.includes(body.type)) {
-        return res
-          .status(400)
-          .json({
-            ok: false,
-            error: "Type must be ANNUAL, SICK, or PERSONAL.",
-          });
+        return res.status(400).json({
+          ok: false,
+          error: "Type must be ANNUAL, SICK, or PERSONAL.",
+        });
       }
       const now = Date.now();
       const request = {
@@ -322,12 +354,10 @@ async function handleLeaveRequests(req, res, session, actor) {
 
     case "PUT": {
       if (isEmployee(actor)) {
-        return res
-          .status(403)
-          .json({
-            ok: false,
-            error: "Only managers can approve or reject requests.",
-          });
+        return res.status(403).json({
+          ok: false,
+          error: "Only managers can approve or reject requests.",
+        });
       }
       const body = req.body || {};
       if (!body.id || !body.status) {
@@ -417,12 +447,10 @@ async function handleDocuments(req, res, session, actor) {
       }
       const validCategories = ["POLICY", "TEMPLATE", "PROJECT_BRIEF"];
       if (!validCategories.includes(body.category)) {
-        return res
-          .status(400)
-          .json({
-            ok: false,
-            error: "Category must be POLICY, TEMPLATE, or PROJECT_BRIEF.",
-          });
+        return res.status(400).json({
+          ok: false,
+          error: "Category must be POLICY, TEMPLATE, or PROJECT_BRIEF.",
+        });
       }
       if (
         body.relatedProjectId &&
@@ -441,13 +469,10 @@ async function handleDocuments(req, res, session, actor) {
         );
         if (!relatedProject) return;
         if (body.department && body.department !== relatedProject.department) {
-          return res
-            .status(400)
-            .json({
-              ok: false,
-              error:
-                "Document department must match related project department.",
-            });
+          return res.status(400).json({
+            ok: false,
+            error: "Document department must match related project department.",
+          });
         }
       }
       if (
@@ -702,20 +727,16 @@ async function handleTasks(req, res, session, actor) {
         const projectToValidate =
           targetProject || (await getProjectById(existing.projectId));
         if (!projectToValidate) {
-          return res
-            .status(400)
-            .json({
-              ok: false,
-              error: "Cannot validate assignee without a valid project.",
-            });
+          return res.status(400).json({
+            ok: false,
+            error: "Cannot validate assignee without a valid project.",
+          });
         }
         if (!isAssigneeInProjectTeam(projectToValidate, body.assignedTo)) {
-          return res
-            .status(400)
-            .json({
-              ok: false,
-              error: "Assignee must be a member of the selected project team.",
-            });
+          return res.status(400).json({
+            ok: false,
+            error: "Assignee must be a member of the selected project team.",
+          });
         }
       }
 
@@ -814,12 +835,10 @@ async function handleComments(req, res, session, actor) {
           .json({ ok: false, error: "Comment text is required." });
       }
       if (body.text.length > 2000) {
-        return res
-          .status(400)
-          .json({
-            ok: false,
-            error: "Comment text must be under 2000 characters.",
-          });
+        return res.status(400).json({
+          ok: false,
+          error: "Comment text must be under 2000 characters.",
+        });
       }
       const taskDoc = await db.collection("tasks").doc(body.taskId).get();
       if (!taskDoc.exists) {
@@ -888,6 +907,221 @@ async function handleComments(req, res, session, actor) {
 
     default:
       res.setHeader("Allow", "GET, POST, DELETE");
+      return res.status(405).json({ ok: false, error: "Method not allowed." });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Team Chat
+// ---------------------------------------------------------------------------
+async function handleTeamChat(req, res, session, actor) {
+  const method = req.method;
+  const COLLECTION = "team_chats";
+
+  async function readMessagesWithFallback(field, value, limit) {
+    try {
+      return await db
+        .collection(COLLECTION)
+        .where(field, "==", value)
+        .orderBy("createdAt", "desc")
+        .limit(limit)
+        .get();
+    } catch (err) {
+      // Fallback for environments missing composite index for where + orderBy.
+      return await db
+        .collection(COLLECTION)
+        .where(field, "==", value)
+        .limit(limit)
+        .get();
+    }
+  }
+
+  function resolveTargetDepartment(inputDepartment) {
+    const requested = String(inputDepartment || "").trim();
+    if (isEmployee(actor)) {
+      return String(actor.department || "").trim();
+    }
+    if (!requested) return String(actor.department || "").trim();
+    return requested;
+  }
+
+  switch (method) {
+    case "GET": {
+      const query = req.query || {};
+      const queryProjectId = String(query.projectId || "").trim();
+
+      if (queryProjectId) {
+        if (!isValidDocId(queryProjectId)) {
+          return res
+            .status(400)
+            .json({ ok: false, error: "Invalid projectId." });
+        }
+        const project = await getProjectById(queryProjectId);
+        if (!project) {
+          return res
+            .status(404)
+            .json({ ok: false, error: "Project not found." });
+        }
+        if (!canAccessProjectChat(project, session, actor)) {
+          return res
+            .status(403)
+            .json({ ok: false, error: "Access denied for this project chat." });
+        }
+
+        const limit = Math.min(parseInt(query.limit, 10) || 100, 200);
+        const projectSnap = await readMessagesWithFallback(
+          "projectId",
+          queryProjectId,
+          limit,
+        );
+
+        const projectMessages = projectSnap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+        return res.status(200).json({ ok: true, data: projectMessages });
+      }
+
+      const targetDepartment = resolveTargetDepartment(query.department);
+      if (!targetDepartment) {
+        return res
+          .status(400)
+          .json({
+            ok: false,
+            error: "A department is required for team chat.",
+          });
+      }
+      if (
+        !isManagingDirector(actor) &&
+        !canAccessDepartment(actor, targetDepartment)
+      ) {
+        return res
+          .status(403)
+          .json({ ok: false, error: "Access denied for this department." });
+      }
+
+      const limit = Math.min(parseInt(query.limit, 10) || 100, 200);
+      const snapshot = await readMessagesWithFallback(
+        "department",
+        targetDepartment,
+        limit,
+      );
+
+      const messages = snapshot.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((m) => !m.projectId)
+        .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+      return res.status(200).json({ ok: true, data: messages });
+    }
+
+    case "POST": {
+      const body = req.body || {};
+      const bodyProjectId = String(body.projectId || "").trim();
+
+      if (bodyProjectId) {
+        if (!isValidDocId(bodyProjectId)) {
+          return res
+            .status(400)
+            .json({ ok: false, error: "Invalid projectId." });
+        }
+        const project = await getProjectById(bodyProjectId);
+        if (!project) {
+          return res
+            .status(404)
+            .json({ ok: false, error: "Project not found." });
+        }
+        if (!canAccessProjectChat(project, session, actor)) {
+          return res
+            .status(403)
+            .json({ ok: false, error: "Access denied for this project chat." });
+        }
+
+        const text = String(body.text || "").trim();
+        if (!text) {
+          return res
+            .status(400)
+            .json({ ok: false, error: "Message text is required." });
+        }
+        if (text.length > 1000) {
+          return res
+            .status(400)
+            .json({
+              ok: false,
+              error: "Message must be under 1000 characters.",
+            });
+        }
+
+        const now = Date.now();
+        const message = {
+          department: project.department || "",
+          projectId: bodyProjectId,
+          projectName: project.name || body.projectName || "",
+          text: text,
+          authorId: session.user.uid,
+          authorName: session.user.displayName || session.user.email || "",
+          authorRole: session.user.role || "",
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        const docRef = await db.collection(COLLECTION).add(message);
+        return res
+          .status(201)
+          .json({ ok: true, data: { id: docRef.id, ...message } });
+      }
+
+      const targetDepartment = resolveTargetDepartment(body.department);
+      if (!targetDepartment) {
+        return res
+          .status(400)
+          .json({
+            ok: false,
+            error: "A department is required for team chat.",
+          });
+      }
+      if (
+        !isManagingDirector(actor) &&
+        !canAccessDepartment(actor, targetDepartment)
+      ) {
+        return res
+          .status(403)
+          .json({ ok: false, error: "Access denied for this department." });
+      }
+
+      const text = String(body.text || "").trim();
+      if (!text) {
+        return res
+          .status(400)
+          .json({ ok: false, error: "Message text is required." });
+      }
+      if (text.length > 1000) {
+        return res
+          .status(400)
+          .json({ ok: false, error: "Message must be under 1000 characters." });
+      }
+
+      const now = Date.now();
+      const message = {
+        department: targetDepartment,
+        projectId: null,
+        projectName: "",
+        text: text,
+        authorId: session.user.uid,
+        authorName: session.user.displayName || session.user.email || "",
+        authorRole: session.user.role || "",
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      const docRef = await db.collection(COLLECTION).add(message);
+      return res
+        .status(201)
+        .json({ ok: true, data: { id: docRef.id, ...message } });
+    }
+
+    default:
+      res.setHeader("Allow", "GET, POST");
       return res.status(405).json({ ok: false, error: "Method not allowed." });
   }
 }
@@ -1017,23 +1251,19 @@ async function handleNotifications(req, res, session, actor) {
         (rid) => !isValidDocId(String(rid)),
       );
       if (invalidRecipient) {
-        return res
-          .status(400)
-          .json({
-            ok: false,
-            error: "Invalid recipient id in recipient list.",
-          });
+        return res.status(400).json({
+          ok: false,
+          error: "Invalid recipient id in recipient list.",
+        });
       }
       if (!isManagingDirector(actor)) {
         const allowed = await getDepartmentEmployeeIds(actor.department);
         const allAllowed = recipients.every((rid) => allowed.has(rid));
         if (!allAllowed) {
-          return res
-            .status(403)
-            .json({
-              ok: false,
-              error: "Recipients must be in your department.",
-            });
+          return res.status(403).json({
+            ok: false,
+            error: "Recipients must be in your department.",
+          });
         }
       }
       const now = Date.now();

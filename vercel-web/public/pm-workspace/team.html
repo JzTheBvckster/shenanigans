@@ -49,12 +49,46 @@
               <div class="loading-spinner visible"></div>
             </div>
           </div>
+          <div class="card" style="margin-top: 16px">
+            <div class="card-header">
+              <h3>Team Chat <span class="team-chat-total-unread" id="pmTeamChatTotalUnread"></span></h3>
+              <div class="team-chat-controls">
+                <select
+                  id="pmTeamChatScope"
+                  onchange="onPMTeamChatScopeChange()"
+                ></select>
+                <button
+                  class="btn-secondary btn-small"
+                  onclick="loadPMTeamChat()"
+                >
+                  Refresh
+                </button>
+              </div>
+            </div>
+            <div class="team-chat-list" id="pmTeamChatList">
+              <div class="loading-spinner visible"></div>
+            </div>
+            <div class="task-comment-input" style="margin-top: 10px">
+              <textarea
+                id="pmTeamChatInput"
+                rows="2"
+                placeholder="Write a message to your department team"
+              ></textarea>
+              <button
+                class="btn-comment-send"
+                id="pmTeamChatSendBtn"
+                onclick="postPMTeamChatMessage()"
+              >
+                Send
+              </button>
+            </div>
+          </div>
         </section>
       </main>
     </div>
 
     <script src="/assets/shared.js?v=6"></script>
-    <script src="/assets/pm.js?v=10"></script>
+    <script src="/assets/pm.js?v=14"></script>
     <script>
       ShenanigansApp.init({
         sidebar: "pm",

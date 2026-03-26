@@ -1,47 +1,81 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>My Team — Shenanigans</title>
-    <link rel="stylesheet" href="/assets/styles.css">
-</head>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
 
-<body>
+  <body>
     <div class="app-shell" id="appShell">
-        <header class="app-header" id="appHeader"></header>
-        <aside class="app-sidebar" id="appSidebar"></aside>
+      <header class="app-header" id="appHeader"></header>
+      <aside class="app-sidebar" id="appSidebar"></aside>
 
-        <main class="app-content" id="appContent">
-            <section class="page-view" id="pageEmpTeam">
-                <div class="page-header">
-                    <h2>My Team</h2>
-                    <p>Team members in your department</p>
-                </div>
-                <div class="stats-row" id="empTeamStats"></div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Team Members</h3>
-                    </div>
-                    <div id="empTeamList">
-                        <div class="loading-spinner visible"></div>
-                    </div>
-                </div>
-            </section>
-        </main>
+      <main class="app-content" id="appContent">
+        <section class="page-view" id="pageEmpTeam">
+          <div class="page-header">
+            <h2>My Team</h2>
+            <p>Team members in your department</p>
+          </div>
+          <div class="stats-row" id="empTeamStats"></div>
+          <div class="card">
+            <div class="card-header">
+              <h3>Team Members</h3>
+            </div>
+            <div id="empTeamList">
+              <div class="loading-spinner visible"></div>
+            </div>
+          </div>
+          <div class="card" style="margin-top: 16px">
+            <div class="card-header">
+              <h3>Team Chat <span class="team-chat-total-unread" id="empTeamChatTotalUnread"></span></h3>
+              <div class="team-chat-controls">
+                <select
+                  id="empTeamChatScope"
+                  onchange="onEmpTeamChatScopeChange()"
+                ></select>
+                <button
+                  class="btn-secondary btn-small"
+                  onclick="loadEmpTeamChat()"
+                >
+                  Refresh
+                </button>
+              </div>
+            </div>
+            <div class="team-chat-list" id="empTeamChatList">
+              <div class="loading-spinner visible"></div>
+            </div>
+            <div class="task-comment-input" style="margin-top: 10px">
+              <textarea
+                id="empTeamChatInput"
+                rows="2"
+                placeholder="Write a message to your department team"
+              ></textarea>
+              <button
+                class="btn-comment-send"
+                id="empTeamChatSendBtn"
+                onclick="postEmpTeamChatMessage()"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
 
     <script src="/assets/shared.js?v=6"></script>
-    <script src="/assets/employee.js?v=6"></script>
+    <script src="/assets/employee.js?v=10"></script>
     <script>
-        ShenanigansApp.init({
-            sidebar: 'employee',
-            activePage: 'empTeam',
-            subtitle: 'Employee Workspace',
-            onReady: function () { loadEmpTeam(); }
-        });
+      ShenanigansApp.init({
+        sidebar: "employee",
+        activePage: "empTeam",
+        subtitle: "Employee Workspace",
+        onReady: function () {
+          loadEmpTeam();
+        },
+      });
     </script>
-</body>
-
+  </body>
 </html>

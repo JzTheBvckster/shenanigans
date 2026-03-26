@@ -963,11 +963,292 @@
   /* ============================================================
        MY TEAM
        ============================================================ */
+  var empTeamChatDepartment = "";
+  var empTeamChatRooms = [];
+  var empTeamChatScope = "dept";
+  var empTeamChatPollTimer = null;
+
+  function empChatUserKey() {
+    return (
+      (app.currentUser && app.currentUser.uid) ||
+      (app.currentUser && app.currentUser.email) ||
+      "anon"
+    );
+  }
+
+  function empChatStorageKey(scopeValue) {
+    return "teamChatLastRead:emp:" + empChatUserKey() + ":" + scopeValue;
+  }
+
+  function getEmpLastRead(scopeValue) {
+    var v = localStorage.getItem(empChatStorageKey(scopeValue));
+    var ts = Number(v);
+    return Number.isFinite(ts) ? ts : 0;
+  }
+
+  function setEmpLastRead(scopeValue, ts) {
+    var num = Number(ts) || 0;
+    localStorage.setItem(empChatStorageKey(scopeValue), String(num));
+  }
+
+  function stopEmpTeamChatPolling() {
+    if (empTeamChatPollTimer) {
+      clearInterval(empTeamChatPollTimer);
+      empTeamChatPollTimer = null;
+    }
+  }
+
+  function startEmpTeamChatPolling() {
+    stopEmpTeamChatPolling();
+    empTeamChatPollTimer = setInterval(function () {
+      loadEmpTeamChat();
+    }, 30000);
+  }
+
+  function renderEmpTeamChat(messages) {
+    var host = document.getElementById("empTeamChatList");
+    if (!host) return;
+    if (!messages || !messages.length) {
+      host.innerHTML =
+        '<div class="comment-empty">No chat messages yet. Start the conversation.</div>';
+      return;
+    }
+    host.innerHTML = messages
+      .map(function (m) {
+        var mine =
+          app.currentUser &&
+          String(m.authorId || "") === String(app.currentUser.uid || "");
+        return (
+          '<div class="team-chat-item' +
+          (mine ? " mine" : "") +
+          '">' +
+          '<div class="comment-header"><strong>' +
+          app.esc(m.authorName || "Unknown") +
+          "</strong>" +
+          (m.authorRole === "PM" 
+            ? '<span class="badge badge-purple" style="font-size: 0.65rem; padding: 2px 6px; margin-left: 6px; vertical-align: middle;">PM</span>'
+            : '<span class="comment-role">' + app.esc(app.formatRole(m.authorRole || "USER")) + "</span>"
+          ) +
+          '<span class="comment-time">' +
+          app.esc(app.formatTimestamp(m.createdAt)) +
+          "</span></div>" +
+          '<div class="comment-text">' +
+          app.esc(m.text || "") +
+          "</div></div>"
+        );
+      })
+      .join("");
+    host.scrollTop = host.scrollHeight;
+  }
+
+  function fetchEmpRoomMessages(scopeValue, done, fail) {
+    var query = "";
+    if (!scopeValue || scopeValue === "dept") {
+      query =
+        "department=" +
+        encodeURIComponent(empTeamChatDepartment) +
+        "&limit=120";
+    } else if (scopeValue.indexOf("proj:") === 0) {
+      query =
+        "projectId=" +
+        encodeURIComponent(scopeValue.substring(5)) +
+        "&limit=120";
+    } else {
+      query =
+        "department=" +
+        encodeURIComponent(empTeamChatDepartment) +
+        "&limit=120";
+    }
+    app.fetchJson("/api/workspace/team-chat?" + query, done, fail);
+  }
+
+  function updateEmpTeamChatScopeLabels(unreadMap) {
+    var select = document.getElementById("empTeamChatScope");
+    if (!select || !empTeamChatRooms.length) return;
+    var current = empTeamChatScope || "dept";
+    select.innerHTML = empTeamChatRooms
+      .map(function (room) {
+        var unread =
+          unreadMap && unreadMap[room.value] ? unreadMap[room.value] : 0;
+        var suffix = unread > 0 ? " (" + unread + " new)" : "";
+        return (
+          '<option value="' +
+          app.esc(room.value) +
+          '">' +
+          app.esc(room.baseLabel + suffix) +
+          "</option>"
+        );
+      })
+      .join("");
+    select.value = current;
+
+    var totalBadge = document.getElementById("empTeamChatTotalUnread");
+    if (totalBadge) {
+      var total = 0;
+      empTeamChatRooms.forEach(function (room) {
+        if (room.value === current) return;
+        total += unreadMap && unreadMap[room.value] ? unreadMap[room.value] : 0;
+      });
+      totalBadge.textContent = total > 0 ? total + " new" : "";
+    }
+  }
+
+  function refreshEmpUnreadCounts() {
+    if (!empTeamChatRooms.length || !empTeamChatDepartment) return;
+    var pending = empTeamChatRooms.length;
+    var unreadMap = {};
+    empTeamChatRooms.forEach(function (room) {
+      fetchEmpRoomMessages(
+        room.value,
+        function (messages) {
+          var lastRead = getEmpLastRead(room.value);
+          var myId = String((app.currentUser && app.currentUser.uid) || "");
+          var unread = (messages || []).filter(function (m) {
+            var created = Number(m.createdAt) || 0;
+            var mine = String(m.authorId || "") === myId;
+            return !mine && created > lastRead;
+          }).length;
+          unreadMap[room.value] = unread;
+          pending -= 1;
+          if (pending === 0) updateEmpTeamChatScopeLabels(unreadMap);
+        },
+        function () {
+          unreadMap[room.value] = 0;
+          pending -= 1;
+          if (pending === 0) updateEmpTeamChatScopeLabels(unreadMap);
+        },
+      );
+    });
+  }
+
+  function buildEmpTeamChatQuery() {
+    if (!empTeamChatScope || empTeamChatScope === "dept") {
+      return (
+        "department=" + encodeURIComponent(empTeamChatDepartment) + "&limit=120"
+      );
+    }
+    if (empTeamChatScope.indexOf("proj:") === 0) {
+      var projectId = empTeamChatScope.substring(5);
+      return "projectId=" + encodeURIComponent(projectId) + "&limit=120";
+    }
+    return (
+      "department=" + encodeURIComponent(empTeamChatDepartment) + "&limit=120"
+    );
+  }
+
+  function buildEmpTeamChatPayload(text) {
+    if (empTeamChatScope && empTeamChatScope.indexOf("proj:") === 0) {
+      return {
+        projectId: empTeamChatScope.substring(5),
+        text: text,
+      };
+    }
+    return {
+      department: empTeamChatDepartment,
+      text: text,
+    };
+  }
+
+  function renderEmpTeamChatScopeOptions(assignedProjects) {
+    var select = document.getElementById("empTeamChatScope");
+    if (!select) return;
+    var options = [];
+    var seen = {};
+    options.push({ value: "dept", baseLabel: "Department Room" });
+    (assignedProjects || []).forEach(function (p) {
+      if (!p || !p.id || seen[p.id]) return;
+      seen[p.id] = true;
+      options.push({
+        value: "proj:" + p.id,
+        baseLabel: "Project: " + (p.name || "Untitled"),
+      });
+    });
+    empTeamChatRooms = options;
+    updateEmpTeamChatScopeLabels({});
+
+    var stillValid = options.some(function (opt) {
+      return opt.value === empTeamChatScope;
+    });
+    if (!stillValid) empTeamChatScope = "dept";
+    select.value = empTeamChatScope;
+    refreshEmpUnreadCounts();
+  }
+
+  window.onEmpTeamChatScopeChange = function () {
+    var select = document.getElementById("empTeamChatScope");
+    if (!select) return;
+    empTeamChatScope = select.value || "dept";
+    loadEmpTeamChat();
+  };
+
+  window.loadEmpTeamChat = function () {
+    var host = document.getElementById("empTeamChatList");
+    if (!host) return;
+    if (!empTeamChatDepartment) {
+      host.innerHTML =
+        '<div class="comment-empty">Set your department to use team chat.</div>';
+      return;
+    }
+    app.fetchJson(
+      "/api/workspace/team-chat?" + buildEmpTeamChatQuery(),
+      function (messages) {
+        var list = messages || [];
+        renderEmpTeamChat(list);
+        var newest = list.length
+          ? Math.max.apply(
+              null,
+              list.map(function (m) {
+                return Number(m.createdAt) || 0;
+              }),
+            )
+          : Date.now();
+        setEmpLastRead(empTeamChatScope || "dept", newest);
+        refreshEmpUnreadCounts();
+      },
+      function () {
+        host.innerHTML =
+          '<div class="comment-empty">Failed to load team chat.</div>';
+      },
+    );
+  };
+
+  window.postEmpTeamChatMessage = function () {
+    var input = document.getElementById("empTeamChatInput");
+    var btn = document.getElementById("empTeamChatSendBtn");
+    if (!input || !btn) return;
+    var text = (input.value || "").trim();
+    if (!text) {
+      app.showToast("Please enter a message", "warning");
+      return;
+    }
+    if (!empTeamChatDepartment) {
+      app.showToast("Department is required for team chat", "error");
+      return;
+    }
+    btn.disabled = true;
+    app.fetchMutate(
+      "POST",
+      "/api/workspace/team-chat",
+      buildEmpTeamChatPayload(text),
+      function () {
+        input.value = "";
+        btn.disabled = false;
+        loadEmpTeamChat();
+      },
+      function (err) {
+        btn.disabled = false;
+        app.showToast(err || "Failed to send message", "error");
+      },
+    );
+  };
+
   window.loadEmpTeam = function () {
     ensureEmpData(function (employees, projects) {
       var me = findCurrentEmployee(employees);
       var dept = me ? (me.department || "").toLowerCase() : "";
+      empTeamChatDepartment = me ? me.department || "" : "";
       var assigned = findAssignedProjects(projects);
+      renderEmpTeamChatScopeOptions(assigned);
 
       var team = employees.filter(function (e) {
         if ((e.status || "").toUpperCase() !== "ACTIVE") return false;
@@ -1020,8 +1301,13 @@
         }
       }
       document.getElementById("empTeamList").innerHTML = html;
+
+      loadEmpTeamChat();
+      startEmpTeamChatPolling();
     });
   };
+
+  window.addEventListener("beforeunload", stopEmpTeamChatPolling);
 
   function renderEmpTeamDeptGroup(deptName, members, isUnassigned, isMyDept) {
     members.sort(function (a, b) {

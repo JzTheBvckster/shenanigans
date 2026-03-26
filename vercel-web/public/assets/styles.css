@@ -2743,6 +2743,18 @@ a.menu-btn:hover {
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.26);
 }
 
+body.pm-theme-page .btn-primary,
+body.pm-theme-page .btn-modal-save,
+body.pm-theme-page .btn-small,
+body.pm-theme-page .btn-tiny,
+body.pm-theme-page .btn-approve-sm,
+body.pm-theme-page .btn-edit-sm,
+body.pm-theme-page .btn-comment-send {
+  background: linear-gradient(135deg, var(--red-start), var(--red-end));
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.26);
+}
+
 .pm-theme .btn-primary:hover,
 .pm-theme .btn-modal-save:hover,
 .pm-theme .btn-small:hover,
@@ -2753,6 +2765,16 @@ a.menu-btn:hover {
   opacity: 0.92;
 }
 
+body.pm-theme-page .btn-primary:hover,
+body.pm-theme-page .btn-modal-save:hover,
+body.pm-theme-page .btn-small:hover,
+body.pm-theme-page .btn-tiny:hover,
+body.pm-theme-page .btn-approve-sm:hover,
+body.pm-theme-page .btn-edit-sm:hover,
+body.pm-theme-page .btn-comment-send:hover {
+  opacity: 0.92;
+}
+
 .pm-theme .btn-secondary,
 .pm-theme .btn-modal-cancel {
   border-color: rgba(239, 68, 68, 0.35);
@@ -2760,8 +2782,20 @@ a.menu-btn:hover {
   background: rgba(239, 68, 68, 0.08);
 }
 
+body.pm-theme-page .btn-secondary,
+body.pm-theme-page .btn-modal-cancel {
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.08);
+}
+
 .pm-theme .btn-secondary:hover,
 .pm-theme .btn-modal-cancel:hover {
+  background: rgba(239, 68, 68, 0.16);
+}
+
+body.pm-theme-page .btn-secondary:hover,
+body.pm-theme-page .btn-modal-cancel:hover {
   background: rgba(239, 68, 68, 0.16);
 }
 
@@ -2777,15 +2811,35 @@ a.menu-btn:hover {
   box-shadow: 0 4px 12px rgba(153, 27, 27, 0.3);
 }
 
+body.pm-theme-page .btn-reject-sm,
+body.pm-theme-page .btn-danger,
+body.pm-theme-page .btn-modal-delete {
+  background: linear-gradient(135deg, #b91c1c, #991b1b) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(153, 27, 27, 0.3);
+}
+
 .pm-theme .btn-reject-sm:hover,
 .pm-theme .btn-danger:hover,
 .pm-theme .btn-modal-delete:hover {
   background: linear-gradient(135deg, #991b1b, #7f1d1d) !important;
 }
 
+body.pm-theme-page .btn-reject-sm:hover,
+body.pm-theme-page .btn-danger:hover,
+body.pm-theme-page .btn-modal-delete:hover {
+  background: linear-gradient(135deg, #991b1b, #7f1d1d) !important;
+}
+
 .pm-theme .btn-reject-sm:active,
 .pm-theme .btn-danger:active,
 .pm-theme .btn-modal-delete:active {
+  background: linear-gradient(135deg, #7f1d1d, #6b1111) !important;
+}
+
+body.pm-theme-page .btn-reject-sm:active,
+body.pm-theme-page .btn-danger:active,
+body.pm-theme-page .btn-modal-delete:active {
   background: linear-gradient(135deg, #7f1d1d, #6b1111) !important;
 }
 
@@ -3098,6 +3152,20 @@ a.menu-btn:hover {
   color: var(--ink);
   font-size: 13px;
   cursor: pointer;
+}
+
+.task-filters input {
+  min-width: 280px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.task-filters input::placeholder {
+  color: var(--ink-faint);
 }
 
 .task-filters .btn-primary {
@@ -3562,6 +3630,51 @@ a.menu-btn:hover {
   transition: opacity .15s;
 }
 .btn-comment-send:hover { opacity: .85; }
+
+/* ---------- Team Chat ---------- */
+.team-chat-list {
+  max-height: 340px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+.team-chat-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.team-chat-item.mine {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.15) inset;
+}
+
+.team-chat-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.team-chat-controls select {
+  min-width: 220px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.team-chat-total-unread {
+  margin-left: 8px;
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 700;
+}
 
 /* ---------- Notifications ---------- */
 .header-notif-wrap {

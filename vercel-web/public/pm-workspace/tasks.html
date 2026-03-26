@@ -27,6 +27,12 @@
             <select id="taskAssigneeFilter" onchange="filterPMTasks()">
               <option value="">All Assignees</option>
             </select>
+            <input
+              type="text"
+              id="taskSearchFilter"
+              placeholder="Search tasks, assignees, or projects"
+              oninput="filterPMTasks()"
+            />
             <button class="btn-primary" onclick="openTaskModal()">
               + Create Task
             </button>

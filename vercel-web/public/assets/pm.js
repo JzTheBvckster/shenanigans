@@ -12,7 +12,7 @@
     }
     var done = { e: null, p: null };
     app.fetchJson(
-      "/api/employees?includeManagedTeam=true",
+      "/api/employees",
       function (data) {
         app.cachedData.pmEmployees = data;
         done.e = data;
@@ -612,9 +612,27 @@
       (document.getElementById("taskProjectFilter") || {}).value || "";
     var assignVal =
       (document.getElementById("taskAssigneeFilter") || {}).value || "";
+    var searchText = (
+      (document.getElementById("taskSearchFilter") || {}).value || ""
+    )
+      .toLowerCase()
+      .trim();
     var filtered = pmTasksCache.filter(function (t) {
       if (projVal && t.projectId !== projVal) return false;
       if (assignVal && t.assignedTo !== assignVal) return false;
+      if (searchText) {
+        var blob = [
+          t.title || "",
+          t.description || "",
+          t.projectName || "",
+          t.assignedToName || "",
+          t.status || "",
+          t.priority || "",
+        ]
+          .join(" ")
+          .toLowerCase();
+        if (blob.indexOf(searchText) === -1) return false;
+      }
       return true;
     });
     renderPMTaskBoard(filtered);
@@ -1529,6 +1547,280 @@
        MY TEAM
        ============================================================ */
   var pmPendingApprovalsCache = [];
+  var pmTeamChatDepartment = "";
+  var pmTeamChatRooms = [];
+  var pmTeamChatScope = "dept";
+  var pmTeamChatPollTimer = null;
+
+  function pmChatUserKey() {
+    return (
+      (app.currentUser && app.currentUser.uid) ||
+      (app.currentUser && app.currentUser.email) ||
+      "anon"
+    );
+  }
+
+  function pmChatStorageKey(scopeValue) {
+    return "teamChatLastRead:pm:" + pmChatUserKey() + ":" + scopeValue;
+  }
+
+  function getPMLastRead(scopeValue) {
+    var v = localStorage.getItem(pmChatStorageKey(scopeValue));
+    var ts = Number(v);
+    return Number.isFinite(ts) ? ts : 0;
+  }
+
+  function setPMLastRead(scopeValue, ts) {
+    var num = Number(ts) || 0;
+    localStorage.setItem(pmChatStorageKey(scopeValue), String(num));
+  }
+
+  function stopPMTeamChatPolling() {
+    if (pmTeamChatPollTimer) {
+      clearInterval(pmTeamChatPollTimer);
+      pmTeamChatPollTimer = null;
+    }
+  }
+
+  function startPMTeamChatPolling() {
+    stopPMTeamChatPolling();
+    pmTeamChatPollTimer = setInterval(function () {
+      loadPMTeamChat();
+    }, 30000);
+  }
+
+  function renderPMTeamChat(messages) {
+    var host = document.getElementById("pmTeamChatList");
+    if (!host) return;
+    if (!messages || !messages.length) {
+      host.innerHTML =
+        '<div class="comment-empty">No chat messages yet. Start the conversation.</div>';
+      return;
+    }
+    host.innerHTML = messages
+      .map(function (m) {
+        var mine =
+          app.currentUser &&
+          String(m.authorId || "") === String(app.currentUser.uid || "");
+        return (
+          '<div class="team-chat-item' +
+          (mine ? " mine" : "") +
+          '">' +
+          '<div class="comment-header"><strong>' +
+          app.esc(m.authorName || "Unknown") +
+          "</strong>" +
+          (m.authorRole === "PM" 
+            ? '<span class="badge badge-purple" style="font-size: 0.65rem; padding: 2px 6px; margin-left: 6px; vertical-align: middle;">PM</span>'
+            : '<span class="comment-role">' + app.esc(app.formatRole(m.authorRole || "USER")) + "</span>"
+          ) +
+          '<span class="comment-time">' +
+          app.esc(app.formatTimestamp(m.createdAt)) +
+          "</span></div>" +
+          '<div class="comment-text">' +
+          app.esc(m.text || "") +
+          "</div></div>"
+        );
+      })
+      .join("");
+    host.scrollTop = host.scrollHeight;
+  }
+
+  function fetchPMRoomMessages(scopeValue, done, fail) {
+    var query = "";
+    if (!scopeValue || scopeValue === "dept") {
+      query =
+        "department=" + encodeURIComponent(pmTeamChatDepartment) + "&limit=120";
+    } else if (scopeValue.indexOf("proj:") === 0) {
+      query =
+        "projectId=" +
+        encodeURIComponent(scopeValue.substring(5)) +
+        "&limit=120";
+    } else {
+      query =
+        "department=" + encodeURIComponent(pmTeamChatDepartment) + "&limit=120";
+    }
+    app.fetchJson("/api/workspace/team-chat?" + query, done, fail);
+  }
+
+  function updatePMTeamChatScopeLabels(unreadMap) {
+    var select = document.getElementById("pmTeamChatScope");
+    if (!select || !pmTeamChatRooms.length) return;
+    var current = pmTeamChatScope || "dept";
+    select.innerHTML = pmTeamChatRooms
+      .map(function (room) {
+        var unread =
+          unreadMap && unreadMap[room.value] ? unreadMap[room.value] : 0;
+        var suffix = unread > 0 ? " (" + unread + " new)" : "";
+        return (
+          '<option value="' +
+          app.esc(room.value) +
+          '">' +
+          app.esc(room.baseLabel + suffix) +
+          "</option>"
+        );
+      })
+      .join("");
+    select.value = current;
+
+    var totalBadge = document.getElementById("pmTeamChatTotalUnread");
+    if (totalBadge) {
+      var total = 0;
+      pmTeamChatRooms.forEach(function (room) {
+        if (room.value === current) return;
+        total += unreadMap && unreadMap[room.value] ? unreadMap[room.value] : 0;
+      });
+      totalBadge.textContent = total > 0 ? total + " new" : "";
+    }
+  }
+
+  function refreshPMUnreadCounts() {
+    if (!pmTeamChatRooms.length || !pmTeamChatDepartment) return;
+    var pending = pmTeamChatRooms.length;
+    var unreadMap = {};
+    pmTeamChatRooms.forEach(function (room) {
+      fetchPMRoomMessages(
+        room.value,
+        function (messages) {
+          var lastRead = getPMLastRead(room.value);
+          var myId = String((app.currentUser && app.currentUser.uid) || "");
+          var unread = (messages || []).filter(function (m) {
+            var created = Number(m.createdAt) || 0;
+            var mine = String(m.authorId || "") === myId;
+            return !mine && created > lastRead;
+          }).length;
+          unreadMap[room.value] = unread;
+          pending -= 1;
+          if (pending === 0) updatePMTeamChatScopeLabels(unreadMap);
+        },
+        function () {
+          unreadMap[room.value] = 0;
+          pending -= 1;
+          if (pending === 0) updatePMTeamChatScopeLabels(unreadMap);
+        },
+      );
+    });
+  }
+
+  function buildPMTeamChatQuery() {
+    if (!pmTeamChatScope || pmTeamChatScope === "dept") {
+      return (
+        "department=" + encodeURIComponent(pmTeamChatDepartment) + "&limit=120"
+      );
+    }
+    if (pmTeamChatScope.indexOf("proj:") === 0) {
+      var projectId = pmTeamChatScope.substring(5);
+      return "projectId=" + encodeURIComponent(projectId) + "&limit=120";
+    }
+    return (
+      "department=" + encodeURIComponent(pmTeamChatDepartment) + "&limit=120"
+    );
+  }
+
+  function buildPMTeamChatPayload(text) {
+    if (pmTeamChatScope && pmTeamChatScope.indexOf("proj:") === 0) {
+      return {
+        projectId: pmTeamChatScope.substring(5),
+        text: text,
+      };
+    }
+    return {
+      department: pmTeamChatDepartment,
+      text: text,
+    };
+  }
+
+  function renderPMTeamChatScopeOptions(managedProjects) {
+    var select = document.getElementById("pmTeamChatScope");
+    if (!select) return;
+    var options = [];
+    var seen = {};
+    options.push({ value: "dept", baseLabel: "Department Room" });
+    (managedProjects || []).forEach(function (p) {
+      if (!p || !p.id || seen[p.id]) return;
+      seen[p.id] = true;
+      options.push({
+        value: "proj:" + p.id,
+        baseLabel: "Project: " + (p.name || "Untitled"),
+      });
+    });
+    pmTeamChatRooms = options;
+    updatePMTeamChatScopeLabels({});
+
+    var stillValid = options.some(function (opt) {
+      return opt.value === pmTeamChatScope;
+    });
+    if (!stillValid) pmTeamChatScope = "dept";
+    select.value = pmTeamChatScope;
+    refreshPMUnreadCounts();
+  }
+
+  window.onPMTeamChatScopeChange = function () {
+    var select = document.getElementById("pmTeamChatScope");
+    if (!select) return;
+    pmTeamChatScope = select.value || "dept";
+    loadPMTeamChat();
+  };
+
+  window.loadPMTeamChat = function () {
+    var host = document.getElementById("pmTeamChatList");
+    if (!host) return;
+    if (!pmTeamChatDepartment) {
+      host.innerHTML =
+        '<div class="comment-empty">Set your department to use team chat.</div>';
+      return;
+    }
+    app.fetchJson(
+      "/api/workspace/team-chat?" + buildPMTeamChatQuery(),
+      function (messages) {
+        var list = messages || [];
+        renderPMTeamChat(list);
+        var newest = list.length
+          ? Math.max.apply(
+              null,
+              list.map(function (m) {
+                return Number(m.createdAt) || 0;
+              }),
+            )
+          : Date.now();
+        setPMLastRead(pmTeamChatScope || "dept", newest);
+        refreshPMUnreadCounts();
+      },
+      function () {
+        host.innerHTML =
+          '<div class="comment-empty">Failed to load team chat.</div>';
+      },
+    );
+  };
+
+  window.postPMTeamChatMessage = function () {
+    var input = document.getElementById("pmTeamChatInput");
+    var btn = document.getElementById("pmTeamChatSendBtn");
+    if (!input || !btn) return;
+    var text = (input.value || "").trim();
+    if (!text) {
+      app.showToast("Please enter a message", "warning");
+      return;
+    }
+    if (!pmTeamChatDepartment) {
+      app.showToast("Department is required for team chat", "error");
+      return;
+    }
+    btn.disabled = true;
+    app.fetchMutate(
+      "POST",
+      "/api/workspace/team-chat",
+      buildPMTeamChatPayload(text),
+      function () {
+        input.value = "";
+        btn.disabled = false;
+        loadPMTeamChat();
+      },
+      function (err) {
+        btn.disabled = false;
+        app.showToast(err || "Failed to send message", "error");
+      },
+    );
+  };
 
   function loadPMDepartmentApprovals() {
     var listEl = document.getElementById("pmDeptApprovalsList");
@@ -1757,6 +2049,8 @@
     ensurePMData(function (employees, projects) {
       var managed = findManagedProjects(projects);
       var me = findCurrentPM(employees);
+      pmTeamChatDepartment = me ? me.department || "" : "";
+      renderPMTeamChatScopeOptions(managed);
       var team = findTeamMembers(employees, managed).filter(function (member) {
         return !isSamePerson(member, me);
       });
@@ -1807,8 +2101,13 @@
         });
       }
       document.getElementById("pmTeamList").innerHTML = html;
+
+      loadPMTeamChat();
+      startPMTeamChatPolling();
     });
   };
+
+  window.addEventListener("beforeunload", stopPMTeamChatPolling);
 
   function renderPMTeamDeptGroup(deptName, members, isUnassigned) {
     members.sort(function (a, b) {

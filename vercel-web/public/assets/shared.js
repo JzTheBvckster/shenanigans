@@ -647,13 +647,17 @@ var ShenanigansApp = (function () {
         var header = document.getElementById('appHeader');
         var sidebar = document.getElementById('appSidebar');
 
+        document.body.classList.remove('pm-theme-page', 'employee-theme-page');
+
         if (header) header.innerHTML = buildHeaderHTML(config);
 
         if (config.sidebar === 'employee') {
             document.getElementById('appShell').classList.add('employee-theme');
+            document.body.classList.add('employee-theme-page');
             if (sidebar) sidebar.innerHTML = buildEmployeeSidebarHTML(config.activePage);
         } else if (config.sidebar === 'pm') {
             document.getElementById('appShell').classList.add('pm-theme');
+            document.body.classList.add('pm-theme-page');
             if (sidebar) sidebar.innerHTML = buildPMSidebarHTML(config.activePage);
         } else {
             if (sidebar) sidebar.innerHTML = buildAdminSidebarHTML(config.activePage);
