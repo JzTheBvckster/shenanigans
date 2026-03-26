@@ -2731,6 +2731,205 @@ a.menu-btn:hover {
   background: linear-gradient(to right, var(--red-start), var(--red-end));
 }
 
+.pm-theme .btn-primary,
+.pm-theme .btn-modal-save,
+.pm-theme .btn-small,
+.pm-theme .btn-tiny,
+.pm-theme .btn-approve-sm,
+.pm-theme .btn-edit-sm,
+.pm-theme .btn-comment-send {
+  background: linear-gradient(135deg, var(--red-start), var(--red-end));
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.26);
+}
+
+.pm-theme .btn-primary:hover,
+.pm-theme .btn-modal-save:hover,
+.pm-theme .btn-small:hover,
+.pm-theme .btn-tiny:hover,
+.pm-theme .btn-approve-sm:hover,
+.pm-theme .btn-edit-sm:hover,
+.pm-theme .btn-comment-send:hover {
+  opacity: 0.92;
+}
+
+.pm-theme .btn-secondary,
+.pm-theme .btn-modal-cancel {
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.pm-theme .btn-secondary:hover,
+.pm-theme .btn-modal-cancel:hover {
+  background: rgba(239, 68, 68, 0.16);
+}
+
+.pm-theme .team-checkbox-item:hover {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.pm-theme .btn-reject-sm,
+.pm-theme .btn-danger,
+.pm-theme .btn-modal-delete {
+  background: linear-gradient(135deg, #b91c1c, #991b1b) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(153, 27, 27, 0.3);
+}
+
+.pm-theme .btn-reject-sm:hover,
+.pm-theme .btn-danger:hover,
+.pm-theme .btn-modal-delete:hover {
+  background: linear-gradient(135deg, #991b1b, #7f1d1d) !important;
+}
+
+.pm-theme .btn-reject-sm:active,
+.pm-theme .btn-danger:active,
+.pm-theme .btn-modal-delete:active {
+  background: linear-gradient(135deg, #7f1d1d, #6b1111) !important;
+}
+
+.pm-gantt-wrap {
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: linear-gradient(to bottom, rgba(248, 250, 252, 0.9), #ffffff);
+  overflow: hidden;
+}
+
+.pm-gantt-axis {
+  position: relative;
+  height: 36px;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--surface-muted);
+}
+
+.pm-gantt-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #d7dee8;
+}
+
+.pm-gantt-tick span {
+  position: absolute;
+  top: 9px;
+  left: 6px;
+  font-size: 11px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.pm-gantt-body {
+  padding: 10px 12px;
+}
+
+.pm-gantt-row {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px dashed #e7edf4;
+}
+
+.pm-gantt-row:last-child {
+  border-bottom: 0;
+}
+
+.pm-gantt-label {
+  min-width: 0;
+}
+
+.pm-gantt-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pm-gantt-meta {
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-top: 2px;
+}
+
+.pm-gantt-track {
+  position: relative;
+  height: 26px;
+  border-radius: 999px;
+  background: #eef2f7;
+  overflow: hidden;
+}
+
+.pm-gantt-bar {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 1px 6px rgba(30, 41, 59, 0.18);
+}
+
+.pm-gantt-bar-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.pm-gantt-bar-text {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.pm-gantt-bar-active {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.pm-gantt-bar-completed {
+  background: linear-gradient(90deg, #16a34a, #15803d);
+}
+
+.pm-gantt-bar-hold {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.pm-gantt-bar-pending {
+  background: linear-gradient(90deg, #f97316, #ea580c);
+}
+
+.pm-gantt-bar-planning {
+  background: linear-gradient(90deg, #6366f1, #4f46e5);
+}
+
+@media (max-width: 960px) {
+  .pm-gantt-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .pm-gantt-track {
+    height: 24px;
+  }
+
+  .pm-gantt-tick span {
+    font-size: 10px;
+  }
+}
+
 /* ============================================
    TASK BOARD — Kanban Column Headers
    ============================================ */

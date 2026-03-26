@@ -1,47 +1,47 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Leave Requests — Shenanigans</title>
-    <link rel="stylesheet" href="/assets/styles.css">
-</head>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
 
-<body>
+  <body>
     <div class="app-shell" id="appShell">
-        <header class="app-header" id="appHeader"></header>
-        <aside class="app-sidebar" id="appSidebar"></aside>
+      <header class="app-header" id="appHeader"></header>
+      <aside class="app-sidebar" id="appSidebar"></aside>
 
-        <main class="app-content" id="appContent">
-            <section class="page-view" id="pagePmRequests">
-                <div class="page-header">
-                    <h2>Leave Requests</h2>
-                    <p>Review and manage team leave requests</p>
-                </div>
-                <div class="stats-row" id="pmRequestsStats"></div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Team Requests</h3>
-                    </div>
-                    <div id="pmRequestsList">
-                        <div class="loading-spinner visible"></div>
-                    </div>
-                </div>
-            </section>
-        </main>
+      <main class="app-content" id="appContent">
+        <section class="page-view" id="pagePmRequests">
+          <div class="page-header">
+            <h2>Leave Requests</h2>
+            <p>Review and manage team leave requests</p>
+          </div>
+          <div class="stats-row" id="pmRequestsStats"></div>
+          <div class="card">
+            <div class="card-header">
+              <h3>Team Requests</h3>
+            </div>
+            <div id="pmRequestsList">
+              <div class="loading-spinner visible"></div>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
 
     <script src="/assets/shared.js?v=6"></script>
-    <script src="/assets/pm.js?v=6"></script>
+    <script src="/assets/pm.js?v=10"></script>
     <script>
-        ShenanigansApp.init({
-            sidebar: 'pm',
-            activePage: 'pmRequests',
-            subtitle: 'PM Workspace',
-            onReady: function () { loadPMRequests(); }
-        });
+      ShenanigansApp.init({
+        sidebar: "pm",
+        activePage: "pmRequests",
+        subtitle: "PM Workspace",
+        onReady: function () {
+          loadPMRequests();
+        },
+      });
     </script>
-</body>
-
+  </body>
 </html>

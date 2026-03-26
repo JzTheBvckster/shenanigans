@@ -1,133 +1,224 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Managed Projects — Shenanigans</title>
-    <link rel="stylesheet" href="/assets/styles.css">
-</head>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
 
-<body>
+  <body>
     <div class="app-shell" id="appShell">
-        <header class="app-header" id="appHeader"></header>
-        <aside class="app-sidebar" id="appSidebar"></aside>
+      <header class="app-header" id="appHeader"></header>
+      <aside class="app-sidebar" id="appSidebar"></aside>
 
-        <main class="app-content" id="appContent">
-            <section class="page-view" id="pagePmProjects">
-                <div class="page-header">
-                    <h2>Managed Projects</h2>
-                    <p>Projects assigned to you as Project Manager</p>
-                </div>
-                <div class="stats-row" id="pmProjectsStats"></div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Project Portfolio</h3>
-                        <button class="btn-primary btn-small" onclick="openPMCreateProject()">+ Create Project</button>
-                    </div>
-                    <div id="pmProjectsList">
-                        <div class="loading-spinner visible"></div>
-                    </div>
-                </div>
-            </section>
-        </main>
+      <main class="app-content" id="appContent">
+        <section class="page-view" id="pagePmProjects">
+          <div class="page-header">
+            <h2>Managed Projects</h2>
+            <p>Projects assigned to you as Project Manager</p>
+          </div>
+          <div class="stats-row" id="pmProjectsStats"></div>
+          <div class="card" style="margin-bottom: 16px">
+            <div class="card-header">
+              <h3>Project Timeline (Gantt)</h3>
+            </div>
+            <div id="pmGanttChart">
+              <div class="loading-spinner visible"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>Project Portfolio</h3>
+              <button
+                class="btn-primary btn-small"
+                onclick="openPMCreateProject()"
+              >
+                + Create Project
+              </button>
+            </div>
+            <div id="pmProjectsList">
+              <div class="loading-spinner visible"></div>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
 
     <!-- PM Create Project Modal -->
     <div class="modal-overlay hidden" id="pmCreateProjectModal">
-        <div class="modal-card">
-            <div class="modal-header">
-                <h3>Create Project</h3>
-                <button class="modal-close" onclick="closeModal('pmCreateProjectModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="modal-field"><label>Project Name *</label><input type="text" id="pmProjName"
-                        placeholder="Project Alpha"></div>
-                <div class="modal-field"><label>Description</label><textarea id="pmProjDescription" rows="3"
-                        placeholder="A brief project summary..."></textarea></div>
-                <div class="modal-field"><label>Department *</label><select id="pmProjDepartment"></select></div>
-                <div class="modal-field"><label>Priority</label>
-                    <select id="pmProjPriority">
-                        <option value="LOW">Low</option>
-                        <option value="MEDIUM" selected>Medium</option>
-                        <option value="HIGH">High</option>
-                        <option value="CRITICAL">Critical</option>
-                    </select>
-                </div>
-                <div class="modal-row">
-                    <div class="modal-field"><label>Budget</label><input type="number" id="pmProjBudget"
-                            placeholder="100000" step="0.01"></div>
-                    <div class="modal-field"><label>Spent</label><input type="number" id="pmProjSpent" placeholder="0"
-                            step="0.01"></div>
-                </div>
-                <div class="modal-row">
-                    <div class="modal-field"><label>Start Date</label><input type="date" id="pmProjStartDate"></div>
-                    <div class="modal-field"><label>End Date</label><input type="date" id="pmProjEndDate"></div>
-                </div>
-                <div class="modal-field"><label>Team Members</label>
-                    <div id="pmProjTeamCheckboxes" class="team-checkbox-list">
-                        <span class="comment-empty">Loading employees...</span>
-                    </div>
-                </div>
-                <div class="modal-notice" id="pmProjNotice"></div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-modal-cancel" onclick="closeModal('pmCreateProjectModal')">Cancel</button>
-                <button class="btn-modal-save" id="pmProjSaveBtn" onclick="savePMProject()">Submit for Approval</button>
-            </div>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Create Project</h3>
+          <button
+            class="modal-close"
+            onclick="closeModal('pmCreateProjectModal')"
+          >
+            &times;
+          </button>
         </div>
+        <div class="modal-body">
+          <div class="modal-field">
+            <label>Project Name *</label
+            ><input type="text" id="pmProjName" placeholder="Project Alpha" />
+          </div>
+          <div class="modal-field">
+            <label>Description</label
+            ><textarea
+              id="pmProjDescription"
+              rows="3"
+              placeholder="A brief project summary..."
+            ></textarea>
+          </div>
+          <div class="modal-field">
+            <label>Department *</label
+            ><select id="pmProjDepartment"></select>
+          </div>
+          <div class="modal-field">
+            <label>Priority</label>
+            <select id="pmProjPriority">
+              <option value="LOW">Low</option>
+              <option value="MEDIUM" selected>Medium</option>
+              <option value="HIGH">High</option>
+              <option value="CRITICAL">Critical</option>
+            </select>
+          </div>
+          <div class="modal-row">
+            <div class="modal-field">
+              <label>Budget</label
+              ><input
+                type="number"
+                id="pmProjBudget"
+                placeholder="100000"
+                step="0.01"
+              />
+            </div>
+            <div class="modal-field">
+              <label>Spent</label
+              ><input
+                type="number"
+                id="pmProjSpent"
+                placeholder="0"
+                step="0.01"
+              />
+            </div>
+          </div>
+          <div class="modal-row">
+            <div class="modal-field">
+              <label>Start Date</label
+              ><input type="date" id="pmProjStartDate" />
+            </div>
+            <div class="modal-field">
+              <label>End Date</label><input type="date" id="pmProjEndDate" />
+            </div>
+          </div>
+          <div class="modal-field">
+            <label>Team Members</label>
+            <div id="pmProjTeamCheckboxes" class="team-checkbox-list">
+              <span class="comment-empty">Loading employees...</span>
+            </div>
+          </div>
+          <div class="modal-notice" id="pmProjNotice"></div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn-modal-cancel"
+            onclick="closeModal('pmCreateProjectModal')"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn-modal-save"
+            id="pmProjSaveBtn"
+            onclick="savePMProject()"
+          >
+            Submit for Approval
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Project Detail Modal with Milestones -->
     <div class="modal-overlay hidden" id="pmProjectDetailModal">
-        <div class="modal-card modal-wide">
-            <div class="modal-header">
-                <h3 id="pmProjectDetailTitle">Project Details</h3>
-                <button class="modal-close" onclick="closeModal('pmProjectDetailModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="pmProjectDetailInfo"></div>
-                <div class="milestone-section">
-                    <div class="milestone-header">
-                        <h4>Milestones</h4>
-                        <button class="btn-small btn-primary" onclick="openMilestoneForm()">+ Add Milestone</button>
-                    </div>
-                    <div class="milestone-form hidden" id="milestoneForm">
-                        <input type="text" id="milestoneTitle" placeholder="Milestone title *">
-                        <textarea id="milestoneDesc" rows="2" placeholder="Description (optional)"></textarea>
-                        <div class="milestone-form-row">
-                            <input type="date" id="milestoneDueDate">
-                            <select id="milestoneStatus">
-                                <option value="PENDING">Pending</option>
-                                <option value="IN_PROGRESS">In Progress</option>
-                                <option value="COMPLETED">Completed</option>
-                            </select>
-                            <input type="hidden" id="milestoneId">
-                            <button class="btn-small btn-primary" onclick="saveMilestone()">Save</button>
-                            <button class="btn-small btn-secondary" onclick="cancelMilestoneForm()">Cancel</button>
-                        </div>
-                    </div>
-                    <div id="milestonesList">
-                        <div class="loading-spinner visible"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-modal-cancel" onclick="closeModal('pmProjectDetailModal')">Close</button>
-            </div>
+      <div class="modal-card modal-wide">
+        <div class="modal-header">
+          <h3 id="pmProjectDetailTitle">Project Details</h3>
+          <button
+            class="modal-close"
+            onclick="closeModal('pmProjectDetailModal')"
+          >
+            &times;
+          </button>
         </div>
+        <div class="modal-body">
+          <div id="pmProjectDetailInfo"></div>
+          <div class="milestone-section">
+            <div class="milestone-header">
+              <h4>Milestones</h4>
+              <button
+                class="btn-small btn-primary"
+                onclick="openMilestoneForm()"
+              >
+                + Add Milestone
+              </button>
+            </div>
+            <div class="milestone-form hidden" id="milestoneForm">
+              <input
+                type="text"
+                id="milestoneTitle"
+                placeholder="Milestone title *"
+              />
+              <textarea
+                id="milestoneDesc"
+                rows="2"
+                placeholder="Description (optional)"
+              ></textarea>
+              <div class="milestone-form-row">
+                <input type="date" id="milestoneDueDate" />
+                <select id="milestoneStatus">
+                  <option value="PENDING">Pending</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="COMPLETED">Completed</option>
+                </select>
+                <input type="hidden" id="milestoneId" />
+                <button class="btn-small btn-primary" onclick="saveMilestone()">
+                  Save
+                </button>
+                <button
+                  class="btn-small btn-secondary"
+                  onclick="cancelMilestoneForm()"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+            <div id="milestonesList">
+              <div class="loading-spinner visible"></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn-modal-cancel"
+            onclick="closeModal('pmProjectDetailModal')"
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </div>
 
     <script src="/assets/shared.js?v=6"></script>
-    <script src="/assets/pm.js?v=6"></script>
+    <script src="/assets/pm.js?v=10"></script>
     <script>
-        ShenanigansApp.init({
-            sidebar: 'pm',
-            activePage: 'pmProjects',
-            subtitle: 'PM Workspace',
-            onReady: function () { loadPMProjects(); }
-        });
+      ShenanigansApp.init({
+        sidebar: "pm",
+        activePage: "pmProjects",
+        subtitle: "PM Workspace",
+        onReady: function () {
+          loadPMProjects();
+        },
+      });
     </script>
-</body>
-
+  </body>
 </html>

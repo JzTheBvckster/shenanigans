@@ -10,6 +10,34 @@
     return d.getTime();
   }
 
+  function isCurrentUserRecord(user) {
+    if (!user || !app.currentUser) return false;
+    var currentUid = String(app.currentUser.uid || "")
+      .trim()
+      .toLowerCase();
+    var currentEmail = String(app.currentUser.email || "")
+      .trim()
+      .toLowerCase();
+    var currentName = String(app.currentUser.displayName || "")
+      .trim()
+      .toLowerCase();
+
+    var userId = String(user.id || user.uid || "")
+      .trim()
+      .toLowerCase();
+    var userEmail = String(user.email || "")
+      .trim()
+      .toLowerCase();
+    var userName = String(app.buildName(user) || "")
+      .trim()
+      .toLowerCase();
+
+    if (currentUid && userId && currentUid === userId) return true;
+    if (currentEmail && userEmail && currentEmail === userEmail) return true;
+    if (currentName && userName && currentName === userName) return true;
+    return false;
+  }
+
   /* ============================================================
        DASHBOARD
        ============================================================ */
@@ -167,7 +195,9 @@
     app.fetchJson(
       "/api/employees?pendingUsers=true",
       function (pendingUsers) {
-        var pending = pendingUsers || [];
+        var pending = (pendingUsers || []).filter(function (u) {
+          return !isCurrentUserRecord(u);
+        });
         var countEl = document.getElementById("approvalQueueCount");
         var listEl = document.getElementById("approvalQueueList");
         if (!card) return;
@@ -703,17 +733,29 @@
 
     var email = document.getElementById("empEmail").value.trim();
     if (email && !/^\S+@\S+\.\S+$/.test(email)) {
-      app.showModalNotice("empModalNotice", "Enter a valid email address.", "error");
+      app.showModalNotice(
+        "empModalNotice",
+        "Enter a valid email address.",
+        "error",
+      );
       return;
     }
     var salary = parseFloat(document.getElementById("empSalary").value);
     if (!isNaN(salary) && salary < 0) {
-      app.showModalNotice("empModalNotice", "Salary cannot be negative.", "error");
+      app.showModalNotice(
+        "empModalNotice",
+        "Salary cannot be negative.",
+        "error",
+      );
       return;
     }
     var hireDate = app.dateInputToMs("empHireDate");
     if (hireDate && hireDate > Date.now()) {
-      app.showModalNotice("empModalNotice", "Hire date cannot be in the future.", "error");
+      app.showModalNotice(
+        "empModalNotice",
+        "Hire date cannot be in the future.",
+        "error",
+      );
       return;
     }
 
@@ -871,7 +913,9 @@
         .join(" ")
         .toLowerCase();
       var matchesQuery = !q || hay.indexOf(q) !== -1;
-      return pStatus !== "ARCHIVED" && matchesDept && matchesStatus && matchesQuery;
+      return (
+        pStatus !== "ARCHIVED" && matchesDept && matchesStatus && matchesQuery
+      );
     });
 
     renderProjectKanban(filtered);
@@ -1279,7 +1323,9 @@
     });
     var active = (projects || []).filter(function (p) {
       var s = (p.status || "").toUpperCase();
-      return s === "PLANNING" || s === "IN_PROGRESS" || s === "PENDING_APPROVAL";
+      return (
+        s === "PLANNING" || s === "IN_PROGRESS" || s === "PENDING_APPROVAL"
+      );
     }).length;
     var completed = (projects || []).filter(function (p) {
       return (p.status || "").toUpperCase() === "COMPLETED";
@@ -1327,7 +1373,8 @@
     });
 
     groupsEl.innerHTML =
-      html || '<div class="empty-state">No projects match the current filters.</div>';
+      html ||
+      '<div class="empty-state">No projects match the current filters.</div>';
   }
 
   function renderProjectCard(p) {
@@ -1492,7 +1539,11 @@
 
     var department = document.getElementById("projDepartment").value;
     if (!department) {
-      app.showModalNotice("projModalNotice", "Department is required.", "error");
+      app.showModalNotice(
+        "projModalNotice",
+        "Department is required.",
+        "error",
+      );
       return;
     }
     var budget = parseFloat(document.getElementById("projBudget").value);
@@ -1500,22 +1551,41 @@
     var safeBudget = isNaN(budget) ? 0 : budget;
     var safeSpent = isNaN(spent) ? 0 : spent;
     if (safeBudget < 0 || safeSpent < 0) {
-      app.showModalNotice("projModalNotice", "Budget and spent cannot be negative.", "error");
+      app.showModalNotice(
+        "projModalNotice",
+        "Budget and spent cannot be negative.",
+        "error",
+      );
       return;
     }
     if (safeBudget > 0 && safeSpent > safeBudget) {
-      app.showModalNotice("projModalNotice", "Spent cannot exceed budget.", "error");
+      app.showModalNotice(
+        "projModalNotice",
+        "Spent cannot exceed budget.",
+        "error",
+      );
       return;
     }
-    var completion = parseInt(document.getElementById("projCompletion").value, 10);
+    var completion = parseInt(
+      document.getElementById("projCompletion").value,
+      10,
+    );
     if (isNaN(completion) || completion < 0 || completion > 100) {
-      app.showModalNotice("projModalNotice", "Completion must be between 0 and 100.", "error");
+      app.showModalNotice(
+        "projModalNotice",
+        "Completion must be between 0 and 100.",
+        "error",
+      );
       return;
     }
     var startDate = app.dateInputToMs("projStartDate");
     var endDate = app.dateInputToMs("projEndDate");
     if (endDate && startDate && endDate < startDate) {
-      app.showModalNotice("projModalNotice", "End date must be on or after start date.", "error");
+      app.showModalNotice(
+        "projModalNotice",
+        "End date must be on or after start date.",
+        "error",
+      );
       return;
     }
 
@@ -1694,7 +1764,8 @@
 
   function resolveInvoiceDepartment(inv, projectDeptMap) {
     if (inv.department) return inv.department;
-    if (inv.projectId && projectDeptMap[inv.projectId]) return projectDeptMap[inv.projectId];
+    if (inv.projectId && projectDeptMap[inv.projectId])
+      return projectDeptMap[inv.projectId];
     return "";
   }
 
@@ -1727,8 +1798,9 @@
     var invoices = app.cachedData.invoices || [];
     var projects = app.cachedData.projectsForFinance || [];
     var projectDeptMap = mapProjectDepartments(projects);
-    var dept = ((document.getElementById("financeDeptFilter") || {}).value || "")
-      .trim();
+    var dept = (
+      (document.getElementById("financeDeptFilter") || {}).value || ""
+    ).trim();
     var paidState = (
       (document.getElementById("financePaidFilter") || {}).value || ""
     ).trim();
@@ -1741,7 +1813,12 @@
       var matchesDept = !dept || invDept === dept;
       var matchesPaid =
         !paidState || (paidState === "paid" ? !!inv.paid : !inv.paid);
-      var hay = [inv.client || "", inv.id || "", inv.projectId || "", invDept || ""]
+      var hay = [
+        inv.client || "",
+        inv.id || "",
+        inv.projectId || "",
+        invDept || "",
+      ]
         .join(" ")
         .toLowerCase();
       var matchesQuery = !q || hay.indexOf(q) !== -1;
@@ -1829,7 +1906,8 @@
     });
 
     groupsEl.innerHTML =
-      html || '<div class="empty-state">No invoices match the current filters.</div>';
+      html ||
+      '<div class="empty-state">No invoices match the current filters.</div>';
   }
 
   function renderInvoiceCard(inv) {
@@ -1931,7 +2009,11 @@
     }
     var projectId = document.getElementById("invProjectId").value.trim();
     if (projectId && !/^[a-zA-Z0-9_-]{1,128}$/.test(projectId)) {
-      app.showModalNotice("invModalNotice", "Project ID format is invalid.", "error");
+      app.showModalNotice(
+        "invModalNotice",
+        "Project ID format is invalid.",
+        "error",
+      );
       return;
     }
 
@@ -2190,17 +2272,24 @@
   };
 
   function renderUserManagement(pending, allUsers) {
-    var approved = allUsers.filter(function (u) {
+    var visiblePending = (pending || []).filter(function (u) {
+      return !isCurrentUserRecord(u);
+    });
+    var visibleUsers = (allUsers || []).filter(function (u) {
+      return !isCurrentUserRecord(u);
+    });
+
+    var approved = visibleUsers.filter(function (u) {
       return u.mdApproved === true;
     }).length;
     var statsEl = document.getElementById("userStats");
     if (statsEl) {
       statsEl.innerHTML =
         '<div class="stat-card stat-card-blue"><div class="stat-number">' +
-        allUsers.length +
+        visibleUsers.length +
         '</div><div class="stat-label">Total Users</div><div class="stat-sub">All registered accounts</div></div>' +
         '<div class="stat-card stat-card-orange"><div class="stat-number">' +
-        pending.length +
+        visiblePending.length +
         '</div><div class="stat-label">Pending</div><div class="stat-sub">Awaiting approval</div></div>' +
         '<div class="stat-card stat-card-green"><div class="stat-number">' +
         approved +
@@ -2210,11 +2299,11 @@
     // Pending approvals
     var pendingEl = document.getElementById("pendingUsersList");
     if (pendingEl) {
-      if (pending.length === 0) {
+      if (visiblePending.length === 0) {
         pendingEl.innerHTML =
           '<div class="empty-state">No pending registrations.</div>';
       } else {
-        pendingEl.innerHTML = pending
+        pendingEl.innerHTML = visiblePending
           .map(function (u) {
             var name = app.buildName(u);
             var uid = app.esc(u.id || "");
@@ -2253,10 +2342,10 @@
     // All users
     var allEl = document.getElementById("allUsersList");
     if (allEl) {
-      if (allUsers.length === 0) {
+      if (visibleUsers.length === 0) {
         allEl.innerHTML = '<div class="empty-state">No registered users.</div>';
       } else {
-        allEl.innerHTML = allUsers
+        allEl.innerHTML = visibleUsers
           .map(function (u) {
             var name = app.buildName(u);
             var uid = app.esc(u.id || "");

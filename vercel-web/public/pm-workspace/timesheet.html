@@ -1,55 +1,55 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Team Timesheets — Shenanigans</title>
-    <link rel="stylesheet" href="/assets/styles.css">
-</head>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
 
-<body>
+  <body>
     <div class="app-shell" id="appShell">
-        <header class="app-header" id="appHeader"></header>
-        <aside class="app-sidebar" id="appSidebar"></aside>
+      <header class="app-header" id="appHeader"></header>
+      <aside class="app-sidebar" id="appSidebar"></aside>
 
-        <main class="app-content" id="appContent">
-            <section class="page-view" id="pagePmTimesheet">
-                <div class="page-header">
-                    <h2>Team Timesheets</h2>
-                    <p>Review time entries from your team members</p>
-                </div>
-                <div class="stats-row" id="pmTimesheetStats"></div>
-                <div class="content-grid">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Time Entries</h3>
-                        </div>
-                        <div id="pmTimeEntries">
-                            <div class="loading-spinner visible"></div>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Team Summary</h3>
-                        </div>
-                        <div id="pmTeamSummary"></div>
-                    </div>
-                </div>
-            </section>
-        </main>
+      <main class="app-content" id="appContent">
+        <section class="page-view" id="pagePmTimesheet">
+          <div class="page-header">
+            <h2>Team Timesheets</h2>
+            <p>Review time entries from your team members</p>
+          </div>
+          <div class="stats-row" id="pmTimesheetStats"></div>
+          <div class="content-grid">
+            <div class="card">
+              <div class="card-header">
+                <h3>Time Entries</h3>
+              </div>
+              <div id="pmTimeEntries">
+                <div class="loading-spinner visible"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3>Team Summary</h3>
+              </div>
+              <div id="pmTeamSummary"></div>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
 
     <script src="/assets/shared.js?v=6"></script>
-    <script src="/assets/pm.js?v=6"></script>
+    <script src="/assets/pm.js?v=10"></script>
     <script>
-        ShenanigansApp.init({
-            sidebar: 'pm',
-            activePage: 'pmTimesheet',
-            subtitle: 'PM Workspace',
-            onReady: function () { loadPMTimesheet(); }
-        });
+      ShenanigansApp.init({
+        sidebar: "pm",
+        activePage: "pmTimesheet",
+        subtitle: "PM Workspace",
+        onReady: function () {
+          loadPMTimesheet();
+        },
+      });
     </script>
-</body>
-
+  </body>
 </html>
