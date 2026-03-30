@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Task Board — Shenanigans</title>
-    <link rel="stylesheet" href="/assets/styles.css" />
+    <link rel="stylesheet" href="/assets/styles.css?v=12" />
   </head>
 
   <body>
@@ -82,7 +82,7 @@
 
     <!-- Task Modal -->
     <div class="modal-overlay hidden" id="taskModal">
-      <div class="modal-card">
+      <div class="modal-card modal-wide">
         <div class="modal-header">
           <h3 id="taskModalTitle">Create Task</h3>
           <button class="modal-close" onclick="closeModal('taskModal')">
@@ -139,6 +139,37 @@
               <input type="date" id="taskDueDate" />
             </div>
           </div>
+          <div class="task-submission-section hidden" id="taskReviewSection">
+            <div class="task-section-header">
+              <h4>Submission & Review</h4>
+              <span class="badge badge-muted" id="taskReviewState">Draft</span>
+            </div>
+            <div id="taskSubmissionInfo"></div>
+            <div class="form-group full-width" style="margin-top: 12px">
+              <label>Review Notes</label>
+              <textarea
+                id="taskReviewNotes"
+                rows="3"
+                placeholder="Share approval notes or changes requested."
+              ></textarea>
+            </div>
+            <div class="task-actions-row">
+              <button
+                class="btn btn-outline hidden"
+                id="taskRequestChangesBtn"
+                onclick="reviewPMTask('IN_PROGRESS')"
+              >
+                Request Changes
+              </button>
+              <button
+                class="btn btn-primary hidden"
+                id="taskApproveBtn"
+                onclick="reviewPMTask('COMPLETED')"
+              >
+                Approve Completion
+              </button>
+            </div>
+          </div>
           <!-- Task Comments -->
           <div class="task-comments-section hidden" id="taskCommentsSection">
             <label>Comments</label>
@@ -178,8 +209,8 @@
       </div>
     </div>
 
-    <script src="/assets/shared.js?v=6"></script>
-    <script src="/assets/pm.js?v=10"></script>
+    <script src="/assets/shared.js?v=9"></script>
+    <script src="/assets/pm.js?v=18"></script>
     <script>
       ShenanigansApp.init({
         sidebar: "pm",

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Tasks — Shenanigans</title>
-    <link rel="stylesheet" href="/assets/styles.css">
+    <link rel="stylesheet" href="/assets/styles.css?v=12">
 </head>
 
 <body>
@@ -34,13 +34,32 @@
 
     <!-- Task Detail Modal (Employee) -->
     <div class="modal-overlay hidden" id="empTaskModal">
-        <div class="modal-card">
+        <div class="modal-card modal-wide">
             <div class="modal-header">
                 <h3 id="empTaskModalTitle">Task Details</h3>
                 <button class="modal-close" onclick="closeModal('empTaskModal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div id="empTaskDetail"></div>
+                <div class="task-submission-section" id="empTaskSubmissionSection">
+                    <div class="task-section-header">
+                        <h4>Submission</h4>
+                        <span class="badge badge-muted" id="empTaskSubmissionState">Draft</span>
+                    </div>
+                    <div class="comment-empty" id="empTaskSubmissionHelper">Attach your latest work before sending this task for review.</div>
+                    <div id="empTaskReviewFeedback"></div>
+                    <div id="empTaskSubmissionInfo"></div>
+                    <label for="empTaskSubmissionNotes">Submission Notes</label>
+                    <textarea id="empTaskSubmissionNotes" rows="3" placeholder="Summarize what is done, what changed, and anything the reviewer should check."></textarea>
+                    <div class="task-upload-row">
+                        <input id="empTaskSubmissionFiles" type="file" multiple onchange="handleEmpTaskFileSelection()">
+                        <span class="comment-empty">Any relevant file type is supported. Keep each file under 250 KB.</span>
+                    </div>
+                    <div class="task-attachment-list" id="empTaskSubmissionDraft"></div>
+                    <div class="task-actions-row">
+                        <button class="btn-comment-send hidden" id="empTaskSubmitBtn" onclick="submitEmpTaskForReview()">Submit for Review</button>
+                    </div>
+                </div>
                 <!-- Task Comments -->
                 <div class="task-comments-section" id="empTaskCommentsSection">
                     <label>Comments</label>
@@ -57,8 +76,8 @@
         </div>
     </div>
 
-    <script src="/assets/shared.js?v=6"></script>
-    <script src="/assets/employee.js?v=6"></script>
+    <script src="/assets/shared.js?v=9"></script>
+    <script src="/assets/employee.js?v=8"></script>
     <script>
         ShenanigansApp.init({
             sidebar: 'employee',

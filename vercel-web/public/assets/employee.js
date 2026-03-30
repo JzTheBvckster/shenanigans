@@ -185,6 +185,163 @@
     return "Pending Approval";
   }
 
+  var EMP_TASK_FILE_LIMITS = {
+    maxFiles: 5,
+    maxBytesPerFile: 250 * 1024,
+    maxTotalBytes: 450 * 1024,
+  };
+  var EMP_LEAVE_FILE_LIMITS = {
+    maxFiles: 2,
+    maxBytesPerFile: 250 * 1024,
+    maxTotalBytes: 350 * 1024,
+  };
+
+  function formatFileSize(bytes) {
+    var value = Number(bytes) || 0;
+    if (value >= 1024 * 1024) {
+      return (value / (1024 * 1024)).toFixed(1) + " MB";
+    }
+    if (value >= 1024) {
+      return Math.round(value / 1024) + " KB";
+    }
+    return value + " B";
+  }
+
+  function formatDateKey(ts) {
+    var date = new Date(ts || Date.now());
+    if (isNaN(date.getTime())) return "";
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0"),
+    ].join("-");
+  }
+
+  function buildAttachmentList(files, emptyText) {
+    if (!files || !files.length) {
+      return '<div class="comment-empty">' + app.esc(emptyText) + "</div>";
+    }
+    return files
+      .map(function (file) {
+        var href = file.dataUrl ? ' href="' + app.esc(file.dataUrl) + '"' : "";
+        var download = file.name
+          ? ' download="' + app.esc(file.name) + '"'
+          : "";
+        return (
+          '<div class="attachment-item">' +
+          '<div class="attachment-main">' +
+          '<strong>' +
+          app.esc(file.name || "Attachment") +
+          "</strong>" +
+          '<span class="attachment-meta">' +
+          app.esc(file.mimeType || "File") +
+          " · " +
+          app.esc(formatFileSize(file.size)) +
+          "</span></div>" +
+          '<a class="attachment-link"' +
+          href +
+          download +
+          (href ? ' target="_blank" rel="noopener"' : "") +
+          ">" +
+          (href ? "Open" : "Attached") +
+          "</a></div>"
+        );
+      })
+      .join("");
+  }
+
+  function readFilesFromInput(inputEl, limits, onDone, onError) {
+    var files = Array.prototype.slice.call((inputEl && inputEl.files) || []);
+    var maxFiles = limits.maxFiles || 1;
+    var maxBytesPerFile = limits.maxBytesPerFile || 250 * 1024;
+    var maxTotalBytes = limits.maxTotalBytes || maxFiles * maxBytesPerFile;
+    var totalBytes = 0;
+
+    if (!files.length) {
+      onDone([]);
+      return;
+    }
+    if (files.length > maxFiles) {
+      onError("You can upload up to " + maxFiles + " files.");
+      return;
+    }
+
+    for (var i = 0; i < files.length; i += 1) {
+      totalBytes += files[i].size || 0;
+      if ((files[i].size || 0) > maxBytesPerFile) {
+        onError(
+          files[i].name +
+            " is too large. Each file must be " +
+            Math.round(maxBytesPerFile / 1024) +
+            " KB or smaller.",
+        );
+        return;
+      }
+    }
+    if (totalBytes > maxTotalBytes) {
+      onError(
+        "The selected files are too large together. Keep them under " +
+          Math.round(maxTotalBytes / 1024) +
+          " KB total.",
+      );
+      return;
+    }
+
+    var pending = files.length;
+    var results = [];
+    files.forEach(function (file, index) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        results[index] = {
+          name: file.name,
+          mimeType: file.type || "application/octet-stream",
+          size: file.size || 0,
+          dataUrl: String(reader.result || ""),
+        };
+        pending -= 1;
+        if (pending === 0) {
+          onDone(results);
+        }
+      };
+      reader.onerror = function () {
+        onError("Failed to read " + file.name + ".");
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function annualLeaveEntitlement(me, year) {
+    var hireTs = Number((me && (me.hireDate || me.createdAt)) || 0);
+    if (!hireTs) return 20;
+    var hireDate = new Date(hireTs);
+    if (isNaN(hireDate.getTime())) return 20;
+    if (hireDate.getFullYear() < year) return 20;
+    if (hireDate.getFullYear() > year) return 0;
+    var yearStart = new Date(year, 0, 1);
+    var yearEnd = new Date(year, 11, 31);
+    var totalDays = Math.max(1, Math.floor((yearEnd - yearStart) / 86400000) + 1);
+    var remainingDays = Math.max(1, Math.floor((yearEnd - hireDate) / 86400000) + 1);
+    return Math.max(1, Math.round((remainingDays / totalDays) * 20));
+  }
+
+  function leaveDaysWithinYear(request, year) {
+    var startKey = String(request.startDateKey || "").trim();
+    var endKey = String(request.endDateKey || "").trim();
+    if (!startKey || !endKey) return Number(request.businessDays || 0);
+    var effectiveStart = startKey < year + "-01-01" ? year + "-01-01" : startKey;
+    var effectiveEnd = endKey > year + "-12-31" ? year + "-12-31" : endKey;
+    if (effectiveStart > effectiveEnd) return 0;
+    var start = new Date(effectiveStart + "T00:00:00");
+    var end = new Date(effectiveEnd + "T00:00:00");
+    var count = 0;
+    while (start <= end) {
+      var day = start.getDay();
+      if (day !== 0 && day !== 6) count += 1;
+      start.setDate(start.getDate() + 1);
+    }
+    return count;
+  }
+
   /* ============================================================
        MY TASKS (real Firestore tasks via workspace API)
        ============================================================ */
@@ -261,8 +418,8 @@
               nextStatus = "IN_PROGRESS";
               nextLabel = "Start";
             } else if (s === "IN_PROGRESS") {
-              nextStatus = "UNDER_REVIEW";
-              nextLabel = "Submit for Review";
+              nextStatus = "OPEN_DETAIL";
+              nextLabel = "Submit Work";
             } else if (s === "UNDER_REVIEW") {
               nextStatus = null;
               nextLabel = "";
@@ -298,11 +455,11 @@
               "</div></div>";
             if (nextStatus) {
               html +=
-                '<button class="emp-task-status-btn" onclick="updateEmpTaskStatus(\'' +
-                tid +
-                "','" +
-                nextStatus +
-                "')\">" +
+                '<button class="emp-task-status-btn" onclick="event.stopPropagation();' +
+                (nextStatus === "OPEN_DETAIL"
+                  ? "openEmpTaskDetail('" + tid + "')"
+                  : "updateEmpTaskStatus('" + tid + "','" + nextStatus + "')") +
+                '">' +
                 nextLabel +
                 "</button>";
             } else if (s === "UNDER_REVIEW") {
@@ -335,7 +492,6 @@
       { status: newStatus },
       function () {
         app.showToast("Task updated", "success");
-        // Log activity
         var task = null;
         for (var i = 0; i < empTasksCache.length; i++) {
           if (empTasksCache[i].id === taskId) {
@@ -343,43 +499,14 @@
             break;
           }
         }
-        if (newStatus === "UNDER_REVIEW" && task) {
-          // Notify PM (task creator)
-          if (task.createdBy) {
-            app.fetchMutate(
-              "POST",
-              "/api/workspace/notifications",
-              {
-                recipientId: task.createdBy,
-                type: "TASK_REVIEW",
-                message:
-                  "Task submitted for review: " + (task.title || "Untitled"),
-                entityId: taskId,
-                entityType: "task",
-                link: "/pm-workspace/tasks",
-              },
-              function () {},
-              function () {},
-            );
-          }
-          empLogActivity(
-            "SUBMIT_REVIEW",
-            "task",
-            taskId,
-            task ? task.title : "",
-            task ? task.projectId : "",
-            "Submitted task for review",
-          );
-        } else {
-          empLogActivity(
-            "STATUS_CHANGE",
-            "task",
-            taskId,
-            task ? task.title : "",
-            task ? task.projectId : "",
-            "Status changed to " + newStatus,
-          );
-        }
+        empLogActivity(
+          "STATUS_CHANGE",
+          "task",
+          taskId,
+          task ? task.title : "",
+          task ? task.projectId : "",
+          "Status changed to " + newStatus,
+        );
         loadEmpTasks();
       },
       function (err) {
@@ -389,15 +516,45 @@
   };
 
   var empTasksCache = [];
+  var empTaskDetailCache = null;
+  var empTaskDraftFiles = [];
 
   window.openEmpTaskDetail = function (taskId) {
-    var task = null;
-    for (var i = 0; i < empTasksCache.length; i++) {
-      if (empTasksCache[i].id === taskId) {
-        task = empTasksCache[i];
-        break;
-      }
-    }
+    document.getElementById("empTaskModalTitle").textContent =
+      "Task Details";
+    document.getElementById("empTaskDetail").innerHTML =
+      '<div class="loading-spinner visible"></div>';
+    document.getElementById("empTaskCommentsList").innerHTML =
+      '<div class="loading-spinner visible"></div>';
+    document.getElementById("empTaskSubmissionInfo").innerHTML =
+      '<div class="loading-spinner visible"></div>';
+    document.getElementById("empTaskReviewFeedback").innerHTML = "";
+    document.getElementById("empTaskSubmissionDraft").innerHTML = "";
+    document.getElementById("empTaskSubmissionNotes").value = "";
+    document.getElementById("empTaskSubmissionFiles").value = "";
+    empTaskDraftFiles = [];
+    document.getElementById("empTaskModal").dataset.taskId = taskId;
+    document.getElementById("empTaskModal").classList.remove("hidden");
+    app.fetchJson(
+      "/api/workspace/tasks/" + encodeURIComponent(taskId),
+      function (task) {
+        empTaskDetailCache = task;
+        renderEmpTaskDetail(task);
+        renderEmpTaskSubmission(task);
+        loadEmpTaskComments(taskId);
+      },
+      function (err) {
+        document.getElementById("empTaskDetail").innerHTML =
+          '<div class="empty-state">' +
+          app.esc(err || "Failed to load task details.") +
+          "</div>";
+        document.getElementById("empTaskSubmissionInfo").innerHTML =
+          '<div class="comment-empty">Submission details are unavailable right now.</div>';
+      },
+    );
+  };
+
+  function renderEmpTaskDetail(task) {
     if (!task) return;
     document.getElementById("empTaskModalTitle").textContent =
       task.title || "Task Details";
@@ -428,10 +585,199 @@
           "</p></div>"
         : "") +
       "</div>";
-    // Load comments
-    loadEmpTaskComments(taskId);
-    document.getElementById("empTaskModal").dataset.taskId = taskId;
-    document.getElementById("empTaskModal").classList.remove("hidden");
+  }
+
+  function renderEmpTaskSubmission(task) {
+    var status = String((task && task.status) || "TODO").toUpperCase();
+    var canSubmit = status === "IN_PROGRESS";
+    var stateBadge = document.getElementById("empTaskSubmissionState");
+    var infoEl = document.getElementById("empTaskSubmissionInfo");
+    var feedbackEl = document.getElementById("empTaskReviewFeedback");
+    var noteEl = document.getElementById("empTaskSubmissionNotes");
+    var fileEl = document.getElementById("empTaskSubmissionFiles");
+    var draftEl = document.getElementById("empTaskSubmissionDraft");
+    var submitBtn = document.getElementById("empTaskSubmitBtn");
+    var helperEl = document.getElementById("empTaskSubmissionHelper");
+    var files = (task && task.submissionFiles) || [];
+
+    if (stateBadge) {
+      stateBadge.textContent = app.formatStatus(status);
+      stateBadge.className =
+        "badge " +
+        (status === "COMPLETED"
+          ? "badge-green"
+          : status === "UNDER_REVIEW"
+            ? "badge-orange"
+            : status === "IN_PROGRESS"
+              ? "badge-blue"
+              : "badge-muted");
+    }
+
+    if (helperEl) {
+      helperEl.textContent =
+        status === "TODO"
+          ? "Start the task before sending deliverables for review."
+          : status === "IN_PROGRESS"
+            ? "Attach any relevant files and notes before sending this task for review."
+            : status === "UNDER_REVIEW"
+              ? "Your latest submission is with your PM for review."
+              : "This task has been reviewed and closed.";
+    }
+
+    if (feedbackEl) {
+      feedbackEl.innerHTML =
+        task.reviewNotes || task.reviewedAt
+          ? '<div class="task-feedback-card">' +
+            '<strong>Reviewer Feedback</strong>' +
+            "<p>" +
+            app.esc(task.reviewNotes || "Reviewed") +
+            "</p>" +
+            '<div class="attachment-meta">' +
+            (task.reviewedByName
+              ? "By " + app.esc(task.reviewedByName) + " · "
+              : "") +
+            app.esc(
+              task.reviewedAt
+                ? app.formatTimestamp(task.reviewedAt)
+                : "Awaiting review",
+            ) +
+            "</div></div>"
+          : "";
+    }
+
+    if (infoEl) {
+      infoEl.innerHTML =
+        '<div class="task-feedback-card">' +
+        '<strong>Latest Submission</strong>' +
+        "<p>" +
+        app.esc(
+          task.submissionNotes
+            ? task.submissionNotes
+            : "No notes have been submitted yet.",
+        ) +
+        "</p>" +
+        '<div class="attachment-meta">' +
+        (task.submittedByName
+          ? "Submitted by " + app.esc(task.submittedByName) + " · "
+          : "") +
+        app.esc(
+          task.submittedAt ? app.formatTimestamp(task.submittedAt) : "Draft",
+        ) +
+        "</div>" +
+        '<div class="attachment-list-wrap">' +
+        buildAttachmentList(files, "No submission files attached yet.") +
+        "</div></div>";
+    }
+
+    if (noteEl) {
+      noteEl.disabled = !canSubmit;
+      noteEl.value = canSubmit ? task.submissionNotes || "" : task.submissionNotes || "";
+    }
+    if (fileEl) {
+      fileEl.disabled = !canSubmit;
+    }
+    if (draftEl) {
+      draftEl.innerHTML = canSubmit
+        ? '<div class="comment-empty">Select files to preview them before submitting.</div>'
+        : "";
+    }
+    if (submitBtn) {
+      submitBtn.classList.toggle("hidden", !canSubmit);
+      submitBtn.disabled = false;
+    }
+  }
+
+  window.handleEmpTaskFileSelection = function () {
+    var fileInput = document.getElementById("empTaskSubmissionFiles");
+    var draftEl = document.getElementById("empTaskSubmissionDraft");
+    if (!draftEl) return;
+    readFilesFromInput(
+      fileInput,
+      EMP_TASK_FILE_LIMITS,
+      function (files) {
+        empTaskDraftFiles = files;
+        draftEl.innerHTML = buildAttachmentList(
+          files,
+          "No files selected for this submission.",
+        );
+      },
+      function (err) {
+        empTaskDraftFiles = [];
+        if (fileInput) fileInput.value = "";
+        draftEl.innerHTML =
+          '<div class="comment-empty">' + app.esc(err) + "</div>";
+        app.showToast(err, "error");
+      },
+    );
+  };
+
+  window.submitEmpTaskForReview = function () {
+    var task = empTaskDetailCache;
+    if (!task || !task.id) return;
+    if (String(task.status || "").toUpperCase() !== "IN_PROGRESS") {
+      app.showToast("Only in-progress tasks can be submitted for review.", "error");
+      return;
+    }
+
+    var submitBtn = document.getElementById("empTaskSubmitBtn");
+    var noteEl = document.getElementById("empTaskSubmissionNotes");
+    var fileEl = document.getElementById("empTaskSubmissionFiles");
+    var notes = (noteEl && noteEl.value) || "";
+
+    function sendSubmission(files) {
+      var payload = {
+        status: "UNDER_REVIEW",
+        submissionNotes: notes,
+      };
+      if (files && files.length) {
+        payload.submissionFiles = files;
+      }
+      if (submitBtn) submitBtn.disabled = true;
+      app.fetchMutate(
+        "PUT",
+        "/api/workspace/tasks/" + encodeURIComponent(task.id),
+        payload,
+        function () {
+          if (submitBtn) submitBtn.disabled = false;
+          app.showToast("Task submitted for review", "success");
+          empLogActivity(
+            "SUBMIT_REVIEW",
+            "task",
+            task.id,
+            task.title || "",
+            task.projectId || "",
+            "Submitted task for review",
+          );
+          app.closeModal("empTaskModal");
+          loadEmpTasks();
+        },
+        function (err) {
+          if (submitBtn) submitBtn.disabled = false;
+          app.showToast(err || "Failed to submit task", "error");
+        },
+      );
+    }
+
+    if (fileEl && fileEl.files && fileEl.files.length) {
+      if (
+        empTaskDraftFiles.length &&
+        empTaskDraftFiles.length === fileEl.files.length
+      ) {
+        sendSubmission(empTaskDraftFiles);
+        return;
+      }
+      readFilesFromInput(
+        fileEl,
+        EMP_TASK_FILE_LIMITS,
+        sendSubmission,
+        function (err) {
+          app.showToast(err, "error");
+        },
+      );
+      return;
+    }
+
+    sendSubmission([]);
   };
 
   function loadEmpTaskComments(taskId) {
@@ -486,7 +832,14 @@
       function () {
         textEl.value = "";
         loadEmpTaskComments(taskId);
-        empLogActivity("COMMENT", "task", taskId, "", "", "Added a comment");
+        empLogActivity(
+          "COMMENT",
+          "task",
+          taskId,
+          empTaskDetailCache ? empTaskDetailCache.title || "" : "",
+          empTaskDetailCache ? empTaskDetailCache.projectId || "" : "",
+          "Added a comment",
+        );
       },
       function (err) {
         app.showToast(err || "Failed to post comment", "error");
@@ -588,41 +941,21 @@
   window.loadEmpTimesheet = function () {
     ensureEmpData(function (employees, projects) {
       var assigned = findAssignedProjects(projects);
-
-      // Populate project dropdown
-      var sel = document.getElementById("tsProject");
-      if (sel) {
-        sel.innerHTML = '<option value="">Select project\u2026</option>';
-        assigned.filter(isEmpActive).forEach(function (p) {
-          sel.innerHTML +=
-            '<option value="' +
-            app.esc(p.id) +
-            '" data-name="' +
-            app.esc(p.name || "") +
-            '">' +
-            app.esc(p.name || "Untitled") +
-            "</option>";
-        });
-      }
-      // Default date to today
-      var tsDate = document.getElementById("tsDate");
-      if (tsDate && !tsDate.value)
-        tsDate.value = new Date().toISOString().slice(0, 10);
-
-      // Fetch real timesheet entries
       app.fetchJson(
-        "/api/workspace/timesheets",
-        function (entries) {
-          app.cachedData.empTimesheets = entries;
-          renderTimesheetUI(entries, assigned);
+        "/api/workspace/tasks",
+        function (tasks) {
+          empTasksCache = tasks || [];
+          populateEmpTimesheetSelectors(assigned);
+          loadEmpTimesheetEntries(assigned);
         },
         function () {
-          renderTimesheetUI([], assigned);
+          empTasksCache = [];
+          populateEmpTimesheetSelectors(assigned);
+          loadEmpTimesheetEntries(assigned);
         },
       );
     });
 
-    // Wire up form submit once
     var form = document.getElementById("empTimeEntryForm");
     if (form && !form._wired) {
       form._wired = true;
@@ -630,10 +963,15 @@
         e.preventDefault();
         var sel = document.getElementById("tsProject");
         var opt = sel.options[sel.selectedIndex];
+        var taskSel = document.getElementById("tsTask");
+        var taskOpt = taskSel ? taskSel.options[taskSel.selectedIndex] : null;
         var payload = {
           projectId: sel.value,
           projectName: opt ? opt.getAttribute("data-name") : "",
+          taskId: taskSel ? taskSel.value : "",
+          taskTitle: taskOpt ? taskOpt.getAttribute("data-name") || "" : "",
           date: new Date(document.getElementById("tsDate").value).getTime(),
+          dateKey: document.getElementById("tsDate").value,
           hours: parseFloat(document.getElementById("tsHours").value),
           description: document.getElementById("tsDesc").value,
         };
@@ -644,9 +982,7 @@
           function () {
             app.showToast("Time entry saved", "success");
             form.reset();
-            document.getElementById("tsDate").value = new Date()
-              .toISOString()
-              .slice(0, 10);
+            document.getElementById("tsDate").value = formatDateKey(Date.now());
             document.getElementById("empTimeForm").style.display = "none";
             delete app.cachedData.empTimesheets;
             loadEmpTimesheet();
@@ -657,10 +993,77 @@
         );
       });
     }
+
+    var projectSel = document.getElementById("tsProject");
+    if (projectSel && !projectSel._wired) {
+      projectSel._wired = true;
+      projectSel.addEventListener("change", function () {
+        populateEmpTimesheetTaskOptions(projectSel.value);
+      });
+    }
   };
 
+  function populateEmpTimesheetSelectors(assigned) {
+    var sel = document.getElementById("tsProject");
+    if (sel) {
+      sel.innerHTML = '<option value="">Select project\u2026</option>';
+      assigned.filter(isEmpActive).forEach(function (p) {
+        sel.innerHTML +=
+          '<option value="' +
+          app.esc(p.id) +
+          '" data-name="' +
+          app.esc(p.name || "") +
+          '">' +
+          app.esc(p.name || "Untitled") +
+          "</option>";
+      });
+    }
+    var tsDate = document.getElementById("tsDate");
+    if (tsDate && !tsDate.value) {
+      tsDate.value = formatDateKey(Date.now());
+    }
+    populateEmpTimesheetTaskOptions(sel ? sel.value : "");
+  }
+
+  function populateEmpTimesheetTaskOptions(projectId) {
+    var taskSel = document.getElementById("tsTask");
+    if (!taskSel) return;
+    taskSel.innerHTML =
+      '<option value="">Optional task / deliverable\u2026</option>';
+    if (!projectId) return;
+    empTasksCache
+      .filter(function (task) {
+        return (
+          String(task.projectId || "") === String(projectId) &&
+          String(task.status || "").toUpperCase() !== "COMPLETED"
+        );
+      })
+      .forEach(function (task) {
+        taskSel.innerHTML +=
+          '<option value="' +
+          app.esc(task.id) +
+          '" data-name="' +
+          app.esc(task.title || "") +
+          '">' +
+          app.esc(task.title || "Untitled task") +
+          "</option>";
+      });
+  }
+
+  function loadEmpTimesheetEntries(assigned) {
+    app.fetchJson(
+      "/api/workspace/timesheets",
+      function (entries) {
+        app.cachedData.empTimesheets = entries;
+        renderTimesheetUI(entries, assigned);
+      },
+      function () {
+        renderTimesheetUI([], assigned);
+      },
+    );
+  }
+
   function renderTimesheetUI(entries, assigned) {
-    // Week filter: entries from current week (Mon-Sun)
     var now = new Date();
     now.setHours(0, 0, 0, 0);
     var dayOfWeek = now.getDay() || 7;
@@ -677,28 +1080,45 @@
       return s + (e.hours || 0);
     }, 0);
     var remaining = Math.max(0, 40 - totalHours);
+    var todayKey = formatDateKey(now.getTime());
+    var todayHours = entries
+      .filter(function (entry) {
+        return String(entry.dateKey || "") === todayKey;
+      })
+      .reduce(function (sum, entry) {
+        return sum + (entry.hours || 0);
+      }, 0);
+    var projectSet = {};
+    weekEntries.forEach(function (entry) {
+      if (entry.projectId) projectSet[entry.projectId] = true;
+    });
 
     document.getElementById("empTimesheetStats").innerHTML =
       empStatCard(
         totalHours.toFixed(1) + "h",
         "This Week",
-        "Logged from timesheet entries",
+        "Logged across assigned work",
         "green",
+      ) +
+      empStatCard(
+        todayHours.toFixed(1) + "h",
+        "Today",
+        "Current day total",
+        "blue",
+      ) +
+      empStatCard(
+        Object.keys(projectSet).length,
+        "Projects",
+        "Touched this week",
+        "purple",
       ) +
       empStatCard(
         remaining.toFixed(1) + "h",
         "Remaining",
         "Until 40h weekly target",
-        "blue",
-      ) +
-      empStatCard(
-        weekEntries.length,
-        "Entries",
-        "This week's time slots",
-        "purple",
+        "orange",
       );
 
-    // Render entries list (most recent first, max 10)
     var html = "";
     var display = entries.slice(0, 10);
     if (display.length === 0) {
@@ -708,24 +1128,36 @@
       display.forEach(function (e) {
         var dateStr = app.formatTimestamp(e.date);
         html +=
-          '<div class="emp-info-row">' +
+          '<div class="emp-info-row timesheet-entry-row">' +
           '<div class="emp-info-content"><div class="emp-info-title">' +
           app.esc(e.projectName || "Unknown Project") +
           " \u2014 " +
           app.esc(e.hours + "h") +
           '</div><div class="emp-info-desc">' +
           app.esc(dateStr) +
+          (e.taskTitle ? " \u2022 " + app.esc(e.taskTitle) : "") +
           (e.description ? " \u2022 " + app.esc(e.description) : "") +
-          "</div></div>" +
+          '</div></div><div class="timesheet-entry-actions">' +
           '<span class="badge badge-blue">' +
           app.esc(e.hours + "h") +
-          "</span></div>";
+          "</span>" +
+          '<button class="btn-edit-sm" onclick="deleteEmpTimeEntry(\'' +
+          app.esc(e.id || "") +
+          "')\">Delete</button></div></div>";
       });
     }
     document.getElementById("empTimeEntries").innerHTML = html;
 
-    // Weekly summary bar
     var pct = Math.min(100, Math.round((totalHours / 40) * 100));
+    var dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    var dayHours = [0, 0, 0, 0, 0, 0, 0];
+    weekEntries.forEach(function (entry) {
+      var entryDate = new Date(entry.date > 1e12 ? entry.date : entry.date * 1000);
+      var index = (entryDate.getDay() || 7) - 1;
+      if (index >= 0 && index < dayHours.length) {
+        dayHours[index] += Number(entry.hours || 0);
+      }
+    });
     document.getElementById("empWeeklySummary").innerHTML =
       '<div class="progress-bar-container"><div class="progress-bar-track"><div class="progress-bar-fill" style="width:' +
       pct +
@@ -734,7 +1166,53 @@
       totalHours.toFixed(1) +
       "h of 40h target (" +
       pct +
-      "% utilized)</div>";
+      "% utilized)</div>" +
+      '<div class="timesheet-week-grid">' +
+      dayLabels
+        .map(function (label, index) {
+          return (
+            '<div class="timesheet-week-day">' +
+            "<strong>" +
+            app.esc(label) +
+            "</strong>" +
+            '<span>' +
+            app.esc(dayHours[index].toFixed(1) + "h") +
+            "</span></div>"
+          );
+        })
+        .join("") +
+      "</div>";
+
+    var projectBreakdown = {};
+    weekEntries.forEach(function (entry) {
+      var key = entry.projectName || "Unknown Project";
+      projectBreakdown[key] = (projectBreakdown[key] || 0) + Number(entry.hours || 0);
+    });
+    var projectRows = Object.keys(projectBreakdown)
+      .sort(function (a, b) {
+        return projectBreakdown[b] - projectBreakdown[a];
+      })
+      .map(function (name) {
+        var hours = projectBreakdown[name];
+        var width = totalHours ? Math.max(8, Math.round((hours / totalHours) * 100)) : 0;
+        return (
+          '<div class="mini-progress-row">' +
+          '<div class="mini-progress-label"><span>' +
+          app.esc(name) +
+          "</span><strong>" +
+          app.esc(hours.toFixed(1) + "h") +
+          '</strong></div><div class="mini-progress-track"><span style="width:' +
+          width +
+          '%"></span></div></div>'
+        );
+      })
+      .join("");
+    var projectBreakdownEl = document.getElementById("empTimeProjectBreakdown");
+    if (projectBreakdownEl) {
+      projectBreakdownEl.innerHTML = projectRows
+        ? projectRows
+        : '<div class="comment-empty">Project allocation will appear here after you log time this week.</div>';
+    }
 
     document.getElementById("empTimeReminders").innerHTML =
       empInfoRow(
@@ -743,34 +1221,56 @@
         "REMINDER",
       ) +
       empInfoRow(
-        "Time allocation",
-        "Split hours across projects based on actual effort",
+        "Task linkage",
+        "Link entries to the task or deliverable you actually worked on",
+        "TIP",
+      ) +
+      empInfoRow(
+        "Daily limit",
+        "A single day cannot exceed 24 total logged hours",
         "TIP",
       );
   }
 
+  window.deleteEmpTimeEntry = function (entryId) {
+    if (!entryId) return;
+    app.showConfirm("Delete this time entry?", function () {
+      app.fetchMutate(
+        "DELETE",
+        "/api/workspace/timesheets?id=" + encodeURIComponent(entryId),
+        null,
+        function () {
+          app.showToast("Time entry deleted", "success");
+          delete app.cachedData.empTimesheets;
+          loadEmpTimesheet();
+        },
+        function (err) {
+          app.showToast(err || "Failed to delete time entry", "error");
+        },
+      );
+    });
+  };
+
   /* ============================================================
        LEAVE REQUESTS (real Firestore data)
        ============================================================ */
+  var empLeaveDraftFiles = [];
+
   window.loadEmpRequests = function () {
     ensureEmpData(function (employees) {
       var me = findCurrentEmployee(employees);
-      var status = me ? me.status || "UNKNOWN" : "UNKNOWN";
-
-      // Fetch real leave requests
       app.fetchJson(
         "/api/workspace/leave-requests",
         function (requests) {
           app.cachedData.empLeaveRequests = requests;
-          renderRequestsUI(requests, status);
+          renderRequestsUI(requests, me);
         },
         function () {
-          renderRequestsUI([], status);
+          renderRequestsUI([], me);
         },
       );
     });
 
-    // Wire up form submit once
     var form = document.getElementById("empLeaveRequestForm");
     if (form && !form._wired) {
       form._wired = true;
@@ -782,45 +1282,155 @@
           app.showToast("End date must be after start date", "error");
           return;
         }
+        var type = document.getElementById("lrType").value;
         var payload = {
-          type: document.getElementById("lrType").value,
+          type: type,
           startDate: new Date(startVal).getTime(),
           endDate: new Date(endVal).getTime(),
+          startDateKey: startVal,
+          endDateKey: endVal,
           reason: document.getElementById("lrReason").value,
         };
-        app.fetchMutate(
-          "POST",
-          "/api/workspace/leave-requests",
-          payload,
-          function () {
-            app.showToast("Leave request submitted", "success");
-            form.reset();
-            document.getElementById("empLeaveForm").style.display = "none";
-            delete app.cachedData.empLeaveRequests;
-            loadEmpRequests();
+        var submitBtn = form.querySelector('button[type="submit"]');
+        function sendRequest(files) {
+          if (files && files.length) {
+            payload.supportingDocuments = files;
+          }
+          if (submitBtn) submitBtn.disabled = true;
+          app.fetchMutate(
+            "POST",
+            "/api/workspace/leave-requests",
+            payload,
+            function () {
+              if (submitBtn) submitBtn.disabled = false;
+              app.showToast("Leave request submitted", "success");
+              form.reset();
+              empLeaveDraftFiles = [];
+              document.getElementById("empLeaveDraftFiles").innerHTML = "";
+              document.getElementById("empLeaveForm").style.display = "none";
+              delete app.cachedData.empLeaveRequests;
+              loadEmpRequests();
+            },
+            function (err) {
+              if (submitBtn) submitBtn.disabled = false;
+              app.showToast(err || "Failed to submit", "error");
+            },
+          );
+        }
+
+        var fileInput = document.getElementById("lrFiles");
+        if (fileInput && fileInput.files && fileInput.files.length) {
+          if (
+            empLeaveDraftFiles.length &&
+            empLeaveDraftFiles.length === fileInput.files.length
+          ) {
+            sendRequest(empLeaveDraftFiles);
+            return;
+          }
+          readFilesFromInput(
+            fileInput,
+            EMP_LEAVE_FILE_LIMITS,
+            sendRequest,
+            function (err) {
+              app.showToast(err, "error");
+            },
+          );
+          return;
+        }
+
+        if (type === "SICK") {
+          app.showToast(
+            "Attach the medical certificate before submitting sick leave.",
+            "error",
+          );
+          return;
+        }
+
+        sendRequest([]);
+      });
+    }
+
+    var leaveFileInput = document.getElementById("lrFiles");
+    if (leaveFileInput && !leaveFileInput._wired) {
+      leaveFileInput._wired = true;
+      leaveFileInput.addEventListener("change", function () {
+        readFilesFromInput(
+          leaveFileInput,
+          EMP_LEAVE_FILE_LIMITS,
+          function (files) {
+            empLeaveDraftFiles = files;
+            document.getElementById("empLeaveDraftFiles").innerHTML =
+              buildAttachmentList(files, "No supporting documents selected.");
           },
           function (err) {
-            app.showToast(err || "Failed to submit", "error");
+            empLeaveDraftFiles = [];
+            leaveFileInput.value = "";
+            document.getElementById("empLeaveDraftFiles").innerHTML =
+              '<div class="comment-empty">' + app.esc(err) + "</div>";
+            app.showToast(err, "error");
           },
         );
       });
     }
+
+    var leaveTypeEl = document.getElementById("lrType");
+    if (leaveTypeEl && !leaveTypeEl._wired) {
+      leaveTypeEl._wired = true;
+      leaveTypeEl.addEventListener("change", updateEmpLeaveFileHint);
+    }
+    updateEmpLeaveFileHint();
   };
 
-  function renderRequestsUI(requests, empStatus) {
+  function updateEmpLeaveFileHint() {
+    var typeEl = document.getElementById("lrType");
+    var hintEl = document.getElementById("empLeaveFileHint");
+    if (!hintEl || !typeEl) return;
+    var type = String(typeEl.value || "").toUpperCase();
+    hintEl.textContent =
+      type === "SICK"
+        ? "Medical certificate required for sick leave."
+        : "Supporting documents are optional unless your policy requires them.";
+  }
+
+  function renderRequestsUI(requests, me) {
+    var empStatus = me ? me.status || "UNKNOWN" : "UNKNOWN";
     var pending = requests.filter(function (r) {
       return r.status === "PENDING";
     }).length;
     var approved = requests.filter(function (r) {
       return r.status === "APPROVED";
     }).length;
+    var currentYear = new Date().getFullYear();
+    var annualAllowance = annualLeaveEntitlement(me, currentYear);
+    var balanceConfig = [
+      { type: "ANNUAL", label: "Annual", limit: annualAllowance },
+      { type: "SICK", label: "Sick", limit: 10 },
+      { type: "PERSONAL", label: "Personal", limit: 3 },
+    ];
 
     document.getElementById("empRequestsStats").innerHTML =
       empStatCard(empStatus, "Status", "Employment availability", "green") +
-      empStatCard(approved, "Approved", "Approved leave days", "blue") +
-      empStatCard(pending, "Pending", "Awaiting manager review", "purple");
+      empStatCard(
+        Math.max(
+          0,
+          annualAllowance -
+            requests.reduce(function (sum, request) {
+              if (
+                String(request.type || "").toUpperCase() !== "ANNUAL" ||
+                (request.status !== "PENDING" && request.status !== "APPROVED")
+              ) {
+                return sum;
+              }
+              return sum + leaveDaysWithinYear(request, currentYear);
+            }, 0),
+        ),
+        "Annual Left",
+        "Reserved against this year",
+        "blue",
+      ) +
+      empStatCard(pending, "Pending", "Awaiting manager review", "purple") +
+      empStatCard(approved, "Approved", "Approved requests", "orange");
 
-    // Render request list
     var html = "";
     if (requests.length === 0) {
       html =
@@ -834,26 +1444,83 @@
             ? "badge-green"
             : r.status === "REJECTED"
               ? "badge-red"
+              : r.status === "CANCELLED"
+                ? "badge-muted"
               : "badge-orange";
         html +=
-          '<div class="emp-info-row">' +
+          '<div class="emp-info-row leave-request-row">' +
           '<div class="emp-info-content"><div class="emp-info-title">' +
           app.esc(r.type) +
           " Leave" +
+          (r.businessDays ? " · " + app.esc(r.businessDays + " business day(s)") : "") +
           '</div><div class="emp-info-desc">' +
           app.esc(startStr) +
           " \u2013 " +
           app.esc(endStr) +
           (r.reason ? " \u2022 " + app.esc(r.reason) : "") +
-          "</div></div>" +
+          (r.reviewNote ? " \u2022 Review: " + app.esc(r.reviewNote) : "") +
+          "</div>" +
+          ((r.supportingDocuments && r.supportingDocuments.length) || 0
+            ? '<div class="attachment-list-wrap">' +
+              buildAttachmentList(
+                r.supportingDocuments,
+                "No supporting documents attached.",
+              ) +
+              "</div>"
+            : "") +
+          "</div><div class=\"request-actions\">" +
           '<span class="badge ' +
           badgeClass +
           '">' +
           app.esc(r.status) +
-          "</span></div>";
+          "</span>" +
+          (r.status === "PENDING"
+            ? '<button class="btn-edit-sm" onclick="cancelEmpLeaveRequest(\'' +
+              app.esc(r.id || "") +
+              "')\">Cancel</button>"
+            : "") +
+          "</div></div>";
       });
     }
     document.getElementById("empLeaveInfo").innerHTML = html;
+
+    var balanceHtml = balanceConfig
+      .map(function (config) {
+        var reserved = requests.reduce(function (sum, request) {
+          if (
+            String(request.type || "").toUpperCase() !== config.type ||
+            (request.status !== "PENDING" && request.status !== "APPROVED")
+          ) {
+            return sum;
+          }
+          return sum + leaveDaysWithinYear(request, currentYear);
+        }, 0);
+        var approvedDays = requests.reduce(function (sum, request) {
+          if (
+            String(request.type || "").toUpperCase() !== config.type ||
+            request.status !== "APPROVED"
+          ) {
+            return sum;
+          }
+          return sum + leaveDaysWithinYear(request, currentYear);
+        }, 0);
+        var remaining = Math.max(0, config.limit - reserved);
+        return (
+          '<div class="leave-balance-card">' +
+          "<strong>" +
+          app.esc(config.label) +
+          "</strong>" +
+          '<span class="leave-balance-number">' +
+          app.esc(remaining + " day(s)") +
+          "</span>" +
+          '<span class="attachment-meta">Reserved: ' +
+          app.esc(reserved + " · Approved: " + approvedDays) +
+          "</span></div>"
+        );
+      })
+      .join("");
+    var balancesEl = document.getElementById("empLeaveBalances");
+    if (balancesEl) balancesEl.innerHTML = balanceHtml;
 
     document.getElementById("empLeavePolicy").innerHTML =
       empInfoRow(
@@ -867,11 +1534,35 @@
         "POLICY",
       ) +
       empInfoRow(
+        "Sick leave guidance",
+        "Notify your manager before the shift when possible and attach the certificate here",
+        "GUIDE",
+      ) +
+      empInfoRow(
         "Personal leave",
         "3 days per year for personal matters",
         "POLICY",
       );
   }
+
+  window.cancelEmpLeaveRequest = function (requestId) {
+    if (!requestId) return;
+    app.showConfirm("Cancel this pending leave request?", function () {
+      app.fetchMutate(
+        "PUT",
+        "/api/workspace/leave-requests",
+        { id: requestId },
+        function () {
+          app.showToast("Leave request cancelled", "success");
+          delete app.cachedData.empLeaveRequests;
+          loadEmpRequests();
+        },
+        function (err) {
+          app.showToast(err || "Failed to cancel request", "error");
+        },
+      );
+    });
+  };
 
   /* ============================================================
        DOCUMENTS (real Firestore data)
@@ -967,6 +1658,17 @@
   var empTeamChatRooms = [];
   var empTeamChatScope = "dept";
   var empTeamChatPollTimer = null;
+  var empRequestedChatScope = readEmpRequestedChatScope();
+
+  function readEmpRequestedChatScope() {
+    try {
+      return String(
+        new URLSearchParams(window.location.search).get("chatScope") || "",
+      ).trim();
+    } catch (_err) {
+      return "";
+    }
+  }
 
   function empChatUserKey() {
     return (
@@ -1018,6 +1720,10 @@
         var mine =
           app.currentUser &&
           String(m.authorId || "") === String(app.currentUser.uid || "");
+        var role = m.authorRole || "USER";
+        var pmBadge = app.isProjectManagerRole(role)
+          ? '<span class="comment-badge comment-badge-pm">PM</span>'
+          : "";
         return (
           '<div class="team-chat-item' +
           (mine ? " mine" : "") +
@@ -1025,10 +1731,10 @@
           '<div class="comment-header"><strong>' +
           app.esc(m.authorName || "Unknown") +
           "</strong>" +
-          (m.authorRole === "PM" 
-            ? '<span class="badge badge-purple" style="font-size: 0.65rem; padding: 2px 6px; margin-left: 6px; vertical-align: middle;">PM</span>'
-            : '<span class="comment-role">' + app.esc(app.formatRole(m.authorRole || "USER")) + "</span>"
-          ) +
+          pmBadge +
+          '<span class="comment-role">' +
+          app.esc(app.formatRole(role)) +
+          "</span>" +
           '<span class="comment-time">' +
           app.esc(app.formatTimestamp(m.createdAt)) +
           "</span></div>" +
@@ -1164,6 +1870,15 @@
       });
     });
     empTeamChatRooms = options;
+    if (
+      empRequestedChatScope &&
+      options.some(function (opt) {
+        return opt.value === empRequestedChatScope;
+      })
+    ) {
+      empTeamChatScope = empRequestedChatScope;
+    }
+    empRequestedChatScope = "";
     updateEmpTeamChatScopeLabels({});
 
     var stillValid = options.some(function (opt) {
@@ -1193,6 +1908,14 @@
       "/api/workspace/team-chat?" + buildEmpTeamChatQuery(),
       function (messages) {
         var list = messages || [];
+        var previousLastRead = getEmpLastRead(empTeamChatScope || "dept");
+        var myId = String((app.currentUser && app.currentUser.uid) || "");
+        var hasIncoming = list.some(function (m) {
+          return (
+            String(m.authorId || "") !== myId &&
+            (Number(m.createdAt) || 0) > previousLastRead
+          );
+        });
         renderEmpTeamChat(list);
         var newest = list.length
           ? Math.max.apply(
@@ -1204,6 +1927,9 @@
           : Date.now();
         setEmpLastRead(empTeamChatScope || "dept", newest);
         refreshEmpUnreadCounts();
+        if (hasIncoming && typeof app.refreshNotifications === "function") {
+          app.refreshNotifications();
+        }
       },
       function () {
         host.innerHTML =

@@ -250,6 +250,99 @@
     return end;
   }
 
+  function formatFileSize(bytes) {
+    var value = Number(bytes) || 0;
+    if (value >= 1024 * 1024) return (value / (1024 * 1024)).toFixed(1) + " MB";
+    if (value >= 1024) return Math.round(value / 1024) + " KB";
+    return value + " B";
+  }
+
+  function buildAttachmentList(files, emptyText) {
+    if (!files || !files.length) {
+      return '<div class="comment-empty">' + app.esc(emptyText) + "</div>";
+    }
+    return files
+      .map(function (file) {
+        var href = file.dataUrl ? ' href="' + app.esc(file.dataUrl) + '"' : "";
+        var download = file.name
+          ? ' download="' + app.esc(file.name) + '"'
+          : "";
+        return (
+          '<div class="attachment-item">' +
+          '<div class="attachment-main"><strong>' +
+          app.esc(file.name || "Attachment") +
+          '</strong><span class="attachment-meta">' +
+          app.esc(file.mimeType || "File") +
+          " · " +
+          app.esc(formatFileSize(file.size)) +
+          "</span></div>" +
+          '<a class="attachment-link"' +
+          href +
+          download +
+          (href ? ' target="_blank" rel="noopener"' : "") +
+          ">" +
+          (href ? "Open" : "Attached") +
+          "</a></div>"
+        );
+      })
+      .join("");
+  }
+
+  function formatDateKey(ts) {
+    var date = new Date(ts || Date.now());
+    if (isNaN(date.getTime())) return "";
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0"),
+    ].join("-");
+  }
+
+  var pmGanttState = { zoom: "month", sort: "end" };
+  var pmManagedProjectsCache = [];
+
+  function ganttDayWidth() {
+    if (pmGanttState.zoom === "week") return 34;
+    if (pmGanttState.zoom === "quarter") return 10;
+    return 18;
+  }
+
+  function ganttTickStepDays() {
+    if (pmGanttState.zoom === "week") return 7;
+    if (pmGanttState.zoom === "quarter") return 30;
+    return 14;
+  }
+
+  function alignGanttStart(ms) {
+    var d = new Date(ms);
+    d.setHours(0, 0, 0, 0);
+    if (pmGanttState.zoom === "week") {
+      d.setDate(d.getDate() - ((d.getDay() || 7) - 1));
+      return d.getTime();
+    }
+    if (pmGanttState.zoom === "quarter") {
+      d.setMonth(Math.floor(d.getMonth() / 3) * 3, 1);
+      return d.getTime();
+    }
+    d.setDate(1);
+    return d.getTime();
+  }
+
+  function alignGanttEnd(ms) {
+    var d = new Date(ms);
+    d.setHours(0, 0, 0, 0);
+    if (pmGanttState.zoom === "week") {
+      d.setDate(d.getDate() + (7 - (d.getDay() || 7)));
+      return d.getTime();
+    }
+    if (pmGanttState.zoom === "quarter") {
+      d.setMonth(Math.floor(d.getMonth() / 3) * 3 + 3, 0);
+      return d.getTime();
+    }
+    d.setMonth(d.getMonth() + 1, 0);
+    return d.getTime();
+  }
+
   function pmGanttStatusClass(project) {
     var s = (project.status || "").toUpperCase();
     if (s === "COMPLETED") return "pm-gantt-bar-completed";
@@ -377,6 +470,269 @@
     var d = new Date();
     d.setHours(0, 0, 0, 0);
     return d.getTime();
+  }
+
+  function projectTaskSummary(project) {
+    return project && project.taskSummary
+      ? project.taskSummary
+      : {
+          total: 0,
+          todo: 0,
+          inProgress: 0,
+          underReview: 0,
+          completed: 0,
+          overdue: 0,
+        };
+  }
+
+  function sortPMGanttRows(rows) {
+    rows.sort(function (a, b) {
+      if (pmGanttState.sort === "start") {
+        return a.startMs - b.startMs;
+      }
+      if (pmGanttState.sort === "health") {
+        var aScore =
+          (a.summary.overdue || 0) * 100 +
+          (a.summary.underReview || 0) * 10 +
+          ((a.project.status || "").toUpperCase() === "ON_HOLD" ? 50 : 0);
+        var bScore =
+          (b.summary.overdue || 0) * 100 +
+          (b.summary.underReview || 0) * 10 +
+          ((b.project.status || "").toUpperCase() === "ON_HOLD" ? 50 : 0);
+        if (bScore !== aScore) return bScore - aScore;
+      }
+      return a.endMs - b.endMs;
+    });
+  }
+
+  function ganttTickLabel(ms) {
+    var date = new Date(ms);
+    if (pmGanttState.zoom === "quarter") {
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        year: "2-digit",
+      });
+    }
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  }
+
+  window.setPMGanttZoom = function (zoom) {
+    pmGanttState.zoom = zoom || "month";
+    renderPMGantt(pmManagedProjectsCache);
+  };
+
+  window.setPMGanttSort = function (sort) {
+    pmGanttState.sort = sort || "end";
+    renderPMGantt(pmManagedProjectsCache);
+  };
+
+  function renderPMGantt(managedProjects) {
+    var host = document.getElementById("pmGanttChart");
+    if (!host) return;
+
+    pmManagedProjectsCache = managedProjects || [];
+    var projects = pmManagedProjectsCache;
+    if (!projects.length) {
+      host.innerHTML =
+        '<div class="empty-state">No managed projects to display on the timeline.</div>';
+      return;
+    }
+
+    var rows = projects.map(function (p) {
+      var startMs = projectStartMs(p);
+      var endMs = projectEndMs(p, startMs);
+      return {
+        project: p,
+        startMs: startMs,
+        endMs: endMs,
+        summary: projectTaskSummary(p),
+      };
+    });
+
+    sortPMGanttRows(rows);
+
+    var minStart = rows[0].startMs;
+    var maxEnd = rows[0].endMs;
+    rows.forEach(function (r) {
+      if (r.startMs < minStart) minStart = r.startMs;
+      if (r.endMs > maxEnd) maxEnd = r.endMs;
+    });
+
+    var axisStart = alignGanttStart(minStart - 2 * 86400000);
+    var axisEnd = alignGanttEnd(maxEnd + 2 * 86400000);
+    var totalDays = Math.max(
+      1,
+      Math.round((axisEnd - axisStart) / 86400000) + 1,
+    );
+    var dayWidth = ganttDayWidth();
+    var tickDays = ganttTickStepDays();
+    var timelineWidth = Math.max(900, totalDays * dayWidth);
+    var todayMs = startOfTodayMs();
+    var todayLeft =
+      todayMs >= axisStart && todayMs <= axisEnd
+        ? Math.round(((todayMs - axisStart) / 86400000) * dayWidth)
+        : -1;
+
+    var headerTicks = "";
+    var rowGrid = "";
+    for (var dayIndex = 0; dayIndex < totalDays; dayIndex += tickDays) {
+      var tickMs = axisStart + dayIndex * 86400000;
+      var leftPx = Math.round(dayIndex * dayWidth);
+      headerTicks +=
+        '<div class="pm-gantt-header-tick" style="left:' +
+        leftPx +
+        'px"><span>' +
+        app.esc(ganttTickLabel(tickMs)) +
+        "</span></div>";
+      rowGrid +=
+        '<span class="pm-gantt-grid-line" style="left:' +
+        leftPx +
+        'px"></span>';
+    }
+
+    var overdueProjects = rows.filter(function (row) {
+      return row.summary.overdue > 0 || isPMOverdue(row.project);
+    }).length;
+    var reviewProjects = rows.filter(function (row) {
+      return row.summary.underReview > 0;
+    }).length;
+
+    var body = rows
+      .map(function (r) {
+        var p = r.project;
+        var left = Math.round(((r.startMs - axisStart) / 86400000) * dayWidth);
+        var durationDays = Math.max(
+          1,
+          Math.round((r.endMs - r.startMs) / 86400000) + 1,
+        );
+        var safeWidth = Math.max(durationDays * dayWidth, 28);
+        var pid = app.esc(p.id || "");
+        var pct = Number(p.completionPercentage || 0);
+        if (!Number.isFinite(pct) || pct < 0) pct = 0;
+        if (pct > 100) pct = 100;
+        var flags = "";
+        if (r.summary.underReview) {
+          flags +=
+            '<span class="pm-gantt-flag pm-gantt-flag-review">' +
+            app.esc(r.summary.underReview + " review") +
+            "</span>";
+        }
+        if (r.summary.overdue || isPMOverdue(p)) {
+          flags += '<span class="pm-gantt-flag pm-gantt-flag-risk">At risk</span>';
+        }
+        if (String(p.priority || "").toUpperCase() === "CRITICAL") {
+          flags +=
+            '<span class="pm-gantt-flag pm-gantt-flag-critical">Critical</span>';
+        }
+        return (
+          '<div class="pm-gantt-table-row">' +
+          '<div class="pm-gantt-label-cell">' +
+          '<div class="pm-gantt-name">' +
+          app.esc(p.name || "Untitled") +
+          "</div>" +
+          '<div class="pm-gantt-meta">' +
+          app.esc(app.formatStatus(p.status || "PLANNING")) +
+          " · " +
+          pct +
+          "% · " +
+          app.esc(pmDueText(p.endDate)) +
+          "</div>" +
+          '<div class="pm-gantt-flags">' +
+          flags +
+          '<span class="pm-gantt-flag">' +
+          app.esc(
+            (r.summary.completed || 0) + "/" + (r.summary.total || 0) + " done",
+          ) +
+          "</span></div></div>" +
+          '<div class="pm-gantt-track-cell" style="width:' +
+          timelineWidth +
+          'px">' +
+          rowGrid +
+          (todayLeft >= 0
+            ? '<span class="pm-gantt-today-line" style="left:' +
+              todayLeft +
+              'px"></span>'
+            : "") +
+          '<button class="pm-gantt-bar ' +
+          pmGanttStatusClass(p) +
+          (r.summary.overdue || isPMOverdue(p) ? " pm-gantt-bar-overdue" : "") +
+          '" style="left:' +
+          left +
+          'px;width:' +
+          safeWidth +
+          'px" onclick="openPMProjectDetail(\'' +
+          pid +
+          "')\">" +
+          '<span class="pm-gantt-bar-fill" style="width:' +
+          pct +
+          '%"></span>' +
+          '<span class="pm-gantt-bar-text">' +
+          app.esc(app.formatTimestamp(r.startMs)) +
+          " → " +
+          app.esc(app.formatTimestamp(r.endMs)) +
+          "</span></button></div></div>"
+        );
+      })
+      .join("");
+
+    host.innerHTML =
+      '<div class="pm-gantt-shell">' +
+      '<div class="pm-gantt-toolbar">' +
+      '<div class="pm-gantt-summary">' +
+      '<span class="pm-gantt-summary-chip">' +
+      app.esc(rows.length + " projects") +
+      "</span>" +
+      '<span class="pm-gantt-summary-chip">' +
+      app.esc(overdueProjects + " at risk") +
+      "</span>" +
+      '<span class="pm-gantt-summary-chip">' +
+      app.esc(reviewProjects + " in review") +
+      "</span></div>" +
+      '<div class="pm-gantt-controls">' +
+      '<div class="pm-gantt-toggle">' +
+      '<button class="' +
+      (pmGanttState.zoom === "week" ? "active" : "") +
+      '" onclick="setPMGanttZoom(\'week\')">Week</button>' +
+      '<button class="' +
+      (pmGanttState.zoom === "month" ? "active" : "") +
+      '" onclick="setPMGanttZoom(\'month\')">Month</button>' +
+      '<button class="' +
+      (pmGanttState.zoom === "quarter" ? "active" : "") +
+      '" onclick="setPMGanttZoom(\'quarter\')">Quarter</button>' +
+      "</div>" +
+      '<select onchange="setPMGanttSort(this.value)">' +
+      '<option value="end"' +
+      (pmGanttState.sort === "end" ? " selected" : "") +
+      ">Sort by due date</option>" +
+      '<option value="start"' +
+      (pmGanttState.sort === "start" ? " selected" : "") +
+      ">Sort by start date</option>" +
+      '<option value="health"' +
+      (pmGanttState.sort === "health" ? " selected" : "") +
+      ">Sort by risk</option></select></div></div>" +
+      '<div class="pm-gantt-scroll">' +
+      '<div class="pm-gantt-table" style="width:' +
+      (timelineWidth + 280) +
+      'px">' +
+      '<div class="pm-gantt-table-header">' +
+      '<div class="pm-gantt-label-head">Project timeline</div>' +
+      '<div class="pm-gantt-track-head" style="width:' +
+      timelineWidth +
+      'px">' +
+      headerTicks +
+      (todayLeft >= 0
+        ? '<span class="pm-gantt-today-line" style="left:' +
+          todayLeft +
+          'px"></span><span class="pm-gantt-today-tag" style="left:' +
+          todayLeft +
+          'px">Today</span>'
+        : "") +
+      "</div></div>" +
+      body +
+      "</div></div></div>";
   }
 
   /* ============================================================
@@ -935,6 +1291,295 @@
       function () {},
     );
   }
+
+  var pmTaskDetailCache = null;
+
+  function renderPMTaskReviewSection(task) {
+    var section = document.getElementById("taskReviewSection");
+    var stateEl = document.getElementById("taskReviewState");
+    var infoEl = document.getElementById("taskSubmissionInfo");
+    var notesEl = document.getElementById("taskReviewNotes");
+    var requestBtn = document.getElementById("taskRequestChangesBtn");
+    var approveBtn = document.getElementById("taskApproveBtn");
+    if (!section || !stateEl || !infoEl || !notesEl || !requestBtn || !approveBtn) {
+      return;
+    }
+
+    if (!task || !task.id) {
+      section.classList.add("hidden");
+      infoEl.innerHTML = "";
+      notesEl.value = "";
+      requestBtn.classList.add("hidden");
+      approveBtn.classList.add("hidden");
+      return;
+    }
+
+    section.classList.remove("hidden");
+    var status = String(task.status || "TODO").toUpperCase();
+    stateEl.textContent = app.formatStatus(status);
+    stateEl.className =
+      "badge " +
+      (status === "COMPLETED"
+        ? "badge-green"
+        : status === "UNDER_REVIEW"
+          ? "badge-orange"
+          : status === "IN_PROGRESS"
+            ? "badge-blue"
+            : "badge-muted");
+
+    var files = task.submissionFiles || [];
+    infoEl.innerHTML =
+      '<div class="task-feedback-card">' +
+      '<strong>Latest Submission</strong>' +
+      "<p>" +
+      app.esc(task.submissionNotes || "No submission notes added yet.") +
+      "</p>" +
+      '<div class="attachment-meta">' +
+      (task.submittedByName
+        ? "Submitted by " + app.esc(task.submittedByName) + " · "
+        : "") +
+      app.esc(task.submittedAt ? app.formatTimestamp(task.submittedAt) : "Awaiting submission") +
+      "</div>" +
+      '<div class="attachment-list-wrap">' +
+      buildAttachmentList(files, "No submission files attached.") +
+      "</div></div>" +
+      (task.reviewNotes || task.reviewedAt
+        ? '<div class="task-feedback-card">' +
+          "<strong>Review Trail</strong>" +
+          "<p>" +
+          app.esc(task.reviewNotes || "Reviewed") +
+          "</p>" +
+          '<div class="attachment-meta">' +
+          (task.reviewedByName
+            ? "By " + app.esc(task.reviewedByName) + " · "
+            : "") +
+          app.esc(task.reviewedAt ? app.formatTimestamp(task.reviewedAt) : "No review timestamp") +
+          "</div></div>"
+        : "");
+
+    notesEl.value = task.reviewNotes || "";
+    requestBtn.classList.toggle("hidden", status !== "UNDER_REVIEW");
+    approveBtn.classList.toggle("hidden", status !== "UNDER_REVIEW");
+  }
+
+  function resetPMTaskModalReviewSection() {
+    renderPMTaskReviewSection(null);
+    var commentsSection = document.getElementById("taskCommentsSection");
+    if (commentsSection) commentsSection.classList.add("hidden");
+    var commentsList = document.getElementById("taskCommentsList");
+    if (commentsList) commentsList.innerHTML = "";
+    var commentBox = document.getElementById("taskCommentText");
+    if (commentBox) commentBox.value = "";
+  }
+
+  function populatePMTaskModal(task) {
+    pmTaskDetailCache = task || null;
+    document.getElementById("taskId").value = task.id || "";
+    document.getElementById("taskTitle").value = task.title || "";
+    document.getElementById("taskDescription").value = task.description || "";
+    document.getElementById("taskProject").value = task.projectId || "";
+    document.getElementById("taskAssignee").value = task.assignedTo || "";
+    document.getElementById("taskPriority").value = task.priority || "MEDIUM";
+    document.getElementById("taskStatus").value = task.status || "TODO";
+    document.getElementById("taskDueDate").value = task.dueDate
+      ? app.toDateInput(task.dueDate)
+      : "";
+    document.getElementById("taskModalTitle").textContent = "Edit Task";
+    document.getElementById("taskDeleteBtn").classList.remove("hidden");
+    var commentsSection = document.getElementById("taskCommentsSection");
+    if (commentsSection) commentsSection.classList.remove("hidden");
+    renderPMTaskReviewSection(task);
+    loadTaskComments(task.id);
+  }
+
+  window.openTaskModal = function (id) {
+    app.clearModalNotice("taskModalNotice");
+    document.getElementById("taskModal").classList.remove("hidden");
+    if (!id) {
+      pmTaskDetailCache = null;
+      ["taskId", "taskTitle", "taskDescription", "taskDueDate"].forEach(
+        function (fid) {
+          document.getElementById(fid).value = "";
+        },
+      );
+      document.getElementById("taskProject").value = "";
+      document.getElementById("taskAssignee").value = "";
+      document.getElementById("taskPriority").value = "MEDIUM";
+      document.getElementById("taskStatus").value = "TODO";
+      document.getElementById("taskModalTitle").textContent = "Create Task";
+      document.getElementById("taskDeleteBtn").classList.add("hidden");
+      resetPMTaskModalReviewSection();
+      return;
+    }
+
+    document.getElementById("taskModalTitle").textContent = "Loading Task...";
+    document.getElementById("taskDeleteBtn").classList.remove("hidden");
+    renderPMTaskReviewSection({
+      id: id,
+      status: "TODO",
+      submissionNotes: "Loading submission details...",
+      submissionFiles: [],
+    });
+    var commentsList = document.getElementById("taskCommentsList");
+    if (commentsList) {
+      commentsList.innerHTML = '<div class="loading-spinner visible"></div>';
+    }
+    app.fetchJson(
+      "/api/workspace/tasks/" + encodeURIComponent(id),
+      function (task) {
+        populatePMTaskModal(task);
+      },
+      function (err) {
+        app.showModalNotice(
+          "taskModalNotice",
+          err || "Failed to load task details.",
+          "error",
+        );
+        document.getElementById("taskModalTitle").textContent = "Edit Task";
+      },
+    );
+  };
+
+  window.savePMTask = function () {
+    app.clearModalNotice("taskModalNotice");
+    var title = document.getElementById("taskTitle").value.trim();
+    if (!title) {
+      app.showModalNotice(
+        "taskModalNotice",
+        "Task title is required.",
+        "error",
+      );
+      return;
+    }
+
+    var saveBtn = document.getElementById("taskSaveBtn");
+    if (saveBtn && saveBtn.disabled) return;
+    var id = document.getElementById("taskId").value;
+    var projSel = document.getElementById("taskProject");
+    if (!projSel || !projSel.value) {
+      app.showModalNotice(
+        "taskModalNotice",
+        "Please select a project.",
+        "error",
+      );
+      return;
+    }
+    var projOpt = projSel.options[projSel.selectedIndex];
+    var assignSel = document.getElementById("taskAssignee");
+    var assignOpt = assignSel.options[assignSel.selectedIndex];
+    var dueDate = app.dateInputToMs("taskDueDate");
+    if (dueDate && !id && dueDate < startOfTodayMs()) {
+      app.showModalNotice(
+        "taskModalNotice",
+        "Due date cannot be in the past for a new task.",
+        "error",
+      );
+      return;
+    }
+
+    var payload = {
+      title: title,
+      description: document.getElementById("taskDescription").value.trim(),
+      projectId: projSel.value,
+      projectName: projOpt
+        ? projOpt.getAttribute("data-name") || projOpt.textContent
+        : "",
+      assignedTo: assignSel.value,
+      assignedToName: assignOpt
+        ? assignOpt.getAttribute("data-name") ||
+          (assignSel.value ? assignOpt.textContent : "")
+        : "",
+      priority: document.getElementById("taskPriority").value,
+      status: document.getElementById("taskStatus").value,
+      dueDate: dueDate,
+      reviewNotes: document.getElementById("taskReviewNotes").value.trim(),
+    };
+
+    var isEdit = !!id;
+    var method = isEdit ? "PUT" : "POST";
+    var url = isEdit
+      ? "/api/workspace/tasks/" + encodeURIComponent(id)
+      : "/api/workspace/tasks";
+
+    if (saveBtn) saveBtn.disabled = true;
+    app.fetchMutate(
+      method,
+      url,
+      payload,
+      function (savedTask) {
+        if (saveBtn) saveBtn.disabled = false;
+        app.closeModal("taskModal");
+        app.showToast(isEdit ? "Task updated" : "Task created", "success");
+        logActivity(
+          isEdit ? "UPDATE" : "CREATE",
+          "task",
+          (savedTask && savedTask.id) || id || "",
+          payload.title,
+          payload.projectId,
+          isEdit ? "Task updated" : "Task created: " + payload.title,
+        );
+        if (payload.assignedTo) {
+          app.fetchMutate(
+            "POST",
+            "/api/workspace/notifications",
+            {
+              recipientId: payload.assignedTo,
+              type: "TASK_ASSIGNED",
+              message:
+                (isEdit ? "Task updated: " : "New task assigned: ") +
+                payload.title,
+              entityId: (savedTask && savedTask.id) || id || "",
+              entityType: "task",
+              link: "/workspace",
+            },
+            function () {},
+            function () {},
+          );
+        }
+        delete app.cachedData.pmEmployees;
+        delete app.cachedData.pmProjects;
+        loadPMTasks();
+      },
+      function (err) {
+        if (saveBtn) saveBtn.disabled = false;
+        app.showModalNotice(
+          "taskModalNotice",
+          err || "Failed to save task.",
+          "error",
+        );
+      },
+    );
+  };
+
+  window.reviewPMTask = function (nextStatus) {
+    if (!pmTaskDetailCache || !pmTaskDetailCache.id || !nextStatus) return;
+    var notes = document.getElementById("taskReviewNotes").value.trim();
+    app.fetchMutate(
+      "PUT",
+      "/api/workspace/tasks/" + encodeURIComponent(pmTaskDetailCache.id),
+      {
+        status: nextStatus,
+        reviewNotes: notes,
+      },
+      function () {
+        app.closeModal("taskModal");
+        app.showToast(
+          nextStatus === "COMPLETED"
+            ? "Task approved and closed"
+            : "Feedback sent to assignee",
+          "success",
+        );
+        loadPMTasks();
+      },
+      function (err) {
+        app.showModalNotice(
+          "taskModalNotice",
+          err || "Failed to review task.",
+          "error",
+        );
+      },
+    );
+  };
 
   /* ============================================================
        MANAGED PROJECTS
@@ -1551,6 +2196,17 @@
   var pmTeamChatRooms = [];
   var pmTeamChatScope = "dept";
   var pmTeamChatPollTimer = null;
+  var pmRequestedChatScope = readPMRequestedChatScope();
+
+  function readPMRequestedChatScope() {
+    try {
+      return String(
+        new URLSearchParams(window.location.search).get("chatScope") || "",
+      ).trim();
+    } catch (_err) {
+      return "";
+    }
+  }
 
   function pmChatUserKey() {
     return (
@@ -1602,6 +2258,10 @@
         var mine =
           app.currentUser &&
           String(m.authorId || "") === String(app.currentUser.uid || "");
+        var role = m.authorRole || "USER";
+        var pmBadge = app.isProjectManagerRole(role)
+          ? '<span class="comment-badge comment-badge-pm">PM</span>'
+          : "";
         return (
           '<div class="team-chat-item' +
           (mine ? " mine" : "") +
@@ -1609,10 +2269,10 @@
           '<div class="comment-header"><strong>' +
           app.esc(m.authorName || "Unknown") +
           "</strong>" +
-          (m.authorRole === "PM" 
-            ? '<span class="badge badge-purple" style="font-size: 0.65rem; padding: 2px 6px; margin-left: 6px; vertical-align: middle;">PM</span>'
-            : '<span class="comment-role">' + app.esc(app.formatRole(m.authorRole || "USER")) + "</span>"
-          ) +
+          pmBadge +
+          '<span class="comment-role">' +
+          app.esc(app.formatRole(role)) +
+          "</span>" +
           '<span class="comment-time">' +
           app.esc(app.formatTimestamp(m.createdAt)) +
           "</span></div>" +
@@ -1744,6 +2404,15 @@
       });
     });
     pmTeamChatRooms = options;
+    if (
+      pmRequestedChatScope &&
+      options.some(function (opt) {
+        return opt.value === pmRequestedChatScope;
+      })
+    ) {
+      pmTeamChatScope = pmRequestedChatScope;
+    }
+    pmRequestedChatScope = "";
     updatePMTeamChatScopeLabels({});
 
     var stillValid = options.some(function (opt) {
@@ -1773,6 +2442,14 @@
       "/api/workspace/team-chat?" + buildPMTeamChatQuery(),
       function (messages) {
         var list = messages || [];
+        var previousLastRead = getPMLastRead(pmTeamChatScope || "dept");
+        var myId = String((app.currentUser && app.currentUser.uid) || "");
+        var hasIncoming = list.some(function (m) {
+          return (
+            String(m.authorId || "") !== myId &&
+            (Number(m.createdAt) || 0) > previousLastRead
+          );
+        });
         renderPMTeamChat(list);
         var newest = list.length
           ? Math.max.apply(
@@ -1784,6 +2461,9 @@
           : Date.now();
         setPMLastRead(pmTeamChatScope || "dept", newest);
         refreshPMUnreadCounts();
+        if (hasIncoming && typeof app.refreshNotifications === "function") {
+          app.refreshNotifications();
+        }
       },
       function () {
         host.innerHTML =
@@ -2368,6 +3048,307 @@
         app.showToast(err || "Failed to update request", "error");
         buttons.forEach(function (b) {
           b.disabled = false;
+        });
+      },
+    );
+  };
+
+  window.loadPMTimesheet = function () {
+    ensurePMData(function (employees, projects) {
+      var managed = findManagedProjects(projects);
+      var team = findTeamMembers(employees, managed);
+      var managedIds = {};
+      var teamIds = {};
+      managed.forEach(function (project) {
+        managedIds[project.id] = true;
+      });
+      team.forEach(function (member) {
+        teamIds[member.id] = true;
+      });
+
+      app.fetchJson(
+        "/api/workspace/timesheets",
+        function (entries) {
+          var filtered = (entries || []).filter(function (entry) {
+            return managedIds[entry.projectId] || teamIds[entry.employeeId];
+          });
+          renderPMTimesheetUI(filtered, team, managed);
+        },
+        function () {
+          renderPMTimesheetUI([], team, managed);
+        },
+      );
+    });
+  };
+
+  function renderPMTimesheetUI(entries, team, managed) {
+    var now = new Date();
+    now.setHours(0, 0, 0, 0);
+    var dayOfWeek = now.getDay() || 7;
+    var weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - dayOfWeek + 1);
+    var weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+    var weekEntries = entries.filter(function (entry) {
+      var ts = entry.date > 1e12 ? entry.date : entry.date * 1000;
+      return ts >= weekStart.getTime() && ts < weekEnd.getTime();
+    });
+
+    var totalHours = weekEntries.reduce(function (sum, entry) {
+      return sum + (entry.hours || 0);
+    }, 0);
+    var uniqueEmployees = {};
+    weekEntries.forEach(function (entry) {
+      if (entry.employeeId) uniqueEmployees[entry.employeeId] = true;
+    });
+    var flaggedMembers = team.filter(function (member) {
+      var hours = weekEntries
+        .filter(function (entry) {
+          return entry.employeeId === member.id;
+        })
+        .reduce(function (sum, entry) {
+          return sum + (entry.hours || 0);
+        }, 0);
+      return hours > 40 || (hours < 20 && weekEntries.length > 0);
+    }).length;
+
+    document.getElementById("pmTimesheetStats").innerHTML =
+      pmStatCard(
+        totalHours.toFixed(1) + "h",
+        "This Week",
+        "Logged on your projects",
+        "blue",
+      ) +
+      pmStatCard(
+        Object.keys(uniqueEmployees).length,
+        "Contributors",
+        "Team members active this week",
+        "green",
+      ) +
+      pmStatCard(flaggedMembers, "Attention", "Low or high hour totals", "orange") +
+      pmStatCard(entries.length, "Entries", "All captured records", "purple");
+
+    var entryHtml = "";
+    if (!weekEntries.length) {
+      entryHtml =
+        '<div class="empty-state">No timesheet entries from your team this week yet.</div>';
+    } else {
+      weekEntries
+        .slice()
+        .sort(function (a, b) {
+          return (b.date || 0) - (a.date || 0);
+        })
+        .slice(0, 18)
+        .forEach(function (entry) {
+          entryHtml +=
+            '<div class="emp-info-row timesheet-entry-row">' +
+            '<div class="emp-info-content"><div class="emp-info-title">' +
+            app.esc(entry.employeeName || "Unknown teammate") +
+            " · " +
+            app.esc(entry.projectName || "Unknown Project") +
+            " · " +
+            app.esc((entry.hours || 0) + "h") +
+            '</div><div class="emp-info-desc">' +
+            app.esc(app.formatTimestamp(entry.date)) +
+            (entry.taskTitle ? " \u2022 " + app.esc(entry.taskTitle) : "") +
+            (entry.description ? " \u2022 " + app.esc(entry.description) : "") +
+            "</div></div>" +
+            '<span class="badge badge-blue">' +
+            app.esc((entry.hours || 0) + "h") +
+            "</span></div>";
+        });
+    }
+    document.getElementById("pmTimeEntries").innerHTML = entryHtml;
+
+    var summaryHtml = "";
+    if (!team.length) {
+      summaryHtml = '<div class="empty-state">No team data available.</div>';
+    } else {
+      summaryHtml = team
+        .map(function (member) {
+          var memberHours = weekEntries
+            .filter(function (entry) {
+              return entry.employeeId === member.id;
+            })
+            .reduce(function (sum, entry) {
+              return sum + (entry.hours || 0);
+            }, 0);
+          var utilization = Math.min(100, Math.round((memberHours / 40) * 100));
+          return (
+            '<div class="mini-progress-row">' +
+            '<div class="mini-progress-label"><span>' +
+            app.esc(app.buildName(member)) +
+            "</span><strong>" +
+            app.esc(memberHours.toFixed(1) + "h") +
+            '</strong></div><div class="mini-progress-track"><span style="width:' +
+            utilization +
+            '%"></span></div></div>'
+          );
+        })
+        .join("");
+    }
+    document.getElementById("pmTeamSummary").innerHTML = summaryHtml;
+
+    var projectBreakdown = {};
+    weekEntries.forEach(function (entry) {
+      var key = entry.projectName || "Unknown Project";
+      projectBreakdown[key] = (projectBreakdown[key] || 0) + Number(entry.hours || 0);
+    });
+    var projectHtml = Object.keys(projectBreakdown)
+      .sort(function (a, b) {
+        return projectBreakdown[b] - projectBreakdown[a];
+      })
+      .map(function (name) {
+        var hours = projectBreakdown[name];
+        var width = totalHours ? Math.max(8, Math.round((hours / totalHours) * 100)) : 0;
+        return (
+          '<div class="mini-progress-row">' +
+          '<div class="mini-progress-label"><span>' +
+          app.esc(name) +
+          "</span><strong>" +
+          app.esc(hours.toFixed(1) + "h") +
+          '</strong></div><div class="mini-progress-track"><span style="width:' +
+          width +
+          '%"></span></div></div>'
+        );
+      })
+      .join("");
+    var projectBreakdownEl = document.getElementById("pmProjectBreakdown");
+    if (projectBreakdownEl) {
+      projectBreakdownEl.innerHTML = projectHtml
+        ? projectHtml
+        : '<div class="comment-empty">Project allocation appears once the team logs time.</div>';
+    }
+  }
+
+  window.loadPMRequests = function () {
+    app.fetchJson(
+      "/api/workspace/leave-requests",
+      function (requests) {
+        renderPMRequestsUI(requests || []);
+      },
+      function () {
+        renderPMRequestsUI([]);
+      },
+    );
+  };
+
+  function renderPMRequestsUI(requests) {
+    requests = (requests || []).slice().sort(function (a, b) {
+      var aPending = a.status === "PENDING" ? 0 : 1;
+      var bPending = b.status === "PENDING" ? 0 : 1;
+      if (aPending !== bPending) return aPending - bPending;
+      return (b.createdAt || 0) - (a.createdAt || 0);
+    });
+    var pending = requests.filter(function (r) {
+      return r.status === "PENDING";
+    }).length;
+    var approved = requests.filter(function (r) {
+      return r.status === "APPROVED";
+    }).length;
+    var rejected = requests.filter(function (r) {
+      return r.status === "REJECTED";
+    }).length;
+
+    document.getElementById("pmRequestsStats").innerHTML =
+      pmStatCard(requests.length, "Total Requests", "All leave requests", "blue") +
+      pmStatCard(pending, "Pending", "Awaiting review", "orange") +
+      pmStatCard(approved, "Approved", "Accepted requests", "green") +
+      pmStatCard(rejected, "Rejected", "Declined requests", "purple");
+
+    var html = "";
+    if (!requests.length) {
+      html = '<div class="empty-state">No leave requests to review.</div>';
+    } else {
+      requests.forEach(function (r) {
+        var badgeClass =
+          r.status === "APPROVED"
+            ? "badge-green"
+            : r.status === "REJECTED"
+              ? "badge-red"
+              : r.status === "CANCELLED"
+                ? "badge-muted"
+                : "badge-orange";
+        var rid = app.esc(r.id || "");
+        html +=
+          '<div class="emp-info-row leave-request-row">' +
+          '<div class="emp-info-content"><div class="emp-info-title">' +
+          app.esc(r.type) +
+          " Leave" +
+          (r.employeeName ? " · " + app.esc(r.employeeName) : "") +
+          (r.businessDays ? " · " + app.esc(r.businessDays + " business day(s)") : "") +
+          '</div><div class="emp-info-desc">' +
+          app.esc(app.formatTimestamp(r.startDate)) +
+          " \u2013 " +
+          app.esc(app.formatTimestamp(r.endDate)) +
+          (r.reason ? " \u2022 " + app.esc(r.reason) : "") +
+          (r.reviewNote ? " \u2022 Review: " + app.esc(r.reviewNote) : "") +
+          "</div>" +
+          ((r.supportingDocuments && r.supportingDocuments.length) || 0
+            ? '<div class="attachment-list-wrap">' +
+              buildAttachmentList(
+                r.supportingDocuments,
+                "No supporting documents attached.",
+              ) +
+              "</div>"
+            : "") +
+          (r.status === "PENDING"
+            ? '<textarea class="task-review-notes" id="leaveReviewNote_' +
+              rid +
+              '" rows="2" placeholder="Add a decision note (optional)"></textarea>'
+            : "") +
+          "</div><div class=\"request-actions\">";
+        if (r.status === "PENDING") {
+          html +=
+            '<button class="btn-approve-sm" data-request-id="' +
+            rid +
+            '" onclick="reviewLeaveRequest(\'' +
+            rid +
+            "','APPROVED')\">Approve</button>" +
+            '<button class="btn-reject-sm" data-request-id="' +
+            rid +
+            '" onclick="reviewLeaveRequest(\'' +
+            rid +
+            "','REJECTED')\">Reject</button>";
+        } else {
+          html +=
+            '<span class="badge ' +
+            badgeClass +
+            '">' +
+            app.esc(r.status) +
+            "</span>";
+        }
+        html += "</div></div>";
+      });
+    }
+    document.getElementById("pmRequestsList").innerHTML = html;
+  }
+
+  window.reviewLeaveRequest = function (id, status) {
+    if (!id || !status) return;
+    var buttons = document.querySelectorAll(
+      '.request-actions button[data-request-id="' + id + '"]',
+    );
+    buttons.forEach(function (button) {
+      button.disabled = true;
+    });
+    var noteEl = document.getElementById("leaveReviewNote_" + id);
+    app.fetchMutate(
+      "PUT",
+      "/api/workspace/leave-requests",
+      {
+        id: id,
+        status: status,
+        reviewNote: noteEl ? noteEl.value : "",
+      },
+      function () {
+        app.showToast("Request " + status.toLowerCase(), "success");
+        loadPMRequests();
+      },
+      function (err) {
+        app.showToast(err || "Failed to update request", "error");
+        buttons.forEach(function (button) {
+          button.disabled = false;
         });
       },
     );

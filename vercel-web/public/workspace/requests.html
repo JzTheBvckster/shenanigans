@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Leave Requests — Shenanigans</title>
-    <link rel="stylesheet" href="/assets/styles.css">
+    <link rel="stylesheet" href="/assets/styles.css?v=12">
 </head>
 
 <body>
@@ -35,12 +35,15 @@
                         </select>
                         <input id="lrStart" type="date" required class="form-input" style="width:150px">
                         <input id="lrEnd" type="date" required class="form-input" style="width:150px">
-                        <input id="lrReason" type="text" placeholder="Reason (optional)" class="form-input"
-                            style="flex:2;min-width:160px">
+                        <textarea id="lrReason" placeholder="Reason or context" class="form-input"
+                            style="flex:2;min-width:220px;min-height:42px"></textarea>
+                        <input id="lrFiles" type="file" multiple class="form-input" style="flex:1;min-width:220px">
                         <button type="submit" class="btn btn-primary">Submit</button>
                         <button type="button" class="btn btn-outline"
                             onclick="document.getElementById('empLeaveForm').style.display='none'">Cancel</button>
                     </form>
+                    <div class="comment-empty" id="empLeaveFileHint">Supporting documents are optional unless your policy requires them.</div>
+                    <div class="task-attachment-list" id="empLeaveDraftFiles"></div>
                     <div id="empLeaveFormNotice"></div>
                 </div>
 
@@ -56,6 +59,10 @@
                     </div>
                     <div class="card">
                         <div class="card-header">
+                            <h3>Balances & Policy</h3>
+                        </div>
+                        <div id="empLeaveBalances"></div>
+                        <div class="card-header" style="margin-top:16px">
                             <h3>Leave Policy</h3>
                         </div>
                         <div id="empLeavePolicy"></div>
@@ -65,8 +72,8 @@
         </main>
     </div>
 
-    <script src="/assets/shared.js?v=6"></script>
-    <script src="/assets/employee.js?v=6"></script>
+    <script src="/assets/shared.js?v=9"></script>
+    <script src="/assets/employee.js?v=8"></script>
     <script>
         ShenanigansApp.init({
             sidebar: 'employee',

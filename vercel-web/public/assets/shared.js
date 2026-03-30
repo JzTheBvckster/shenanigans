@@ -48,6 +48,14 @@ var ShenanigansApp = (function () {
         return role.replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
     };
 
+    app.normalizeRole = function (role) {
+        return String(role || '').trim().toUpperCase().replace(/\s+/g, '_');
+    };
+
+    app.isProjectManagerRole = function (role) {
+        return app.normalizeRole(role) === 'PROJECT_MANAGER';
+    };
+
     app.initials = function (name) {
         var parts = (name || '?').split(/\s+/);
         if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
@@ -252,9 +260,49 @@ var ShenanigansApp = (function () {
        NOTIFICATIONS
        ============================================================ */
     var notifPollTimer = null;
+    var notifCacheById = {};
+
+    function buildUrlWithParams(baseUrl, params, hash) {
+        var safeBase = String(baseUrl || '').trim();
+        if (!safeBase) return '';
+        var hashIndex = safeBase.indexOf('#');
+        var urlWithoutHash = hashIndex >= 0 ? safeBase.substring(0, hashIndex) : safeBase;
+        var queryIndex = urlWithoutHash.indexOf('?');
+        var pathname = queryIndex >= 0 ? urlWithoutHash.substring(0, queryIndex) : urlWithoutHash;
+        var search = new URLSearchParams(queryIndex >= 0 ? urlWithoutHash.substring(queryIndex + 1) : '');
+        Object.keys(params || {}).forEach(function (key) {
+            var value = params[key];
+            if (value === undefined || value === null || value === '') return;
+            search.set(key, value);
+        });
+        var query = search.toString();
+        return pathname + (query ? '?' + query : '') + (hash ? '#' + hash : '');
+    }
+
+    app.resolveTeamChatLink = function (role, roomScope) {
+        var base = app.isProjectManagerRole(role) ? '/pm-workspace/team' : '/workspace/team';
+        return buildUrlWithParams(base, { chatScope: roomScope || 'dept' }, 'teamChatCard');
+    };
+
+    app.resolveNotificationLink = function (notif) {
+        if (!notif) return '';
+        var entityType = String(notif.entityType || '').toLowerCase();
+        var type = String(notif.type || '').toUpperCase();
+        if (entityType === 'team_chat' || type === 'TEAM_CHAT') {
+            return app.resolveTeamChatLink(
+                (app.currentUser && app.currentUser.role) || notif.recipientRole || '',
+                notif.roomScope || (notif.projectId ? 'proj:' + notif.projectId : 'dept')
+            );
+        }
+        return String(notif.link || '').trim();
+    };
 
     function loadNotifications() {
         app.fetchJson('/api/workspace/notifications', function (notifs) {
+            notifCacheById = {};
+            (notifs || []).forEach(function (n) {
+                if (n && n.id) notifCacheById[n.id] = n;
+            });
             var unread = notifs.filter(function (n) { return !n.read; });
             var badge = document.getElementById('notifBadge');
             if (badge) {
@@ -273,7 +321,7 @@ var ShenanigansApp = (function () {
                     list.innerHTML = notifs.slice(0, 20).map(function (n) {
                         var time = n.createdAt ? app.formatTimestamp(n.createdAt) : '';
                         var readClass = n.read ? ' notif-read' : '';
-                        return '<div class="notif-item' + readClass + '" onclick="handleNotifClick(\'' + app.esc(n.id) + '\',\'' + app.esc(n.link || '') + '\')">'
+                        return '<div class="notif-item' + readClass + '" tabindex="0" role="button" onclick="handleNotifClick(\'' + app.esc(n.id) + '\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();handleNotifClick(\'' + app.esc(n.id) + '\');}">'
                             + '<div class="notif-message">' + app.esc(n.message || '') + '</div>'
                             + '<div class="notif-meta"><span>' + app.esc(n.senderName || '') + '</span><span>' + time + '</span></div>'
                             + '</div>';
@@ -283,12 +331,16 @@ var ShenanigansApp = (function () {
         }, function () {});
     }
 
+    app.refreshNotifications = loadNotifications;
+
     window.toggleNotifDropdown = function () {
         var dd = document.getElementById('notifDropdown');
         if (dd) dd.classList.toggle('hidden');
     };
 
-    window.handleNotifClick = function (notifId, link) {
+    window.handleNotifClick = function (notifId) {
+        var notif = notifCacheById[notifId] || null;
+        var link = app.resolveNotificationLink(notif);
         // Mark as read
         app.fetchMutate('PUT', '/api/workspace/notifications', { id: notifId }, function () {
             loadNotifications();
@@ -308,7 +360,7 @@ var ShenanigansApp = (function () {
 
     function startNotifPolling() {
         loadNotifications();
-        notifPollTimer = setInterval(loadNotifications, 60000); // Poll every 60s
+        notifPollTimer = setInterval(loadNotifications, 15000);
     }
 
     // Close dropdown when clicking outside

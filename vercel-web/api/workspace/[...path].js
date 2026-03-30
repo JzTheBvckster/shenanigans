@@ -7,6 +7,7 @@ const {
   isManagingDirector,
   isEmployee,
   isProjectManager,
+  normalizeRole,
 } = require("../../lib/access");
 const { isValidDocId } = require("../../lib/sanitize");
 
@@ -67,6 +68,505 @@ function parsePositiveTimestamp(value) {
   return Number.isFinite(ts) && ts > 0 ? ts : 0;
 }
 
+const TASK_STATUSES = new Set([
+  "TODO",
+  "IN_PROGRESS",
+  "UNDER_REVIEW",
+  "COMPLETED",
+]);
+const TASK_PRIORITIES = new Set(["LOW", "MEDIUM", "HIGH"]);
+const LEAVE_POLICIES = {
+  ANNUAL: { limit: 20, requiresDocument: false },
+  SICK: { limit: 10, requiresDocument: true },
+  PERSONAL: { limit: 3, requiresDocument: false },
+};
+const MAX_TASK_SUBMISSION_FILES = 5;
+const MAX_TASK_SUBMISSION_FILE_BYTES = 250 * 1024;
+const MAX_TASK_SUBMISSION_TOTAL_BYTES = 450 * 1024;
+const MAX_LEAVE_SUPPORT_FILES = 2;
+const MAX_LEAVE_SUPPORT_FILE_BYTES = 250 * 1024;
+const MAX_LEAVE_SUPPORT_TOTAL_BYTES = 350 * 1024;
+const MAX_REASON_LENGTH = 2000;
+const MAX_DESCRIPTION_LENGTH = 1500;
+const MAX_TASK_NOTES_LENGTH = 4000;
+
+function normalizeText(value, maxLength) {
+  return String(value || "")
+    .trim()
+    .slice(0, maxLength || 4000);
+}
+
+function normalizeDateKey(value) {
+  const key = String(value || "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(key) ? key : "";
+}
+
+function pad2(value) {
+  return String(value).padStart(2, "0");
+}
+
+function dateKeyFromDate(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+  return [
+    date.getFullYear(),
+    pad2(date.getMonth() + 1),
+    pad2(date.getDate()),
+  ].join("-");
+}
+
+function dateKeyFromTimestamp(value) {
+  const ts = Number(value);
+  if (!Number.isFinite(ts) || ts <= 0) return "";
+  return dateKeyFromDate(new Date(ts));
+}
+
+function dateKeyToDate(dateKey) {
+  const key = normalizeDateKey(dateKey);
+  if (!key) return null;
+  const parts = key.split("-").map((part) => Number(part));
+  const date = new Date(parts[0], parts[1] - 1, parts[2]);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getTodayDateKey() {
+  return dateKeyFromDate(new Date());
+}
+
+function businessDaysBetween(startDateKey, endDateKey) {
+  const start = dateKeyToDate(startDateKey);
+  const end = dateKeyToDate(endDateKey);
+  if (!start || !end || end < start) return 0;
+  const cursor = new Date(start.getTime());
+  let total = 0;
+  while (cursor <= end) {
+    const day = cursor.getDay();
+    if (day !== 0 && day !== 6) total += 1;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return total;
+}
+
+function rangesOverlap(startA, endA, startB, endB) {
+  if (!startA || !endA || !startB || !endB) return false;
+  return startA <= endB && startB <= endA;
+}
+
+function extractMimeTypeFromDataUrl(dataUrl) {
+  const match = String(dataUrl || "").match(/^data:([^;,]+)[;,]/i);
+  return match ? match[1] : "";
+}
+
+function normalizeAttachmentList(rawAttachments, options) {
+  if (rawAttachments === undefined) {
+    return { ok: true, provided: false, attachments: undefined };
+  }
+  if (rawAttachments === null) {
+    return { ok: true, provided: true, attachments: [] };
+  }
+  if (!Array.isArray(rawAttachments)) {
+    return { ok: false, error: "Attachments must be provided as an array." };
+  }
+
+  const maxFiles = Number(options && options.maxFiles) || 1;
+  const maxBytesPerFile =
+    Number(options && options.maxBytesPerFile) || 100 * 1024;
+  const maxTotalBytes =
+    Number(options && options.maxTotalBytes) || maxFiles * maxBytesPerFile;
+  const label = String((options && options.label) || "attachments");
+
+  if (rawAttachments.length > maxFiles) {
+    return {
+      ok: false,
+      error: `You can upload up to ${maxFiles} ${label}.`,
+    };
+  }
+
+  let totalBytes = 0;
+  const attachments = [];
+  for (let index = 0; index < rawAttachments.length; index += 1) {
+    const item = rawAttachments[index] || {};
+    const name =
+      normalizeText(item.name || item.fileName || "", 180) ||
+      `${label}-${index + 1}`;
+    const size = Math.round(Number(item.size) || 0);
+    const dataUrl = String(item.dataUrl || item.content || "").trim();
+    const mimeType =
+      normalizeText(item.mimeType || item.type || "", 120) ||
+      extractMimeTypeFromDataUrl(dataUrl) ||
+      "application/octet-stream";
+
+    if (!size || size < 0) {
+      return {
+        ok: false,
+        error: "Each attachment must include a valid file size.",
+      };
+    }
+    if (size > maxBytesPerFile) {
+      return {
+        ok: false,
+        error: `${name} is too large. Each file must be ${Math.round(
+          maxBytesPerFile / 1024,
+        )} KB or smaller.`,
+      };
+    }
+    if (!/^data:.*;base64,/i.test(dataUrl)) {
+      return {
+        ok: false,
+        error: `${name} is not encoded as a supported file upload.`,
+      };
+    }
+    totalBytes += size;
+    if (totalBytes > maxTotalBytes) {
+      return {
+        ok: false,
+        error: `Combined ${label} must be ${Math.round(
+          maxTotalBytes / 1024,
+        )} KB or smaller.`,
+      };
+    }
+    attachments.push({
+      name,
+      mimeType,
+      size,
+      dataUrl,
+    });
+  }
+
+  return { ok: true, provided: true, attachments };
+}
+
+function serializeTask(task, includeSubmissionFiles) {
+  if (!task) return task;
+  const payload = { ...task };
+  const submissionFiles = Array.isArray(task.submissionFiles)
+    ? task.submissionFiles
+    : [];
+  payload.submissionFileCount = submissionFiles.length;
+  if (includeSubmissionFiles) {
+    payload.submissionFiles = submissionFiles;
+  } else if (submissionFiles.length) {
+    payload.submissionFiles = submissionFiles.map((file) => ({
+      name: file.name || "",
+      mimeType: file.mimeType || "",
+      size: Number(file.size) || 0,
+    }));
+  } else {
+    payload.submissionFiles = [];
+  }
+  const supportingDocuments = Array.isArray(task.supportingDocuments)
+    ? task.supportingDocuments
+    : [];
+  if (!includeSubmissionFiles) {
+    payload.supportingDocuments = supportingDocuments.map((file) => ({
+      name: file.name || "",
+      mimeType: file.mimeType || "",
+      size: Number(file.size) || 0,
+    }));
+  }
+  return payload;
+}
+
+async function getEmployeeProfileForUser(user) {
+  const uid = String((user && user.uid) || "").trim();
+  if (uid && isValidDocId(uid)) {
+    const byId = await db.collection("employees").doc(uid).get();
+    if (byId.exists) return { id: byId.id, ...byId.data() };
+  }
+
+  const email = String((user && user.email) || "")
+    .trim()
+    .toLowerCase();
+  if (!email) return null;
+
+  const byEmail = await db
+    .collection("employees")
+    .where("email", "==", email)
+    .limit(1)
+    .get();
+  if (byEmail.empty) return null;
+  const doc = byEmail.docs[0];
+  return { id: doc.id, ...doc.data() };
+}
+
+function getAnnualLeaveLimitForEmployee(employee, year) {
+  const baseLimit = LEAVE_POLICIES.ANNUAL.limit;
+  if (!employee || !year) return baseLimit;
+
+  const hireTs =
+    parsePositiveTimestamp(employee.hireDate) ||
+    parsePositiveTimestamp(employee.createdAt);
+  if (!hireTs) return baseLimit;
+
+  const hireDate = new Date(hireTs);
+  const hireYear = hireDate.getFullYear();
+  if (hireYear < year) return baseLimit;
+  if (hireYear > year) return 0;
+
+  const yearStart = new Date(year, 0, 1);
+  const yearEnd = new Date(year, 11, 31);
+  const totalDays =
+    Math.max(1, Math.floor((yearEnd - yearStart) / 86400000) + 1) || 365;
+  const remainingDays = Math.max(
+    1,
+    Math.floor((yearEnd - hireDate) / 86400000) + 1,
+  );
+  return Math.max(1, Math.round((remainingDays / totalDays) * baseLimit));
+}
+
+function getLeaveDaysWithinYear(request, year) {
+  const startKey = normalizeDateKey(request && request.startDateKey);
+  const endKey = normalizeDateKey(request && request.endDateKey);
+  if (!startKey || !endKey || !year) return 0;
+  const yearStart = `${year}-01-01`;
+  const yearEnd = `${year}-12-31`;
+  const effectiveStart = startKey < yearStart ? yearStart : startKey;
+  const effectiveEnd = endKey > yearEnd ? yearEnd : endKey;
+  if (effectiveStart > effectiveEnd) return 0;
+  return businessDaysBetween(effectiveStart, effectiveEnd);
+}
+
+async function syncEmployeeLeaveStatus(employeeId) {
+  const targetId = String(employeeId || "").trim();
+  if (!targetId || !isValidDocId(targetId)) return;
+
+  const employeeRef = db.collection("employees").doc(targetId);
+  const employeeDoc = await employeeRef.get();
+  if (!employeeDoc.exists) return;
+
+  const employee = employeeDoc.data() || {};
+  const currentStatus = String(employee.status || "ACTIVE").toUpperCase();
+  if (
+    currentStatus &&
+    currentStatus !== "ACTIVE" &&
+    currentStatus !== "ON_LEAVE"
+  ) {
+    return;
+  }
+
+  const snapshot = await db
+    .collection("leave_requests")
+    .where("employeeId", "==", targetId)
+    .where("status", "==", "APPROVED")
+    .get();
+  const todayKey = getTodayDateKey();
+  const isOnLeave = snapshot.docs.some((doc) => {
+    const data = doc.data() || {};
+    const startKey = normalizeDateKey(data.startDateKey);
+    const endKey = normalizeDateKey(data.endDateKey);
+    return startKey && endKey && startKey <= todayKey && todayKey <= endKey;
+  });
+
+  const nextStatus = isOnLeave ? "ON_LEAVE" : "ACTIVE";
+  if (currentStatus === nextStatus) return;
+
+  await employeeRef.set(
+    {
+      status: nextStatus,
+      updatedAt: Date.now(),
+    },
+    { merge: true },
+  );
+}
+
+async function listEmployeeLeaveRequests(employeeId) {
+  const targetId = String(employeeId || "").trim();
+  if (!targetId || !isValidDocId(targetId)) return [];
+  const snapshot = await db
+    .collection("leave_requests")
+    .where("employeeId", "==", targetId)
+    .get();
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+}
+
+function getYearsCoveredByRange(startDateKey, endDateKey) {
+  const start = dateKeyToDate(startDateKey);
+  const end = dateKeyToDate(endDateKey);
+  if (!start || !end || end < start) return [];
+  const years = [];
+  let year = start.getFullYear();
+  const endYear = end.getFullYear();
+  while (year <= endYear) {
+    years.push(year);
+    year += 1;
+  }
+  return years;
+}
+
+async function ensureLeaveAllowance(employee, request, excludeRequestId) {
+  const policy = LEAVE_POLICIES[request.type];
+  if (!policy) {
+    return { ok: false, error: "Invalid leave type." };
+  }
+
+  const requests = await listEmployeeLeaveRequests(request.employeeId);
+  const activeRequests = requests.filter((item) => {
+    if (excludeRequestId && item.id === excludeRequestId) return false;
+    return item.status === "PENDING" || item.status === "APPROVED";
+  });
+
+  const overlapping = activeRequests.find((item) =>
+    rangesOverlap(
+      request.startDateKey,
+      request.endDateKey,
+      normalizeDateKey(item.startDateKey),
+      normalizeDateKey(item.endDateKey),
+    ),
+  );
+  if (overlapping) {
+    return {
+      ok: false,
+      error: "This leave request overlaps an existing pending or approved request.",
+    };
+  }
+
+  const years = getYearsCoveredByRange(request.startDateKey, request.endDateKey);
+  for (const year of years) {
+    const requestedDays = getLeaveDaysWithinYear(request, year);
+    if (!requestedDays) continue;
+
+    const usedDays = activeRequests.reduce((sum, item) => {
+      if (String(item.type || "").toUpperCase() !== request.type) return sum;
+      return sum + getLeaveDaysWithinYear(item, year);
+    }, 0);
+
+    const allowance =
+      request.type === "ANNUAL"
+        ? getAnnualLeaveLimitForEmployee(employee, year)
+        : policy.limit;
+    if (usedDays + requestedDays > allowance) {
+      return {
+        ok: false,
+        error: `${request.type} leave exceeds the available allowance for ${year}.`,
+        details: {
+          year,
+          allowance,
+          usedDays,
+          requestedDays,
+        },
+      };
+    }
+  }
+
+  return { ok: true };
+}
+
+async function createNotification(recipientId, payload) {
+  const targetId = String(recipientId || "").trim();
+  if (!targetId || !isValidDocId(targetId)) return;
+  if (targetId === String(payload.senderId || "").trim()) return;
+  await db.collection("notifications").add({
+    recipientId: targetId,
+    type: payload.type || "GENERAL",
+    message: payload.message || "",
+    link: payload.link || "",
+    entityId: payload.entityId || "",
+    entityType: payload.entityType || "",
+    roomScope: payload.roomScope || "",
+    projectId: payload.projectId || "",
+    projectName: payload.projectName || "",
+    department: payload.department || "",
+    read: false,
+    senderId: payload.senderId || "",
+    senderName: payload.senderName || "",
+    createdAt: Date.now(),
+  });
+}
+
+function canEmployeeUpdateTaskStatus(currentStatus, nextStatus) {
+  const current = String(currentStatus || "TODO").toUpperCase();
+  const next = String(nextStatus || "").toUpperCase();
+  if (current === "TODO" && next === "IN_PROGRESS") return true;
+  if (current === "IN_PROGRESS" && next === "UNDER_REVIEW") return true;
+  return false;
+}
+
+async function syncProjectProgressFromTasks(projectId) {
+  const targetId = String(projectId || "").trim();
+  if (!targetId || !isValidDocId(targetId)) return;
+
+  const projectRef = db.collection("projects").doc(targetId);
+  const projectDoc = await projectRef.get();
+  if (!projectDoc.exists) return;
+
+  const project = projectDoc.data() || {};
+  const taskSnapshot = await db
+    .collection("tasks")
+    .where("projectId", "==", targetId)
+    .get();
+  const tasks = taskSnapshot.docs.map((doc) => doc.data() || {});
+  const summary = {
+    total: tasks.length,
+    todo: 0,
+    inProgress: 0,
+    underReview: 0,
+    completed: 0,
+    overdue: 0,
+  };
+  const now = Date.now();
+
+  tasks.forEach((task) => {
+    const status = String(task.status || "TODO").toUpperCase();
+    if (status === "COMPLETED") summary.completed += 1;
+    else if (status === "UNDER_REVIEW") summary.underReview += 1;
+    else if (status === "IN_PROGRESS") summary.inProgress += 1;
+    else summary.todo += 1;
+
+    if (
+      task.dueDate &&
+      Number(task.dueDate) < now &&
+      status !== "COMPLETED"
+    ) {
+      summary.overdue += 1;
+    }
+  });
+
+  const currentStatus = String(project.status || "PLANNING").toUpperCase();
+  const lockedStatuses = new Set(["PENDING_APPROVAL", "ON_HOLD", "ARCHIVED"]);
+  let completionPercentage = 0;
+  let nextStatus = currentStatus;
+
+  if (summary.total === 0) {
+    completionPercentage = currentStatus === "COMPLETED" ? 100 : 0;
+    if (!lockedStatuses.has(currentStatus) && currentStatus !== "COMPLETED") {
+      nextStatus = "PLANNING";
+    }
+  } else {
+    completionPercentage = Math.round(
+      (summary.completed / summary.total) * 100,
+    );
+    if (!lockedStatuses.has(currentStatus)) {
+      if (summary.completed === summary.total) {
+        nextStatus = "COMPLETED";
+      } else if (
+        summary.inProgress > 0 ||
+        summary.underReview > 0 ||
+        summary.completed > 0
+      ) {
+        nextStatus = "IN_PROGRESS";
+      } else {
+        nextStatus = "PLANNING";
+      }
+    }
+  }
+
+  const update = {
+    completionPercentage,
+    taskSummary: summary,
+    updatedAt: Date.now(),
+  };
+
+  if (nextStatus !== currentStatus) {
+    update.status = nextStatus;
+  }
+  if (nextStatus === "COMPLETED") {
+    update.completedAt = parsePositiveTimestamp(project.completedAt) || Date.now();
+  } else if (currentStatus === "COMPLETED") {
+    update.completedAt = null;
+  }
+
+  await projectRef.set(update, { merge: true });
+}
+
 async function getProjectById(projectId) {
   if (!projectId) return null;
   const doc = await db.collection("projects").doc(String(projectId)).get();
@@ -98,6 +598,14 @@ function isAssigneeInProjectTeam(project, assigneeId) {
     ? project.teamMemberIds
     : [];
   return team.map((id) => String(id)).includes(String(assigneeId));
+}
+
+function canEmployeeLogProject(project, actor) {
+  if (!project || !actor) return false;
+  const uid = String(actor.uid || "").trim();
+  if (!uid) return false;
+  if (String(project.projectManagerId || "").trim() === uid) return true;
+  return isAssigneeInProjectTeam(project, uid);
 }
 
 function canAccessProjectChat(project, session, actor) {
@@ -151,6 +659,184 @@ async function getDepartmentEmployeeIds(department) {
   return ids;
 }
 
+async function getUserById(userId) {
+  if (!userId || !isValidDocId(String(userId))) return null;
+  const doc = await db.collection("users").doc(String(userId)).get();
+  if (!doc.exists) return null;
+  return { id: doc.id, ...doc.data() };
+}
+
+async function resolveUserAccountId(rawId) {
+  const candidateId = String(rawId || "").trim();
+  if (!candidateId || !isValidDocId(candidateId)) return "";
+
+  const directUser = await getUserById(candidateId);
+  if (directUser) return directUser.id;
+
+  const employeeDoc = await db.collection("employees").doc(candidateId).get();
+  if (!employeeDoc.exists) return "";
+
+  const employee = employeeDoc.data() || {};
+  const mappedUserId = String(
+    employee.userId || employee.uid || employee.id || "",
+  ).trim();
+  if (!mappedUserId || !isValidDocId(mappedUserId)) return "";
+
+  const mappedUser = await getUserById(mappedUserId);
+  return mappedUser ? mappedUser.id : "";
+}
+
+function isApprovedChatRecipient(user) {
+  if (!user) return false;
+  const role = normalizeRole(user.role);
+  if (!role || role === "MANAGING_DIRECTOR") return false;
+  if (user.mdApproved === false) return false;
+  if (role === "EMPLOYEE" && user.pmApproved !== true) return false;
+  return true;
+}
+
+function buildTeamChatNotificationLink(role, roomScope) {
+  const base =
+    normalizeRole(role) === "PROJECT_MANAGER"
+      ? "/pm-workspace/team"
+      : "/workspace/team";
+  const query = roomScope
+    ? `?chatScope=${encodeURIComponent(roomScope)}`
+    : "";
+  return `${base}${query}#teamChatCard`;
+}
+
+function buildTeamChatNotificationMessage(
+  senderName,
+  text,
+  isProjectRoom,
+  projectName,
+) {
+  const preview =
+    text.length > 90 ? `${text.substring(0, 87).trim()}...` : text;
+  const context = isProjectRoom
+    ? `project ${projectName || "Untitled"}`
+    : "department chat";
+  return `${senderName || "A teammate"} sent a new message in ${context}: ${preview}`;
+}
+
+async function listDepartmentUserRecipients(department) {
+  const normalizedDepartment = String(department || "")
+    .trim()
+    .toLowerCase();
+  if (!normalizedDepartment) return [];
+
+  const [userSnap, employeeSnap] = await Promise.all([
+    db.collection("users").get(),
+    db.collection("employees").get(),
+  ]);
+
+  const candidateIds = new Set();
+  userSnap.docs.forEach((doc) => {
+    const data = doc.data() || {};
+    if (
+      String(data.department || "")
+        .trim()
+        .toLowerCase() === normalizedDepartment
+    ) {
+      candidateIds.add(doc.id);
+    }
+  });
+
+  employeeSnap.docs.forEach((doc) => {
+    const data = doc.data() || {};
+    if (
+      String(data.department || "")
+        .trim()
+        .toLowerCase() !== normalizedDepartment
+    ) {
+      return;
+    }
+    const mappedId = String(data.userId || data.uid || doc.id || "").trim();
+    if (mappedId) candidateIds.add(mappedId);
+  });
+
+  return Array.from(candidateIds);
+}
+
+async function createTeamChatNotifications(session, options) {
+  const senderId = String((session && session.user && session.user.uid) || "");
+  if (!senderId) return;
+
+  const department = String(options.department || "").trim();
+  const projectId = String(options.projectId || "").trim();
+  const projectName = String(options.projectName || "").trim();
+  const text = String(options.text || "").trim();
+  const roomScope = projectId ? `proj:${projectId}` : "dept";
+  const senderName =
+    (session &&
+      session.user &&
+      (session.user.displayName || session.user.email || "")) ||
+    "";
+
+  let candidateIds = [];
+  if (projectId) {
+    candidateIds = await Promise.all(
+      []
+        .concat(options.projectManagerId || "")
+        .concat(Array.isArray(options.teamMemberIds) ? options.teamMemberIds : [])
+        .map(resolveUserAccountId),
+    );
+  } else {
+    candidateIds = await listDepartmentUserRecipients(department);
+  }
+
+  const uniqueIds = Array.from(
+    new Set(
+      candidateIds
+        .map((id) => String(id || "").trim())
+        .filter((id) => id && id !== senderId && isValidDocId(id)),
+    ),
+  );
+  if (!uniqueIds.length) return;
+
+  const recipients = (
+    await Promise.all(
+      uniqueIds.map(async (recipientId) => {
+        const user = await getUserById(recipientId);
+        return user && isApprovedChatRecipient(user) ? user : null;
+      }),
+    )
+  ).filter(Boolean);
+  if (!recipients.length) return;
+
+  const now = Date.now();
+  const batch = db.batch();
+  recipients.forEach((recipient) => {
+    const notif = {
+      recipientId: recipient.id,
+      type: "TEAM_CHAT",
+      message: buildTeamChatNotificationMessage(
+        senderName,
+        text,
+        !!projectId,
+        projectName,
+      ),
+      link: buildTeamChatNotificationLink(recipient.role, roomScope),
+      entityId: projectId || department || "",
+      entityType: "team_chat",
+      roomScope: roomScope,
+      projectId: projectId || "",
+      projectName: projectName || "",
+      department: department || "",
+      read: false,
+      senderId: senderId,
+      senderName: senderName,
+      senderRole:
+        (session && session.user && String(session.user.role || "")) || "",
+      createdAt: now,
+    };
+    const ref = db.collection("notifications").doc();
+    batch.set(ref, notif);
+  });
+  await batch.commit();
+}
+
 // ---------------------------------------------------------------------------
 // Timesheets
 // ---------------------------------------------------------------------------
@@ -184,7 +870,7 @@ async function handleTimesheets(req, res, session, actor) {
 
     case "POST": {
       const body = req.body || {};
-      if (!body.projectId || !body.date || !body.hours) {
+      if (!body.projectId || (!body.date && !body.dateKey) || !body.hours) {
         return res.status(400).json({
           ok: false,
           error: "projectId, date, and hours are required.",
@@ -194,32 +880,76 @@ async function handleTimesheets(req, res, session, actor) {
         return res.status(400).json({ ok: false, error: "Invalid projectId." });
       }
       const dateTs = parsePositiveTimestamp(body.date);
-      if (!dateTs) {
+      const dateKey = normalizeDateKey(body.dateKey) || dateKeyFromTimestamp(dateTs);
+      if (!dateTs || !dateKey) {
         return res
           .status(400)
           .json({ ok: false, error: "A valid date is required." });
       }
+      if (dateKey > getTodayDateKey()) {
+        return res.status(400).json({
+          ok: false,
+          error: "You cannot log hours for a future date.",
+        });
+      }
       const hours = Number(body.hours);
-      if (isNaN(hours) || hours <= 0 || hours > 24) {
+      if (Number.isNaN(hours) || hours <= 0 || hours > 24) {
         return res
           .status(400)
           .json({ ok: false, error: "Hours must be between 0 and 24." });
       }
       const project = await ensureProjectAccess(res, actor, body.projectId);
       if (!project) return;
-      if (body.assignedTo) {
-        if (!isValidDocId(String(body.assignedTo))) {
+      if (isEmployee(actor) && !canEmployeeLogProject(project, actor)) {
+        return res.status(403).json({
+          ok: false,
+          error: "You can only log time against projects assigned to you.",
+        });
+      }
+
+      let linkedTask = null;
+      const taskId = String(body.taskId || "").trim();
+      if (taskId) {
+        if (!isValidDocId(taskId)) {
           return res
             .status(400)
-            .json({ ok: false, error: "Invalid assignee id." });
+            .json({ ok: false, error: "Invalid taskId." });
         }
-        if (!isAssigneeInProjectTeam(project, body.assignedTo)) {
+        const taskDoc = await db.collection("tasks").doc(taskId).get();
+        if (!taskDoc.exists) {
+          return res.status(404).json({ ok: false, error: "Task not found." });
+        }
+        linkedTask = { id: taskDoc.id, ...(taskDoc.data() || {}) };
+        if (String(linkedTask.projectId || "") !== String(body.projectId)) {
           return res.status(400).json({
             ok: false,
-            error: "Assignee must be a member of the selected project team.",
+            error: "Linked task must belong to the selected project.",
+          });
+        }
+        if (isEmployee(actor) && String(linkedTask.assignedTo || "") !== uid) {
+          return res.status(403).json({
+            ok: false,
+            error: "You can only log time against tasks assigned to you.",
           });
         }
       }
+
+      const duplicateDaySnapshot = await db
+        .collection(COLLECTION)
+        .where("employeeId", "==", uid)
+        .where("dateKey", "==", dateKey)
+        .get();
+      const loggedHoursForDay = duplicateDaySnapshot.docs.reduce(
+        (sum, doc) => sum + (Number((doc.data() || {}).hours) || 0),
+        0,
+      );
+      if (loggedHoursForDay + hours > 24.0001) {
+        return res.status(400).json({
+          ok: false,
+          error: "A single day cannot exceed 24 logged hours.",
+        });
+      }
+
       const now = Date.now();
       const entry = {
         employeeId: uid,
@@ -228,8 +958,11 @@ async function handleTimesheets(req, res, session, actor) {
         projectName: body.projectName || "",
         department: project.department || "",
         date: dateTs,
+        dateKey,
         hours: hours,
-        description: body.description || "",
+        taskId: taskId || "",
+        taskTitle: linkedTask ? linkedTask.title || "" : normalizeText(body.taskTitle, 180),
+        description: normalizeText(body.description, MAX_DESCRIPTION_LENGTH),
         createdAt: now,
         updatedAt: now,
       };
@@ -304,6 +1037,12 @@ async function handleLeaveRequests(req, res, session, actor) {
     }
 
     case "POST": {
+      if (!isEmployee(actor)) {
+        return res.status(403).json({
+          ok: false,
+          error: "Only employees can submit leave requests.",
+        });
+      }
       const body = req.body || {};
       if (!body.type || !body.startDate || !body.endDate) {
         return res.status(400).json({
@@ -311,38 +1050,134 @@ async function handleLeaveRequests(req, res, session, actor) {
           error: "type, startDate, and endDate are required.",
         });
       }
-      const startDate = parsePositiveTimestamp(body.startDate);
-      const endDate = parsePositiveTimestamp(body.endDate);
-      if (!startDate || !endDate) {
-        return res.status(400).json({
-          ok: false,
-          error: "Valid startDate and endDate are required.",
-        });
-      }
-      if (endDate < startDate) {
-        return res
-          .status(400)
-          .json({ ok: false, error: "endDate must be on or after startDate." });
-      }
-      const validTypes = ["ANNUAL", "SICK", "PERSONAL"];
-      if (!validTypes.includes(body.type)) {
+      const leaveType = String(body.type || "").toUpperCase();
+      const policy = LEAVE_POLICIES[leaveType];
+      if (!policy) {
         return res.status(400).json({
           ok: false,
           error: "Type must be ANNUAL, SICK, or PERSONAL.",
         });
       }
+      const startDate = parsePositiveTimestamp(body.startDate);
+      const endDate = parsePositiveTimestamp(body.endDate);
+      const startDateKey =
+        normalizeDateKey(body.startDateKey) || dateKeyFromTimestamp(startDate);
+      const endDateKey =
+        normalizeDateKey(body.endDateKey) || dateKeyFromTimestamp(endDate);
+      if (!startDate || !endDate || !startDateKey || !endDateKey) {
+        return res.status(400).json({
+          ok: false,
+          error: "Valid startDate and endDate are required.",
+        });
+      }
+      if (endDateKey < startDateKey) {
+        return res
+          .status(400)
+          .json({ ok: false, error: "endDate must be on or after startDate." });
+      }
+      const businessDays = businessDaysBetween(startDateKey, endDateKey);
+      if (!businessDays) {
+        return res.status(400).json({
+          ok: false,
+          error: "Leave dates must include at least one business day.",
+        });
+      }
+      const todayKey = getTodayDateKey();
+      if (
+        leaveType !== "SICK" &&
+        startDateKey < todayKey
+      ) {
+        return res.status(400).json({
+          ok: false,
+          error: "Annual and personal leave must be requested before the leave starts.",
+        });
+      }
+      const reason = normalizeText(body.reason, MAX_REASON_LENGTH);
+      if (leaveType === "PERSONAL" && !reason) {
+        return res.status(400).json({
+          ok: false,
+          error: "A reason is required for personal leave.",
+        });
+      }
+      const attachmentsCheck = normalizeAttachmentList(
+        body.supportingDocuments || body.attachments,
+        {
+          maxFiles: MAX_LEAVE_SUPPORT_FILES,
+          maxBytesPerFile: MAX_LEAVE_SUPPORT_FILE_BYTES,
+          maxTotalBytes: MAX_LEAVE_SUPPORT_TOTAL_BYTES,
+          label: "supporting documents",
+        },
+      );
+      if (!attachmentsCheck.ok) {
+        return res.status(400).json({
+          ok: false,
+          error: attachmentsCheck.error,
+        });
+      }
+      const supportingDocuments = attachmentsCheck.attachments || [];
+      if (policy.requiresDocument && supportingDocuments.length === 0) {
+        return res.status(400).json({
+          ok: false,
+          error: "Sick leave requests require a supporting medical certificate.",
+        });
+      }
+
+      const employee = await getEmployeeProfileForUser(session.user);
+      const employeeId = String(
+        (employee && (employee.id || employee.userId || employee.uid)) || uid,
+      ).trim();
+      const employeeStatus = String(
+        (employee && employee.status) || "ACTIVE",
+      ).toUpperCase();
+      if (
+        employeeStatus &&
+        employeeStatus !== "ACTIVE" &&
+        employeeStatus !== "ON_LEAVE"
+      ) {
+        return res.status(400).json({
+          ok: false,
+          error: "Your current employee status does not allow new leave requests.",
+        });
+      }
+
+      const allowanceCheck = await ensureLeaveAllowance(
+        employee,
+        {
+          employeeId,
+          type: leaveType,
+          startDateKey,
+          endDateKey,
+        },
+        "",
+      );
+      if (!allowanceCheck.ok) {
+        return res.status(400).json({
+          ok: false,
+          error: allowanceCheck.error,
+          details: allowanceCheck.details || {},
+        });
+      }
+
       const now = Date.now();
       const request = {
-        employeeId: uid,
-        employeeName: session.user.displayName || "",
+        employeeId,
+        employeeName:
+          (employee && (employee.fullName || employee.displayName)) ||
+          session.user.displayName ||
+          "",
         department: actor.department || "",
-        type: body.type,
+        type: leaveType,
         startDate: startDate,
         endDate: endDate,
-        reason: body.reason || "",
+        startDateKey,
+        endDateKey,
+        businessDays,
+        reason,
+        supportingDocuments,
         status: "PENDING",
         reviewedBy: null,
         reviewedAt: null,
+        reviewNote: "",
         createdAt: now,
         updatedAt: now,
       };
@@ -353,55 +1188,131 @@ async function handleLeaveRequests(req, res, session, actor) {
     }
 
     case "PUT": {
-      if (isEmployee(actor)) {
-        return res.status(403).json({
-          ok: false,
-          error: "Only managers can approve or reject requests.",
-        });
-      }
       const body = req.body || {};
-      if (!body.id || !body.status) {
+      if (!body.id) {
         return res
           .status(400)
-          .json({ ok: false, error: "id and status are required." });
+          .json({ ok: false, error: "id is required." });
       }
       if (!isValidDocId(String(body.id))) {
         return res
           .status(400)
           .json({ ok: false, error: "Invalid request id." });
       }
-      const validStatuses = ["APPROVED", "REJECTED"];
-      if (!validStatuses.includes(body.status)) {
-        return res
-          .status(400)
-          .json({ ok: false, error: "Status must be APPROVED or REJECTED." });
-      }
       const reqDoc = await db.collection(COLLECTION).doc(body.id).get();
       if (!reqDoc.exists) {
         return res.status(404).json({ ok: false, error: "Request not found." });
       }
-      if (!isManagingDirector(actor)) {
-        const reqData = reqDoc.data() || {};
-        if (!canAccessDepartment(actor, reqData.department)) {
+      const reqData = reqDoc.data() || {};
+
+      if (isEmployee(actor)) {
+        if (String(reqData.employeeId || "") !== String(uid)) {
           return res
             .status(403)
-            .json({ ok: false, error: "Access denied for this department." });
+            .json({ ok: false, error: "Access denied." });
+        }
+        if (String(reqData.status || "").toUpperCase() !== "PENDING") {
+          return res.status(400).json({
+            ok: false,
+            error: "Only pending leave requests can be cancelled.",
+          });
+        }
+        const now = Date.now();
+        await db.collection(COLLECTION).doc(body.id).update({
+          status: "CANCELLED",
+          cancelledAt: now,
+          cancelledBy: session.user.displayName || session.user.email || "",
+          updatedAt: now,
+        });
+        await syncEmployeeLeaveStatus(reqData.employeeId);
+        return res.status(200).json({
+          ok: true,
+          data: { id: body.id, status: "CANCELLED" },
+        });
+      }
+
+      if (!body.status) {
+        return res
+          .status(400)
+          .json({ ok: false, error: "status is required." });
+      }
+      if (!isManagingDirector(actor) && !canAccessDepartment(actor, reqData.department)) {
+        return res
+          .status(403)
+          .json({ ok: false, error: "Access denied for this department." });
+      }
+
+      const validStatuses = ["APPROVED", "REJECTED"];
+      const nextStatus = String(body.status || "").toUpperCase();
+      if (!validStatuses.includes(nextStatus)) {
+        return res
+          .status(400)
+          .json({ ok: false, error: "Status must be APPROVED or REJECTED." });
+      }
+      if (String(reqData.status || "").toUpperCase() !== "PENDING") {
+        return res.status(400).json({
+          ok: false,
+          error: "Only pending leave requests can be reviewed.",
+        });
+      }
+
+      if (nextStatus === "APPROVED") {
+        const employeeId = String(reqData.employeeId || "").trim();
+        const employeeDoc =
+          employeeId && isValidDocId(employeeId)
+            ? await db.collection("employees").doc(employeeId).get()
+            : null;
+        const employee = employeeDoc && employeeDoc.exists
+          ? { id: employeeDoc.id, ...employeeDoc.data() }
+          : null;
+        const allowanceCheck = await ensureLeaveAllowance(
+          employee,
+          {
+            employeeId: String(reqData.employeeId || ""),
+            type: String(reqData.type || "").toUpperCase(),
+            startDateKey: normalizeDateKey(reqData.startDateKey),
+            endDateKey: normalizeDateKey(reqData.endDateKey),
+          },
+          body.id,
+        );
+        if (!allowanceCheck.ok) {
+          return res.status(400).json({
+            ok: false,
+            error: allowanceCheck.error,
+            details: allowanceCheck.details || {},
+          });
         }
       }
 
       const now = Date.now();
+      const reviewNote = normalizeText(body.reviewNote, MAX_REASON_LENGTH);
       await db
         .collection(COLLECTION)
         .doc(body.id)
         .update({
-          status: body.status,
+          status: nextStatus,
           reviewedBy: session.user.displayName || session.user.email,
           reviewedAt: now,
+          reviewNote,
           updatedAt: now,
         });
-      return res
-        .status(200)
-        .json({ ok: true, data: { id: body.id, status: body.status } });
+      await syncEmployeeLeaveStatus(reqData.employeeId);
+      await createNotification(reqData.employeeId, {
+        type: "LEAVE_REVIEW",
+        message:
+          nextStatus === "APPROVED"
+            ? "Your leave request was approved."
+            : "Your leave request was rejected.",
+        link: "/workspace/requests",
+        entityId: body.id,
+        entityType: "leave_request",
+        senderId: session.user.uid,
+        senderName: session.user.displayName || session.user.email || "",
+      });
+      return res.status(200).json({
+        ok: true,
+        data: { id: body.id, status: nextStatus, reviewNote },
+      });
     }
 
     default:
@@ -518,7 +1429,6 @@ async function handleDocuments(req, res, session, actor) {
 async function handleTasks(req, res, session, actor) {
   const method = req.method;
   const uid = session.user.uid;
-  const role = session.user.role;
   const COLLECTION = "tasks";
 
   // Parse task ID from URL: /api/workspace/tasks/<id>
@@ -527,10 +1437,33 @@ async function handleTasks(req, res, session, actor) {
   switch (method) {
     case "GET": {
       const query = req.query || {};
+
+      if (taskId) {
+        const doc = await db.collection(COLLECTION).doc(taskId).get();
+        if (!doc.exists) {
+          return res.status(404).json({ ok: false, error: "Task not found." });
+        }
+        const task = { id: doc.id, ...(doc.data() || {}) };
+        if (isEmployee(actor) && String(task.assignedTo || "") !== uid) {
+          return res.status(403).json({ ok: false, error: "Access denied." });
+        }
+        if (
+          !isManagingDirector(actor) &&
+          !isEmployee(actor) &&
+          !canAccessDepartment(actor, task.department)
+        ) {
+          return res
+            .status(403)
+            .json({ ok: false, error: "Access denied for this department." });
+        }
+        return res
+          .status(200)
+          .json({ ok: true, data: serializeTask(task, true) });
+      }
+
       let firestoreQuery = db.collection(COLLECTION);
 
-      // Employees see only their assigned tasks
-      if (role === "EMPLOYEE") {
+      if (isEmployee(actor)) {
         firestoreQuery = firestoreQuery.where("assignedTo", "==", uid);
       } else if (query.projectId) {
         if (!isValidDocId(String(query.projectId))) {
@@ -552,11 +1485,14 @@ async function handleTasks(req, res, session, actor) {
         tasks = tasks.filter((t) => canAccessDepartment(actor, t.department));
       }
       tasks.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-      return res.status(200).json({ ok: true, data: tasks });
+      return res.status(200).json({
+        ok: true,
+        data: tasks.map((task) => serializeTask(task, false)),
+      });
     }
 
     case "POST": {
-      if (role === "EMPLOYEE") {
+      if (isEmployee(actor)) {
         return res
           .status(403)
           .json({ ok: false, error: "Only managers can create tasks." });
@@ -579,37 +1515,67 @@ async function handleTasks(req, res, session, actor) {
       }
       const project = await ensureProjectAccess(res, actor, body.projectId);
       if (!project) return;
+      if (body.assignedTo) {
+        if (!isValidDocId(String(body.assignedTo))) {
+          return res
+            .status(400)
+            .json({ ok: false, error: "Invalid assignee id." });
+        }
+        if (!isAssigneeInProjectTeam(project, body.assignedTo)) {
+          return res.status(400).json({
+            ok: false,
+            error: "Assignee must be a member of the selected project team.",
+          });
+        }
+      }
 
-      const validStatuses = [
-        "TODO",
-        "IN_PROGRESS",
-        "UNDER_REVIEW",
-        "COMPLETED",
-      ];
-      const validPriorities = ["LOW", "MEDIUM", "HIGH"];
+      const status = TASK_STATUSES.has(String(body.status || "").toUpperCase())
+        ? String(body.status || "").toUpperCase()
+        : "TODO";
+      const priority = TASK_PRIORITIES.has(
+        String(body.priority || "").toUpperCase(),
+      )
+        ? String(body.priority || "").toUpperCase()
+        : "MEDIUM";
       const now = Date.now();
       const task = {
         title: title,
-        description: body.description || "",
-        projectId: body.projectId || "",
-        projectName: body.projectName || "",
+        description: normalizeText(body.description, MAX_DESCRIPTION_LENGTH),
+        projectId: String(body.projectId || ""),
+        projectName:
+          normalizeText(body.projectName, 180) ||
+          normalizeText(project.name, 180),
         assignedTo: body.assignedTo || "",
-        assignedToName: body.assignedToName || "",
-        status: validStatuses.includes(body.status) ? body.status : "TODO",
-        priority: validPriorities.includes(body.priority)
-          ? body.priority
-          : "MEDIUM",
+        assignedToName: normalizeText(body.assignedToName, 180),
+        status,
+        priority,
         dueDate: dueDate || null,
         department: project.department || "",
         createdBy: uid,
         createdByName: session.user.displayName || session.user.email || "",
+        submissionNotes: "",
+        submissionFiles: [],
+        submittedAt: null,
+        submittedBy: "",
+        submittedByName: "",
+        reviewNotes: "",
+        reviewedAt: status === "COMPLETED" ? now : null,
+        reviewedBy: status === "COMPLETED" ? uid : "",
+        reviewedByName:
+          status === "COMPLETED"
+            ? session.user.displayName || session.user.email || ""
+            : "",
         createdAt: now,
         updatedAt: now,
       };
       const docRef = await db.collection(COLLECTION).add(task);
+      await syncProjectProgressFromTasks(task.projectId);
       return res
         .status(201)
-        .json({ ok: true, data: { id: docRef.id, ...task } });
+        .json({
+          ok: true,
+          data: serializeTask({ id: docRef.id, ...task }, true),
+        });
     }
 
     case "PUT": {
@@ -632,39 +1598,100 @@ async function handleTasks(req, res, session, actor) {
           .status(403)
           .json({ ok: false, error: "Access denied for this department." });
       }
-      // Employees can only update status of their own tasks
-      if (role === "EMPLOYEE") {
+      if (isEmployee(actor)) {
         if (existing.assignedTo !== uid) {
           return res.status(403).json({ ok: false, error: "Access denied." });
         }
         const body = req.body || {};
-        const validStatuses = [
-          "TODO",
-          "IN_PROGRESS",
-          "UNDER_REVIEW",
-          "COMPLETED",
-        ];
-        const update = { updatedAt: Date.now() };
-        if (body.status && validStatuses.includes(body.status)) {
-          update.status = body.status;
+        const nextStatus = String(body.status || "").toUpperCase();
+        if (!TASK_STATUSES.has(nextStatus) || nextStatus === "COMPLETED") {
+          return res.status(400).json({
+            ok: false,
+            error:
+              "Employees can only move tasks to In Progress or Under Review.",
+          });
+        }
+        if (!canEmployeeUpdateTaskStatus(existing.status, nextStatus)) {
+          return res.status(400).json({
+            ok: false,
+            error: "This task cannot move to that status from its current state.",
+          });
+        }
+
+        const attachmentsCheck = normalizeAttachmentList(
+          body.submissionFiles || body.submissionAttachments,
+          {
+            maxFiles: MAX_TASK_SUBMISSION_FILES,
+            maxBytesPerFile: MAX_TASK_SUBMISSION_FILE_BYTES,
+            maxTotalBytes: MAX_TASK_SUBMISSION_TOTAL_BYTES,
+            label: "submission files",
+          },
+        );
+        if (!attachmentsCheck.ok) {
+          return res.status(400).json({
+            ok: false,
+            error: attachmentsCheck.error,
+          });
+        }
+
+        const now = Date.now();
+        const update = {
+          status: nextStatus,
+          updatedAt: now,
+        };
+        if (body.submissionNotes !== undefined) {
+          update.submissionNotes = normalizeText(
+            body.submissionNotes,
+            MAX_TASK_NOTES_LENGTH,
+          );
+        }
+        if (attachmentsCheck.provided) {
+          update.submissionFiles = attachmentsCheck.attachments;
+        }
+        if (nextStatus === "UNDER_REVIEW") {
+          update.submittedAt = now;
+          update.submittedBy = uid;
+          update.submittedByName =
+            session.user.displayName || session.user.email || "";
+          update.reviewNotes = "";
+          update.reviewedAt = null;
+          update.reviewedBy = "";
+          update.reviewedByName = "";
         }
         await db.collection(COLLECTION).doc(taskId).update(update);
+        await syncProjectProgressFromTasks(existing.projectId);
+        if (
+          nextStatus === "UNDER_REVIEW" &&
+          existing.createdBy &&
+          existing.createdBy !== uid
+        ) {
+          await createNotification(existing.createdBy, {
+            type: "TASK_REVIEW",
+            message:
+              "Task submitted for review: " +
+              (existing.title || "Untitled task"),
+            link: "/pm-workspace/tasks",
+            entityId: taskId,
+            entityType: "task",
+            senderId: uid,
+            senderName: session.user.displayName || session.user.email || "",
+          });
+        }
         return res
           .status(200)
-          .json({ ok: true, data: { id: taskId, ...update } });
+          .json({
+            ok: true,
+            data: serializeTask({ id: taskId, ...existing, ...update }, true),
+          });
       }
 
-      // PM/MD can update all fields
       const body = req.body || {};
-      const update = { updatedAt: Date.now() };
-      const validStatuses = [
-        "TODO",
-        "IN_PROGRESS",
-        "UNDER_REVIEW",
-        "COMPLETED",
-      ];
-      const validPriorities = ["LOW", "MEDIUM", "HIGH"];
+      const now = Date.now();
+      const update = { updatedAt: now };
       let targetProject = null;
+      const currentStatus = String(existing.status || "TODO").toUpperCase();
+      const oldProjectId = String(existing.projectId || "").trim();
+      let nextStatus = currentStatus;
 
       if (body.title !== undefined) {
         const title = String(body.title || "").trim();
@@ -675,7 +1702,9 @@ async function handleTasks(req, res, session, actor) {
         }
         update.title = title;
       }
-      if (body.description !== undefined) update.description = body.description;
+      if (body.description !== undefined) {
+        update.description = normalizeText(body.description, MAX_DESCRIPTION_LENGTH);
+      }
       if (body.assignedTo !== undefined) {
         if (body.assignedTo && !isValidDocId(String(body.assignedTo))) {
           return res
@@ -684,23 +1713,26 @@ async function handleTasks(req, res, session, actor) {
         }
         update.assignedTo = body.assignedTo;
       }
-      if (body.assignedToName !== undefined)
-        update.assignedToName = body.assignedToName;
+      if (body.assignedToName !== undefined) {
+        update.assignedToName = normalizeText(body.assignedToName, 180);
+      }
       if (body.status !== undefined) {
-        if (!validStatuses.includes(body.status)) {
+        nextStatus = String(body.status || "").toUpperCase();
+        if (!TASK_STATUSES.has(nextStatus)) {
           return res
             .status(400)
             .json({ ok: false, error: "Invalid task status." });
         }
-        update.status = body.status;
+        update.status = nextStatus;
       }
       if (body.priority !== undefined) {
-        if (!validPriorities.includes(body.priority)) {
+        const priority = String(body.priority || "").toUpperCase();
+        if (!TASK_PRIORITIES.has(priority)) {
           return res
             .status(400)
             .json({ ok: false, error: "Invalid task priority." });
         }
-        update.priority = body.priority;
+        update.priority = priority;
       }
       if (body.dueDate !== undefined) {
         const dueDate = body.dueDate ? parsePositiveTimestamp(body.dueDate) : 0;
@@ -720,12 +1752,26 @@ async function handleTasks(req, res, session, actor) {
         targetProject = project;
         update.projectId = body.projectId;
         update.department = project.department || existing.department || "";
+        if (body.projectName === undefined) {
+          update.projectName = normalizeText(project.name, 180);
+        }
       }
-      if (body.projectName !== undefined) update.projectName = body.projectName;
+      if (body.projectName !== undefined) {
+        update.projectName = normalizeText(body.projectName, 180);
+      }
+      if (body.submissionNotes !== undefined) {
+        update.submissionNotes = normalizeText(
+          body.submissionNotes,
+          MAX_TASK_NOTES_LENGTH,
+        );
+      }
+      if (body.reviewNotes !== undefined) {
+        update.reviewNotes = normalizeText(body.reviewNotes, MAX_TASK_NOTES_LENGTH);
+      }
 
       if (body.assignedTo !== undefined && body.assignedTo) {
         const projectToValidate =
-          targetProject || (await getProjectById(existing.projectId));
+          targetProject || (await getProjectById(update.projectId || existing.projectId));
         if (!projectToValidate) {
           return res.status(400).json({
             ok: false,
@@ -739,15 +1785,96 @@ async function handleTasks(req, res, session, actor) {
           });
         }
       }
+      if (
+        body.projectId !== undefined &&
+        body.assignedTo === undefined &&
+        existing.assignedTo
+      ) {
+        const projectToValidate = targetProject;
+        if (
+          projectToValidate &&
+          !isAssigneeInProjectTeam(projectToValidate, existing.assignedTo)
+        ) {
+          return res.status(400).json({
+            ok: false,
+            error:
+              "Reassign or clear the current assignee before moving this task to a different project.",
+          });
+        }
+      }
+
+      if (body.status !== undefined) {
+        if (nextStatus === "COMPLETED") {
+          update.reviewedAt = now;
+          update.reviewedBy = uid;
+          update.reviewedByName =
+            session.user.displayName || session.user.email || "";
+          if (body.reviewNotes === undefined) {
+            update.reviewNotes = normalizeText(
+              existing.reviewNotes || "Task approved and marked complete.",
+              MAX_TASK_NOTES_LENGTH,
+            );
+          }
+        } else if (
+          currentStatus === "UNDER_REVIEW" &&
+          (nextStatus === "IN_PROGRESS" || nextStatus === "TODO")
+        ) {
+          update.reviewedAt = now;
+          update.reviewedBy = uid;
+          update.reviewedByName =
+            session.user.displayName || session.user.email || "";
+          if (body.reviewNotes === undefined) {
+            update.reviewNotes = "Changes requested.";
+          }
+        } else if (currentStatus === "COMPLETED" && nextStatus !== "COMPLETED") {
+          update.reviewedAt = null;
+          update.reviewedBy = "";
+          update.reviewedByName = "";
+        }
+      }
 
       await db.collection(COLLECTION).doc(taskId).update(update);
+      const finalProjectId = String(update.projectId || oldProjectId).trim();
+      if (oldProjectId) {
+        await syncProjectProgressFromTasks(oldProjectId);
+      }
+      if (finalProjectId && finalProjectId !== oldProjectId) {
+        await syncProjectProgressFromTasks(finalProjectId);
+      }
+
+      const shouldNotifyAssignee =
+        existing.assignedTo &&
+        existing.assignedTo !== uid &&
+        body.status !== undefined &&
+        currentStatus !== nextStatus &&
+        (nextStatus === "COMPLETED" ||
+          (currentStatus === "UNDER_REVIEW" &&
+            (nextStatus === "IN_PROGRESS" || nextStatus === "TODO")));
+      if (shouldNotifyAssignee) {
+        await createNotification(existing.assignedTo, {
+          type: "TASK_REVIEW_RESULT",
+          message:
+            nextStatus === "COMPLETED"
+              ? "Your task was approved and marked complete."
+              : "Your task needs revisions before approval.",
+          link: "/workspace",
+          entityId: taskId,
+          entityType: "task",
+          senderId: uid,
+          senderName: session.user.displayName || session.user.email || "",
+        });
+      }
+
       return res
         .status(200)
-        .json({ ok: true, data: { id: taskId, ...update } });
+        .json({
+          ok: true,
+          data: serializeTask({ id: taskId, ...existing, ...update }, true),
+        });
     }
 
     case "DELETE": {
-      if (role === "EMPLOYEE") {
+      if (isEmployee(actor)) {
         return res
           .status(403)
           .json({ ok: false, error: "Only managers can delete tasks." });
@@ -769,7 +1896,14 @@ async function handleTasks(req, res, session, actor) {
         }
       }
 
+      const taskDoc = await db.collection(COLLECTION).doc(taskId).get();
+      const projectId = taskDoc.exists
+        ? String((taskDoc.data() || {}).projectId || "").trim()
+        : "";
       await db.collection(COLLECTION).doc(taskId).delete();
+      if (projectId) {
+        await syncProjectProgressFromTasks(projectId);
+      }
       return res.status(200).json({ ok: true });
     }
 
@@ -1066,6 +2200,16 @@ async function handleTeamChat(req, res, session, actor) {
         };
 
         const docRef = await db.collection(COLLECTION).add(message);
+        await createTeamChatNotifications(session, {
+          department: project.department || "",
+          projectId: bodyProjectId,
+          projectName: project.name || body.projectName || "",
+          text: text,
+          projectManagerId: project.projectManagerId || "",
+          teamMemberIds: Array.isArray(project.teamMemberIds)
+            ? project.teamMemberIds
+            : [],
+        });
         return res
           .status(201)
           .json({ ok: true, data: { id: docRef.id, ...message } });
@@ -1115,6 +2259,10 @@ async function handleTeamChat(req, res, session, actor) {
       };
 
       const docRef = await db.collection(COLLECTION).add(message);
+      await createTeamChatNotifications(session, {
+        department: targetDepartment,
+        text: text,
+      });
       return res
         .status(201)
         .json({ ok: true, data: { id: docRef.id, ...message } });

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Time Sheet — Shenanigans</title>
-    <link rel="stylesheet" href="/assets/styles.css">
+    <link rel="stylesheet" href="/assets/styles.css?v=12">
 </head>
 
 <body>
@@ -29,6 +29,9 @@
                     <form id="empTimeEntryForm" style="display:flex;flex-wrap:wrap;gap:12px;padding:4px 0">
                         <select id="tsProject" required style="flex:1;min-width:160px" class="form-input">
                             <option value="">Select project…</option>
+                        </select>
+                        <select id="tsTask" style="flex:1;min-width:180px" class="form-input">
+                            <option value="">Optional task / deliverableâ€¦</option>
                         </select>
                         <input id="tsDate" type="date" required class="form-input" style="width:150px">
                         <input id="tsHours" type="number" min="0.25" max="24" step="0.25" placeholder="Hours" required
@@ -60,6 +63,10 @@
                         </div>
                         <div id="empWeeklySummary"></div>
                         <div class="card-header" style="margin-top:16px">
+                            <h3>Project Split</h3>
+                        </div>
+                        <div id="empTimeProjectBreakdown"></div>
+                        <div class="card-header" style="margin-top:16px">
                             <h3>Reminders</h3>
                         </div>
                         <div id="empTimeReminders"></div>
@@ -69,8 +76,8 @@
         </main>
     </div>
 
-    <script src="/assets/shared.js?v=6"></script>
-    <script src="/assets/employee.js?v=6"></script>
+    <script src="/assets/shared.js?v=9"></script>
+    <script src="/assets/employee.js?v=8"></script>
     <script>
         ShenanigansApp.init({
             sidebar: 'employee',
