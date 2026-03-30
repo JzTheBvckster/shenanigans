@@ -5,10 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shenanigans — Sign In</title>
-    <link rel="stylesheet" href="/assets/styles.css">
+    <link rel="stylesheet" href="/assets/styles.css?v=14">
 </head>
 
 <body>
+    <button class="auth-theme-toggle" id="authThemeBtn" type="button" onclick="toggleAuthTheme()"></button>
     <div class="auth-page" id="authPage">
         <div class="auth-wrapper">
             <!-- Branding -->
@@ -77,7 +78,7 @@
                 <div class="field-group">
                     <label for="regPassword">PASSWORD</label>
                     <div class="password-row">
-                        <input type="password" id="regPassword" placeholder="Min 6 characters"
+                        <input type="password" id="regPassword" placeholder="Min 8 characters"
                             autocomplete="new-password">
                         <button type="button" class="password-toggle"
                             onclick="togglePasswordVisibility('regPassword', this)">Show</button>
@@ -144,7 +145,7 @@
         </div>
     </div>
 
-    <script src="/assets/login.js"></script>
+    <script src="/assets/login.js?v=3"></script>
 </body>
 
 </html>

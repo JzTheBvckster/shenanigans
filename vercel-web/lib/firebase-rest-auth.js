@@ -6,14 +6,33 @@
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
 const BASE_URL = "https://identitytoolkit.googleapis.com/v1/accounts";
 
+function ensureApiKeyConfigured() {
+    if (!FIREBASE_API_KEY) {
+        throw new Error("FIREBASE_API_KEY is not configured.");
+    }
+}
+
+async function readAuthResponse(res, fallbackMessage) {
+    let body = null;
+    try {
+        body = await res.json();
+    } catch (_err) {
+        throw new Error(fallbackMessage);
+    }
+    if (!res.ok || body.error) {
+        throw new Error((body && body.error && body.error.message) || fallbackMessage);
+    }
+    return body;
+}
+
 async function signIn(email, password) {
+    ensureApiKeyConfigured();
     const res = await fetch(`${BASE_URL}:signInWithPassword?key=${FIREBASE_API_KEY}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, returnSecureToken: true }),
     });
-    const body = await res.json();
-    if (body.error) throw new Error(body.error.message || "Authentication failed.");
+    const body = await readAuthResponse(res, "Authentication failed.");
     return {
         localId: body.localId,
         email: body.email,
@@ -24,13 +43,13 @@ async function signIn(email, password) {
 }
 
 async function signUp(email, password) {
+    ensureApiKeyConfigured();
     const res = await fetch(`${BASE_URL}:signUp?key=${FIREBASE_API_KEY}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, returnSecureToken: true }),
     });
-    const body = await res.json();
-    if (body.error) throw new Error(body.error.message || "Registration failed.");
+    const body = await readAuthResponse(res, "Registration failed.");
     return {
         localId: body.localId,
         email: body.email,
@@ -41,13 +60,13 @@ async function signUp(email, password) {
 }
 
 async function sendPasswordResetEmail(email) {
+    ensureApiKeyConfigured();
     const res = await fetch(`${BASE_URL}:sendOobCode?key=${FIREBASE_API_KEY}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ requestType: "PASSWORD_RESET", email }),
     });
-    const body = await res.json();
-    if (body.error) throw new Error(body.error.message || "Failed to send reset email.");
+    const body = await readAuthResponse(res, "Failed to send reset email.");
     return body;
 }
 

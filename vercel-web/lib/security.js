@@ -27,7 +27,10 @@ function withSecurity(handler, options = {}) {
     return async function securedHandler(req, res) {
         res.setHeader("X-Content-Type-Options", "nosniff");
         res.setHeader("X-Frame-Options", "DENY");
-        res.setHeader("Referrer-Policy", "no-referrer");
+        res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+        res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+        res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+        res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
         res.setHeader("Cache-Control", "no-store");
 
         if (req.method !== "GET" && req.method !== "HEAD") {
@@ -36,7 +39,9 @@ function withSecurity(handler, options = {}) {
                 return res.status(415).json({ ok: false, error: "Unsupported content type." });
             }
 
-            const host = String(req.headers.host || "").toLowerCase();
+            const host = String(
+                req.headers["x-forwarded-host"] || req.headers.host || ""
+            ).toLowerCase();
             const origin = String(req.headers.origin || "").toLowerCase();
             const referer = String(req.headers.referer || "").toLowerCase();
             const originHost = extractHost(origin);

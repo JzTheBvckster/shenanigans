@@ -5,9 +5,78 @@ var ShenanigansApp = (function () {
     var app = {};
     app.currentUser = null;
     app.cachedData = {};
+    app.THEME_STORAGE_KEY = 'shenanigans.theme';
+    var THEME_ICONS = {
+        dark: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21 12.79A9 9 0 0 1 11.21 3c0-.34.02-.67.06-1A1 1 0 0 0 10 1a10 10 0 1 0 13 13 1 1 0 0 0-2-.21z"/></svg>',
+        light: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.76 4.84 5.34 3.42 3.92 4.84l1.42 1.42 1.42-1.42zM1 13h3v-2H1v2zm10 10h2v-3h-2v3zm7.66-18.16-1.42-1.42-1.42 1.42 1.42 1.42 1.42-1.42zM17.24 19.16l1.42 1.42 1.42-1.42-1.42-1.42-1.42 1.42zM20 13h3v-2h-3v2zM11 4h2V1h-2v3zm1 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm-7.66 10.16-1.42 1.42 1.42 1.42 1.42-1.42-1.42-1.42z"/></svg>'
+    };
+
+    function readStoredTheme() {
+        try {
+            var stored = localStorage.getItem(app.THEME_STORAGE_KEY);
+            return stored === 'dark' || stored === 'light' ? stored : '';
+        } catch (_err) {
+            return '';
+        }
+    }
+
+    function getSystemTheme() {
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+        }
+        return 'light';
+    }
+
+    app.getThemeMode = function () {
+        var active = document.documentElement.getAttribute('data-theme');
+        if (active === 'dark' || active === 'light') return active;
+        return readStoredTheme() || getSystemTheme();
+    };
+
+    app.syncThemeControls = function () {
+        var mode = app.getThemeMode();
+        var isDark = mode === 'dark';
+        var headerBtn = document.getElementById('headerThemeBtn');
+        if (headerBtn) {
+            headerBtn.innerHTML = '<span class="theme-toggle-icon">' + (isDark ? THEME_ICONS.light : THEME_ICONS.dark) + '</span>'
+                + '<span class="theme-toggle-label">' + (isDark ? 'Light Mode' : 'Dark Mode') + '</span>';
+            headerBtn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+            headerBtn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+            headerBtn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+        }
+        var darkCheckbox = document.getElementById('settingDarkMode');
+        if (darkCheckbox) {
+            darkCheckbox.checked = isDark;
+        }
+    };
+
+    app.setTheme = function (mode, persist) {
+        var nextMode = mode === 'dark' || mode === 'light' ? mode : getSystemTheme();
+        document.documentElement.setAttribute('data-theme', nextMode);
+        if (document.body) {
+            document.body.classList.toggle('dark-mode', nextMode === 'dark');
+        }
+        if (persist !== false) {
+            try {
+                localStorage.setItem(app.THEME_STORAGE_KEY, nextMode);
+            } catch (_err) {
+                /* ignore storage failures */
+            }
+        }
+        app.syncThemeControls();
+        return nextMode;
+    };
+
+    window.toggleThemeMode = function () {
+        var nextMode = app.getThemeMode() === 'dark' ? 'light' : 'dark';
+        app.setTheme(nextMode);
+        app.showToast('Switched to ' + (nextMode === 'dark' ? 'dark' : 'light') + ' mode', 'success');
+    };
+
+    app.setTheme(app.getThemeMode(), false);
 
     /* Predefined departments */
-    app.DEPARTMENTS = ['Engineering', 'Marketing', 'Finance', 'Human Resources', 'Operations'];
+    app.DEPARTMENTS = ['Engineering', 'Marketing', 'Finance', 'Human Resources', 'Operations', 'Sales'];
 
     app.deptOptions = function (selected) {
         var html = '<option value="">Select department…</option>';
@@ -91,14 +160,62 @@ var ShenanigansApp = (function () {
     /* ============================================================
        FETCH HELPERS
        ============================================================ */
+    function shouldRedirectToAuth(status, body) {
+        var message = body && body.error ? String(body.error) : '';
+        if (status === 401) return true;
+        if (status === 403 && /auth|session|required|permission|approval/i.test(message)) {
+            return true;
+        }
+        return false;
+    }
+
+    function readApiResponse(response) {
+        var status = response ? response.status : 0;
+        var contentType = response && response.headers
+            ? String(response.headers.get('content-type') || '').toLowerCase()
+            : '';
+        if (status === 204) {
+            return Promise.resolve({ status: status, body: { ok: true } });
+        }
+        if (contentType.indexOf('application/json') !== -1) {
+            return response.json()
+                .then(function (body) {
+                    return { status: status, body: body || {} };
+                })
+                .catch(function () {
+                    return {
+                        status: status,
+                        body: { ok: false, error: 'Invalid server response.' }
+                    };
+                });
+        }
+        return response.text()
+            .then(function (text) {
+                return {
+                    status: status,
+                    body: {
+                        ok: response && response.ok,
+                        error: text && text.trim() ? text.trim() : 'Unexpected server response.'
+                    }
+                };
+            })
+            .catch(function () {
+                return {
+                    status: status,
+                    body: { ok: false, error: 'Unexpected server response.' }
+                };
+            });
+    }
+
     app.fetchJson = function (url, onSuccess, onError) {
         fetch(url, { credentials: 'same-origin' })
-            .then(function (r) { return r.json(); })
-            .then(function (body) {
-                if (body.ok && body.data !== undefined) {
-                    onSuccess(body.data);
+            .then(readApiResponse)
+            .then(function (result) {
+                var body = result.body || {};
+                if (body.ok) {
+                    if (onSuccess) onSuccess(body.data);
                 } else {
-                    if (body.error && body.error.toLowerCase().includes('auth')) {
+                    if (shouldRedirectToAuth(result.status, body)) {
                         window.location.href = '/';
                         return;
                     }
@@ -114,18 +231,22 @@ var ShenanigansApp = (function () {
         var opts = {
             method: method,
             credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' }
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
         };
         if (payload && method !== 'DELETE') {
             opts.body = JSON.stringify(payload);
         }
         fetch(url, opts)
-            .then(function (r) { return r.json(); })
-            .then(function (body) {
+            .then(readApiResponse)
+            .then(function (result) {
+                var body = result.body || {};
                 if (body.ok) {
-                    onSuccess(body.data);
+                    if (onSuccess) onSuccess(body.data);
                 } else {
-                    if (body.error && body.error.toLowerCase().includes('auth')) {
+                    if (shouldRedirectToAuth(result.status, body)) {
                         window.location.href = '/';
                         return;
                     }
@@ -294,11 +415,14 @@ var ShenanigansApp = (function () {
                 notif.roomScope || (notif.projectId ? 'proj:' + notif.projectId : 'dept')
             );
         }
-        return String(notif.link || '').trim();
+        var link = String(notif.link || '').trim();
+        if (!link || link.indexOf('//') === 0 || link.charAt(0) !== '/') return '';
+        return link;
     };
 
     function loadNotifications() {
         app.fetchJson('/api/workspace/notifications', function (notifs) {
+            notifs = Array.isArray(notifs) ? notifs : [];
             notifCacheById = {};
             (notifs || []).forEach(function (n) {
                 if (n && n.id) notifCacheById[n.id] = n;
@@ -341,12 +465,21 @@ var ShenanigansApp = (function () {
     window.handleNotifClick = function (notifId) {
         var notif = notifCacheById[notifId] || null;
         var link = app.resolveNotificationLink(notif);
-        // Mark as read
+        var navigated = false;
+        function goToLink() {
+            if (navigated || !link) return;
+            navigated = true;
+            window.location.href = link;
+        }
         app.fetchMutate('PUT', '/api/workspace/notifications', { id: notifId }, function () {
             loadNotifications();
-        }, function () {});
-        // Navigate if link provided
-        if (link) window.location.href = link;
+            goToLink();
+        }, function () {
+            goToLink();
+        });
+        if (link) {
+            setTimeout(goToLink, 250);
+        }
         var dd = document.getElementById('notifDropdown');
         if (dd) dd.classList.add('hidden');
     };
@@ -412,6 +545,8 @@ var ShenanigansApp = (function () {
         if (config.showAddBtn) {
             html += '<button class="header-primary-btn" id="headerAddBtn">' + (config.addBtnText || '+ Add') + '</button>';
         }
+
+        html += '<button class="header-icon-btn header-theme-btn" id="headerThemeBtn" type="button" onclick="toggleThemeMode()"></button>';
 
         // Notification bell
         html += '<div class="header-notif-wrap" id="headerNotifWrap">'
@@ -698,17 +833,20 @@ var ShenanigansApp = (function () {
     app.init = function (config) {
         var header = document.getElementById('appHeader');
         var sidebar = document.getElementById('appSidebar');
+        var shell = document.getElementById('appShell');
 
+        app.setTheme(app.getThemeMode(), false);
         document.body.classList.remove('pm-theme-page', 'employee-theme-page');
+        if (shell) shell.classList.remove('pm-theme', 'employee-theme');
 
         if (header) header.innerHTML = buildHeaderHTML(config);
 
         if (config.sidebar === 'employee') {
-            document.getElementById('appShell').classList.add('employee-theme');
+            if (shell) shell.classList.add('employee-theme');
             document.body.classList.add('employee-theme-page');
             if (sidebar) sidebar.innerHTML = buildEmployeeSidebarHTML(config.activePage);
         } else if (config.sidebar === 'pm') {
-            document.getElementById('appShell').classList.add('pm-theme');
+            if (shell) shell.classList.add('pm-theme');
             document.body.classList.add('pm-theme-page');
             if (sidebar) sidebar.innerHTML = buildPMSidebarHTML(config.activePage);
         } else {
@@ -722,6 +860,8 @@ var ShenanigansApp = (function () {
             document.body.insertAdjacentHTML('beforeend', '<div class="toast" id="toast"></div>');
         }
 
+        app.syncThemeControls();
+
         restoreSidebar();
         checkSystemHealth();
         checkAuth(function () {
@@ -733,6 +873,26 @@ var ShenanigansApp = (function () {
             if (config.onReady) config.onReady();
         });
     };
+
+    window.addEventListener('storage', function (event) {
+        if (event.key === app.THEME_STORAGE_KEY) {
+            app.setTheme(app.getThemeMode(), false);
+        }
+    });
+
+    if (window.matchMedia) {
+        var media = window.matchMedia('(prefers-color-scheme: dark)');
+        var onThemeMediaChange = function () {
+            if (!readStoredTheme()) {
+                app.setTheme(getSystemTheme(), false);
+            }
+        };
+        if (typeof media.addEventListener === 'function') {
+            media.addEventListener('change', onThemeMediaChange);
+        } else if (typeof media.addListener === 'function') {
+            media.addListener(onThemeMediaChange);
+        }
+    }
 
     return app;
 })();

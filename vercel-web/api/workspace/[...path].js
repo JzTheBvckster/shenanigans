@@ -68,6 +68,17 @@ function parsePositiveTimestamp(value) {
   return Number.isFinite(ts) && ts > 0 ? ts : 0;
 }
 
+function parseListLimit(value, fallback, max) {
+  const parsed = Number.parseInt(value, 10);
+  const safeFallback =
+    Number.isFinite(fallback) && fallback > 0 ? Math.floor(fallback) : 50;
+  const safeMax = Number.isFinite(max) && max > 0 ? Math.floor(max) : 200;
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return Math.min(safeFallback, safeMax);
+  }
+  return Math.min(parsed, safeMax);
+}
+
 const TASK_STATUSES = new Set([
   "TODO",
   "IN_PROGRESS",
@@ -156,6 +167,38 @@ function extractMimeTypeFromDataUrl(dataUrl) {
   return match ? match[1] : "";
 }
 
+function extractBase64Payload(dataUrl) {
+  const match = String(dataUrl || "").match(
+    /^data:([^;,]+);base64,([a-z0-9+/=\s]+)$/i,
+  );
+  if (!match) return null;
+  return {
+    mimeType: match[1] || "",
+    base64: String(match[2] || "").replace(/\s+/g, ""),
+  };
+}
+
+function getBase64ByteSize(base64Value) {
+  const base64 = String(base64Value || "").replace(/\s+/g, "");
+  if (
+    !base64 ||
+    !/^[A-Za-z0-9+/]*={0,2}$/.test(base64) ||
+    base64.length % 4 !== 0
+  ) {
+    return 0;
+  }
+  const padding = base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0;
+  return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
+}
+
+function normalizeInternalLink(value) {
+  const link = String(value || "").trim();
+  if (!link) return "";
+  if (link.startsWith("//")) return "";
+  if (link.startsWith("/")) return link;
+  return "";
+}
+
 function normalizeAttachmentList(rawAttachments, options) {
   if (rawAttachments === undefined) {
     return { ok: true, provided: false, attachments: undefined };
@@ -188,20 +231,28 @@ function normalizeAttachmentList(rawAttachments, options) {
     const name =
       normalizeText(item.name || item.fileName || "", 180) ||
       `${label}-${index + 1}`;
-    const size = Math.round(Number(item.size) || 0);
     const dataUrl = String(item.dataUrl || item.content || "").trim();
+    const encoded = extractBase64Payload(dataUrl);
+    const actualSize = getBase64ByteSize(encoded && encoded.base64);
+    const claimedSize = Math.round(Number(item.size) || 0);
     const mimeType =
       normalizeText(item.mimeType || item.type || "", 120) ||
-      extractMimeTypeFromDataUrl(dataUrl) ||
+      ((encoded && encoded.mimeType) || extractMimeTypeFromDataUrl(dataUrl)) ||
       "application/octet-stream";
 
-    if (!size || size < 0) {
+    if (!encoded || !actualSize) {
       return {
         ok: false,
-        error: "Each attachment must include a valid file size.",
+        error: `${name} is not encoded as a supported file upload.`,
       };
     }
-    if (size > maxBytesPerFile) {
+    if (claimedSize && Math.abs(claimedSize - actualSize) > 32) {
+      return {
+        ok: false,
+        error: `${name} could not be verified after upload encoding.`,
+      };
+    }
+    if (actualSize > maxBytesPerFile) {
       return {
         ok: false,
         error: `${name} is too large. Each file must be ${Math.round(
@@ -209,13 +260,7 @@ function normalizeAttachmentList(rawAttachments, options) {
         )} KB or smaller.`,
       };
     }
-    if (!/^data:.*;base64,/i.test(dataUrl)) {
-      return {
-        ok: false,
-        error: `${name} is not encoded as a supported file upload.`,
-      };
-    }
-    totalBytes += size;
+    totalBytes += actualSize;
     if (totalBytes > maxTotalBytes) {
       return {
         ok: false,
@@ -227,7 +272,7 @@ function normalizeAttachmentList(rawAttachments, options) {
     attachments.push({
       name,
       mimeType,
-      size,
+      size: actualSize,
       dataUrl,
     });
   }
@@ -458,7 +503,7 @@ async function createNotification(recipientId, payload) {
     recipientId: targetId,
     type: payload.type || "GENERAL",
     message: payload.message || "",
-    link: payload.link || "",
+    link: normalizeInternalLink(payload.link),
     entityId: payload.entityId || "",
     entityType: payload.entityType || "",
     roomScope: payload.roomScope || "",
@@ -2102,7 +2147,7 @@ async function handleTeamChat(req, res, session, actor) {
             .json({ ok: false, error: "Access denied for this project chat." });
         }
 
-        const limit = Math.min(parseInt(query.limit, 10) || 100, 200);
+        const limit = parseListLimit(query.limit, 100, 200);
         const projectSnap = await readMessagesWithFallback(
           "projectId",
           queryProjectId,
@@ -2134,7 +2179,7 @@ async function handleTeamChat(req, res, session, actor) {
           .json({ ok: false, error: "Access denied for this department." });
       }
 
-      const limit = Math.min(parseInt(query.limit, 10) || 100, 200);
+      const limit = parseListLimit(query.limit, 100, 200);
       const snapshot = await readMessagesWithFallback(
         "department",
         targetDepartment,
@@ -2299,7 +2344,7 @@ async function handleActivityLogs(req, res, session, actor) {
           query.entityType,
         );
       }
-      const limit = Math.min(parseInt(query.limit) || 50, 200);
+      const limit = parseListLimit(query.limit, 50, 200);
       const snapshot = await firestoreQuery
         .orderBy("createdAt", "desc")
         .limit(limit)
@@ -2376,26 +2421,34 @@ async function handleNotifications(req, res, session, actor) {
 
     case "POST": {
       const body = req.body || {};
-      if (!body.recipientId || !body.message) {
-        return res
-          .status(400)
-          .json({ ok: false, error: "recipientId and message are required." });
-      }
-      // Allow batch - recipientIds array
       const recipients = Array.isArray(body.recipientIds)
         ? body.recipientIds
-        : [body.recipientId];
-      if (!recipients.length) {
+        : body.recipientId
+          ? [body.recipientId]
+          : [];
+      const uniqueRecipients = Array.from(
+        new Set(
+          recipients
+            .map((rid) => String(rid || "").trim())
+            .filter(Boolean),
+        ),
+      );
+      if (!body.message) {
+        return res
+          .status(400)
+          .json({ ok: false, error: "message is required." });
+      }
+      if (!uniqueRecipients.length) {
         return res
           .status(400)
           .json({ ok: false, error: "At least one recipient is required." });
       }
-      if (recipients.length > 100) {
+      if (uniqueRecipients.length > 100) {
         return res
           .status(400)
           .json({ ok: false, error: "Too many recipients in one request." });
       }
-      const invalidRecipient = recipients.some(
+      const invalidRecipient = uniqueRecipients.some(
         (rid) => !isValidDocId(String(rid)),
       );
       if (invalidRecipient) {
@@ -2406,7 +2459,7 @@ async function handleNotifications(req, res, session, actor) {
       }
       if (!isManagingDirector(actor)) {
         const allowed = await getDepartmentEmployeeIds(actor.department);
-        const allAllowed = recipients.every((rid) => allowed.has(rid));
+        const allAllowed = uniqueRecipients.every((rid) => allowed.has(rid));
         if (!allAllowed) {
           return res.status(403).json({
             ok: false,
@@ -2417,12 +2470,12 @@ async function handleNotifications(req, res, session, actor) {
       const now = Date.now();
       const batch = db.batch();
       const results = [];
-      for (const rid of recipients) {
+      for (const rid of uniqueRecipients) {
         const notif = {
           recipientId: rid,
           type: body.type || "GENERAL",
           message: body.message,
-          link: body.link || "",
+          link: normalizeInternalLink(body.link),
           entityId: body.entityId || "",
           entityType: body.entityType || "",
           read: false,

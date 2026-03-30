@@ -2166,9 +2166,19 @@
       sidebarCheck.checked =
         localStorage.getItem("sidebarCollapsed") !== "true";
     }
+    var darkCheck = document.getElementById("settingDarkMode");
+    if (darkCheck) {
+      darkCheck.checked =
+        typeof app.getThemeMode === "function" &&
+        app.getThemeMode() === "dark";
+    }
   };
 
   window.saveSettings = function () {
+    var darkCheckbox = document.getElementById("settingDarkMode");
+    if (darkCheckbox && typeof app.setTheme === "function") {
+      app.setTheme(darkCheckbox.checked ? "dark" : "light");
+    }
     var sidebarCheckbox = document.getElementById("settingSidebarExpanded");
     if (sidebarCheckbox) {
       if (sidebarCheckbox.checked) {

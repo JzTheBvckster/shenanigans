@@ -3,6 +3,59 @@
     'use strict';
 
     var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    var THEME_STORAGE_KEY = 'shenanigans.theme';
+    var THEME_ICONS = {
+        dark: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21 12.79A9 9 0 0 1 11.21 3c0-.34.02-.67.06-1A1 1 0 0 0 10 1a10 10 0 1 0 13 13 1 1 0 0 0-2-.21z"/></svg>',
+        light: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.76 4.84 5.34 3.42 3.92 4.84l1.42 1.42 1.42-1.42zM1 13h3v-2H1v2zm10 10h2v-3h-2v3zm7.66-18.16-1.42-1.42-1.42 1.42 1.42 1.42 1.42-1.42zM17.24 19.16l1.42 1.42 1.42-1.42-1.42-1.42-1.42 1.42zM20 13h3v-2h-3v2zM11 4h2V1h-2v3zm1 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm-7.66 10.16-1.42 1.42 1.42 1.42 1.42-1.42-1.42-1.42z"/></svg>'
+    };
+
+    function readStoredTheme() {
+        try {
+            var stored = localStorage.getItem(THEME_STORAGE_KEY);
+            return stored === 'dark' || stored === 'light' ? stored : '';
+        } catch (_err) {
+            return '';
+        }
+    }
+
+    function getSystemTheme() {
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+        }
+        return 'light';
+    }
+
+    function getThemeMode() {
+        var active = document.documentElement.getAttribute('data-theme');
+        if (active === 'dark' || active === 'light') return active;
+        return readStoredTheme() || getSystemTheme();
+    }
+
+    function syncThemeButton() {
+        var btn = document.getElementById('authThemeBtn');
+        var isDark = getThemeMode() === 'dark';
+        if (!btn) return;
+        btn.innerHTML = '<span class="theme-toggle-icon">' + (isDark ? THEME_ICONS.light : THEME_ICONS.dark) + '</span>'
+            + '<span class="theme-toggle-label">' + (isDark ? 'Light Mode' : 'Dark Mode') + '</span>';
+        btn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+        btn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+    }
+
+    function applyTheme(mode, persist) {
+        var nextMode = mode === 'dark' || mode === 'light' ? mode : getSystemTheme();
+        document.documentElement.setAttribute('data-theme', nextMode);
+        document.body.classList.toggle('dark-mode', nextMode === 'dark');
+        if (persist !== false) {
+            try {
+                localStorage.setItem(THEME_STORAGE_KEY, nextMode);
+            } catch (_err) {
+                /* ignore storage failures */
+            }
+        }
+        syncThemeButton();
+    }
+
+    applyTheme(getThemeMode(), false);
 
     // Check if already authenticated
     checkSession();
@@ -17,6 +70,31 @@
     if (showLoginLink) showLoginLink.addEventListener('click', function (e) { e.preventDefault(); showForm('login'); });
     if (forgotPasswordLink) forgotPasswordLink.addEventListener('click', function (e) { e.preventDefault(); showForm('forgot'); });
     if (backToLoginLink) backToLoginLink.addEventListener('click', function (e) { e.preventDefault(); showForm('login'); });
+    syncThemeButton();
+
+    window.toggleAuthTheme = function () {
+        applyTheme(getThemeMode() === 'dark' ? 'light' : 'dark');
+    };
+
+    window.addEventListener('storage', function (event) {
+        if (event.key === THEME_STORAGE_KEY) {
+            applyTheme(getThemeMode(), false);
+        }
+    });
+
+    if (window.matchMedia) {
+        var media = window.matchMedia('(prefers-color-scheme: dark)');
+        var onThemeMediaChange = function () {
+            if (!readStoredTheme()) {
+                applyTheme(getSystemTheme(), false);
+            }
+        };
+        if (typeof media.addEventListener === 'function') {
+            media.addEventListener('change', onThemeMediaChange);
+        } else if (typeof media.addListener === 'function') {
+            media.addListener(onThemeMediaChange);
+        }
+    }
 
     // Enter key support
     document.getElementById('loginPassword').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
