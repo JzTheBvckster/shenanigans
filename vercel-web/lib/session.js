@@ -60,9 +60,10 @@ function setSessionCookie(res, sessionId) {
 }
 
 function clearSessionCookie(res) {
+    const isSecure = String((res.req && res.req.headers["x-forwarded-proto"]) || "").includes("https");
     res.setHeader(
         "Set-Cookie",
-        `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`
+        `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${isSecure ? "; Secure" : ""}`
     );
 }
 

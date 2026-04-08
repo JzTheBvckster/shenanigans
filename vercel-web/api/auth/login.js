@@ -44,7 +44,7 @@ module.exports = withSecurity(async function handler(req, res) {
                 uid: authResp.localId,
                 email: authResp.email,
                 displayName: authResp.displayName || safeEmail.split("@")[0],
-                role: "PROJECT_MANAGER",
+                role: "EMPLOYEE",
                 mdApproved: false,
             };
             await db.collection("users").doc(authResp.localId).set(user);

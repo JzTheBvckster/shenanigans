@@ -92,17 +92,17 @@ module.exports = withSecurity(async function handler(req, res) {
     };
     await db.collection("users").doc(authResp.localId).set(user);
 
-    const pendingApproval = true;
 
-    if (pendingApproval) {
-      return res.status(201).json({
-        ok: true,
-        data: {
-          pendingApproval: true,
-          message: "Registration submitted and waiting for Managing Director approval.",
-        },
-      });
-    }
+
+
+
+
+
+
+
+
+
+
 
     const sessionId = await createSession(user, authResp.idToken, authResp.refreshToken);
     setSessionCookie(res, sessionId);

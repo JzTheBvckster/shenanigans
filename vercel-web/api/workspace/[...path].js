@@ -2067,7 +2067,7 @@ async function handleComments(req, res, session, actor) {
       }
       // Only author or managers can delete
       if (
-        session.user.role === "EMPLOYEE" &&
+        isEmployee(actor) &&
         doc.data().authorId !== session.user.uid
       ) {
         return res.status(403).json({ ok: false, error: "Access denied." });
@@ -2544,7 +2544,6 @@ async function handleNotifications(req, res, session, actor) {
 // ---------------------------------------------------------------------------
 async function handleMilestones(req, res, session, actor) {
   const method = req.method;
-  const role = session.user.role;
   const COLLECTION = "milestones";
 
   const milestoneId = parseResourceIdFromUrl(req.url, "milestones");
@@ -2597,7 +2596,7 @@ async function handleMilestones(req, res, session, actor) {
     }
 
     case "POST": {
-      if (role === "EMPLOYEE") {
+      if (isEmployee(actor)) {
         return res
           .status(403)
           .json({ ok: false, error: "Only managers can create milestones." });
@@ -2641,7 +2640,7 @@ async function handleMilestones(req, res, session, actor) {
     }
 
     case "PUT": {
-      if (role === "EMPLOYEE") {
+      if (isEmployee(actor)) {
         return res
           .status(403)
           .json({ ok: false, error: "Only managers can update milestones." });
@@ -2704,7 +2703,7 @@ async function handleMilestones(req, res, session, actor) {
     }
 
     case "DELETE": {
-      if (role === "EMPLOYEE") {
+      if (isEmployee(actor)) {
         return res
           .status(403)
           .json({ ok: false, error: "Only managers can delete milestones." });

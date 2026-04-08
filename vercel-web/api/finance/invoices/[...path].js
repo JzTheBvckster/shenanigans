@@ -1,6 +1,7 @@
 const { db } = require("../../../lib/firebase");
 const { requireSession } = require("../../../lib/session");
 const { withSecurity } = require("../../../lib/security");
+const { getActorContext, isManagingDirector } = require("../../../lib/access");
 const { isValidDocId } = require("../../../lib/sanitize");
 
 const COLLECTION = "invoices";
@@ -9,7 +10,8 @@ module.exports = withSecurity(async function handler(req, res) {
   const session = await requireSession(req, res);
   if (!session) return;
 
-  if (session.user.role !== "MANAGING_DIRECTOR") {
+  const actor = await getActorContext(session);
+  if (!isManagingDirector(actor)) {
     return res.status(403).json({
       ok: false,
       error: "Finance data is restricted to Managing Directors.",
@@ -89,8 +91,12 @@ module.exports = withSecurity(async function handler(req, res) {
       }
       if (Object.prototype.hasOwnProperty.call(body, "paid")) {
         body.paid = !!body.paid;
+        const now = Date.now();
+        body.createdAt = now;
+        body.updatedAt = now;
       }
-      delete body.id;
+        delete body.id;
+        body.updatedAt = Date.now();
       await db.collection(COLLECTION).doc(entityId).update(body);
       return res.status(200).json({ ok: true, data: { id: entityId } });
     }

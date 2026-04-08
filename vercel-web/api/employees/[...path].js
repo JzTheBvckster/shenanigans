@@ -311,12 +311,12 @@ module.exports = withSecurity(
             userIds.map((id) => db.collection("users").doc(id).get()),
           );
           for (const doc of userDocs) {
-            if (!doc.exists) return;
+            if (!doc.exists) continue;
             const user = doc.data() || {};
             const userDept = await resolveUserDepartment(doc.id, user);
-            if (user.role !== "EMPLOYEE") return;
-            if (user.mdApproved !== true || user.pmApproved === true) return;
-            if (!canAccessDepartment(actor, userDept)) return;
+            if (user.role !== "EMPLOYEE") continue;
+            if (user.mdApproved !== true || user.pmApproved === true) continue;
+            if (!canAccessDepartment(actor, userDept)) continue;
             batch.update(doc.ref, {
               pmApproved: true,
               pmApprovedAt: now,

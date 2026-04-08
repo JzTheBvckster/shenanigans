@@ -698,7 +698,7 @@ var ShenanigansApp = (function () {
             + '<span class="menu-btn-text">My Workspace &rarr;</span></a>'
             + '</div>'
             + '<div class="sidebar-spacer"></div>'
-            + buildSystemInfoCard();
+            + '</div>' + buildSystemInfoCard();
 
         return html;
     }
@@ -714,7 +714,7 @@ var ShenanigansApp = (function () {
             + menuBtn('/workspace/documents', 'empDocuments', 'documents', 'Documents', activePage)
             + menuBtn('/workspace/team', 'empTeam', 'team', 'My Team', activePage)
             + menuBtn('/workspace/profile', 'empProfile', 'profile', 'My Profile', activePage)
-            + buildSystemInfoCard();
+            + '</div>' + buildSystemInfoCard();
 
         return html;
     }
@@ -730,7 +730,7 @@ var ShenanigansApp = (function () {
             + menuBtn('/pm-workspace/requests', 'pmRequests', 'requests', 'Leave Requests', activePage)
             + menuBtn('/pm-workspace/documents', 'pmDocuments', 'documents', 'Documents', activePage)
             + menuBtn('/pm-workspace/profile', 'pmProfile', 'profile', 'My Profile', activePage)
-            + buildSystemInfoCard();
+            + '</div>' + buildSystemInfoCard();
 
         return html;
     }
