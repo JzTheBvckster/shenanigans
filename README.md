@@ -1,384 +1,380 @@
-# Shenanigans - Enterprise Management System
+# Shenanigans Management System
 
-A modern enterprise management system for managing employees, projects, finances, and company operations. Available as both a JavaFX desktop application and a web application deployed on Vercel.
+A role-based enterprise management platform running on Vercel + Firebase.
 
-![Java](https://img.shields.io/badge/Java-25-orange)
-![JavaFX](https://img.shields.io/badge/JavaFX-25.0.2-blue)
-![Firebase](https://img.shields.io/badge/Firebase-Admin%20SDK-yellow)
-![Maven](https://img.shields.io/badge/Maven-Build-red)
-![Vercel](https://img.shields.io/badge/Vercel-Deployed-black)
+The project currently ships as a web application with serverless APIs under `vercel-web/`.
 
-## Features
+## Current Scope
 
-### Authentication
-- Secure user registration and login with Firebase Authentication
-- Role-based access control (Managing Director, Project Manager, Employee)
-- Real-time field validation with modern security standards
-- Password requirements: 8+ characters, uppercase, lowercase, digit, special character
-- Email format validation (RFC 5322 compliant)
-- Password reset functionality
+- Web application with role-specific workspaces:
+  - Managing Director: `/app`
+  - Project Manager: `/pm-workspace`
+  - Employee: `/workspace`
+- Firebase-backed authentication and data storage
+- Serverless API layer with security middleware, rate limiting, and request sanitization
+- Project approval and automatic lifecycle status management
 
-### Employee Management
-- Complete CRUD operations for employee records
-- Employee directory with search functionality
-- Kanban board view by status (Active, On Leave, Terminated)
-- Department and position management
-- Hire date tracking and salary management
-- Automatic employee record creation on registration
+## Highlights
 
-### Project Management
-- Full project lifecycle management
-- Status tracking (Planning, In Progress, Completed, On Hold, Cancelled)
-- Priority levels (Low, Medium, High, Critical)
-- Progress tracking with visual progress bars
-- Budget and spending management
-- Start and end date tracking with overdue alerts
-- Project manager assignment
-- Team member management
+### Authentication and Access Control
 
-### Finance
-- Invoice management with CRUD operations
-- Kanban board view (Due / Outstanding, Paid)
-- Toggle paid/unpaid status
-- CSV export functionality
-- Revenue tracking across the dashboard
+- Email/password sign-in and registration via Firebase Auth REST API
+- Firestore user profiles with role metadata
+- Two-stage approvals for access:
+  - Managing Director approval (`mdApproved`) for non-MD users
+  - Project Manager approval (`pmApproved`) for employees
+- HttpOnly, SameSite=Strict session cookie (`SHENANIGANS_SESSION`) with Firestore-backed session records
 
-### Dashboard
-- Key metrics: Total Employees, Active Projects, Open Invoices, Revenue
-- Performance Snapshot with budget utilization
-- Revenue Trend chart (configurable 3/6/12 month range)
-- Project Status distribution chart
-- Project overview with progress bars
-- Recent activity feed
-- Approval queue for Managing Directors
+### Role Workspaces
 
-### Settings
-- Dark mode toggle
-- Sidebar layout preferences
-- Notification preferences with auto-refresh interval
-- Account information and approval status
-- Session management
+- Managing Director workspace:
+  - User approvals
+  - Employee management
+  - Project governance (including approve/reject project requests)
+  - Finance and reporting views
+- Project Manager workspace:
+  - Team operations (tasks, requests, timesheets, team chat)
+  - Project requests and updates (department-scoped)
+- Employee workspace:
+  - Personal tasks, projects, timesheet, requests, documents, profile
 
-### Modern UI/UX
-- Professional gradient-based design
-- Light and dark theme support
-- Responsive card-based layouts
-- Status badges with color coding
-- Smooth hover animations
-- Consistent design across desktop and web
+### Project Lifecycle (Current Behavior)
 
-## Architecture
+Projects use approval state plus timeline/progress signals to derive status automatically.
 
-### Desktop Application (JavaFX)
+- Approval states: `PENDING`, `APPROVED`, `REJECTED`
+- Derived statuses: `PENDING_APPROVAL`, `PLANNING`, `IN_PROGRESS`, `ON_HOLD`, `COMPLETED`, `ARCHIVED`
+- `ARCHIVED` is explicitly controlled (MD only)
+- PM project creation is restricted to the PM's own department
+- MD approval action is binary: `YES` (approve) or `NO` (reject)
 
-```
-src/main/java/com/example/shenanigans/
-  core/
-    firebase/
-      FirebaseAuthClient.java      # REST API client for Firebase Auth
-      FirebaseConfig.java          # Configuration loader
-      FirebaseInitializer.java     # Firebase Admin SDK setup
-    navigation/
-      NavigationService.java       # View navigation
-    session/
-      SessionManager.java          # User session management
-    settings/
-      SettingsManager.java         # App settings persistence
-    theme/
-      ThemeManager.java            # Light/dark theme switching
+## Repository Layout
 
-  features/
-    auth/
-      controller/                  # Login and registration UI
-      model/User.java              # User model
-      service/AuthService.java     # Authentication logic
-
-    dashboard/
-      controller/                  # Main dashboard with charts
-
-    employee_dashboard/
-      controller/                  # Employee-specific view
-
-    employees/
-      controller/                  # Employee CRUD UI
-      model/Employee.java          # Employee model
-      service/EmployeeService.java # Firestore operations
-
-    projects/
-      controller/                  # Project CRUD UI
-      model/Project.java           # Project model
-      service/ProjectService.java  # Firestore operations
-
-    finance/
-      controller/                  # Invoice management UI
-      model/Invoice.java           # Invoice model
-      service/FinanceService.java  # Firestore operations
-
-    settings/
-      controller/                  # Settings UI
-
-  App.java                         # Main application class
-  Launcher.java                    # Application entry point
-```
-
-### Web Application (Vercel)
-
-```
-vercel-web/
-  api/
-    auth/
-      login.js                     # Authentication endpoint
-      register.js                  # Registration endpoint
-      session.js                   # Session validation
-      logout.js                    # Session termination
-      forgot-password.js           # Password reset
-    dashboard/
-      summary.js                   # Dashboard aggregation
-    employees/
-      [...path].js                 # Employee CRUD API
-    projects/
-      [...path].js                 # Project CRUD API
-    finance/
-      invoices/
-        [...path].js               # Invoice CRUD API
-    health.js                      # Health check
-
-  public/
-    app.html                       # Main application shell
-    index.html                     # Login page
-    assets/
-      app.js                       # Application logic
-      login.js                     # Login logic
-      styles.css                   # Styling
-
-  lib/
-    firebase.js                    # Firebase Admin SDK init
-    session.js                     # Session middleware
-```
-
-## Getting Started
-
-### Prerequisites
-
-- **Java 25** or higher
-- **Maven 3.6+**
-- **Node.js 18+** (for web deployment)
-- **Firebase Project** with:
-  - Authentication enabled (Email/Password)
-  - Firestore Database
-  - Service Account Key
-
-### Firebase Setup
-
-1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
-
-2. Enable **Email/Password** authentication in Authentication > Sign-in method
-
-3. Create a **Firestore Database** in production or test mode
-
-4. Generate a service account key:
-   - Go to Project Settings > Service Accounts
-   - Click "Generate new private key"
-   - Save the JSON file
-
-5. Configure the application:
-
-   Copy your service account JSON to:
-   ```
-   src/main/resources/firebase/serviceAccountKey.json
-   ```
-
-   Create `src/main/resources/firebase/firebase.properties`:
-   ```properties
-   firebase.project.id=your-project-id
-   firebase.api.key=your-web-api-key
-   firebase.service.account=firebase/serviceAccountKey.json
-   ```
-
-### Running the Desktop Application
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/shenanigans.git
-   cd shenanigans
-   ```
-
-2. **Configure Firebase** (see above)
-
-3. **Build the project**
-   ```bash
-   mvnw.cmd clean install
-   ```
-
-4. **Run the application**
-   ```bash
-   mvnw.cmd javafx:run
-   ```
-
-### Running the Web Application
-
-1. **Install dependencies**
-   ```bash
-   cd vercel-web
-   npm install
-   ```
-
-2. **Configure environment** - set Firebase credentials in your Vercel project or local `.env`
-
-3. **Deploy to Vercel**
-   ```bash
-   vercel --prod
-   ```
-
-   Or run locally with:
-   ```bash
-   vercel dev
-   ```
-
-## Project Structure
-
-```
+```text
 shenanigans/
-  src/
-    main/
-      java/com/example/shenanigans/
-        core/               # Core utilities (Firebase, Session, Navigation, Theme)
-        features/           # Feature modules (auth, dashboard, employees, projects, finance, settings)
-        App.java
-        Launcher.java
-      resources/
-        com/example/shenanigans/features/
-          auth/             # Auth views and styles
-          dashboard/        # Dashboard views and styles
-          employees/        # Employee views and styles
-          projects/         # Project views and styles
-          finance/          # Finance views and styles
-          settings/         # Settings views and styles
-        firebase/           # Firebase configuration
-    test/
-      java/                 # Unit tests
+  .github/
+  .mvn/
+  logs/
+  src/                          # Reserved/legacy folder (currently no active app source)
   vercel-web/
-    api/                    # Node.js serverless functions
-    public/                 # Static web frontend
-    lib/                    # Shared utilities
-  pom.xml
+    api/
+      auth/
+        login.js
+        register.js
+        logout.js
+        session.js
+        forgot-password.js
+      dashboard/
+        summary.js
+      employees/
+        [...path].js
+      projects/
+        [...path].js
+      finance/
+        invoices/
+          [...path].js
+      workspace/
+        [...path].js
+      health.js
+    lib/
+      access.js
+      firebase.js
+      firebase-rest-auth.js
+      project-lifecycle.js
+      rate-limit.js
+      sanitize.js
+      security.js
+      session.js
+    public/
+      app/                       # Managing Director pages
+      pm-workspace/              # Project Manager pages
+      workspace/                 # Employee pages
+      assets/                    # shared JS/CSS
+      app.html
+      index.html
+    package.json
+    vercel.json
   README.md
+  LICENSE
 ```
 
-## Security Features
+## API Surface
 
-- **Password Hashing**: Firebase handles secure password storage
-- **Session Management**: Secure token-based session handling
-- **Role-Based Access**: Different views and permissions per role
-- **Input Validation**: Real-time validation prevents invalid data entry
-- **CSRF Protection**: Server-side session cookies (web)
+### Auth
 
-## User Roles
+- `POST /api/auth/login`
+- `POST /api/auth/register`
+- `POST /api/auth/logout`
+- `GET /api/auth/session`
+- `POST /api/auth/forgot-password`
 
-| Role | Employees | Projects | Finance | Approvals | Settings |
-|------|-----------|----------|---------|-----------|----------|
-| Managing Director | Full Access | Full Access | Full Access | Approve users | Full |
-| Project Manager | Full Access | Full Access | No Access | -- | Full |
-| Employee | Own Dashboard | Assigned Only | No Access | -- | Full |
+### Core
 
-## Technology Stack
+- `GET /api/health`
+- `GET /api/dashboard/summary`
 
-- **Language**: Java 25
-- **Desktop UI**: JavaFX 25.0.2 with FXML + CSS
-- **Web Frontend**: Vanilla HTML/CSS/JS with Chart.js
-- **Web Backend**: Node.js serverless functions (Vercel)
-- **Database**: Firebase Firestore
-- **Authentication**: Firebase Auth
-- **Build Tool**: Maven (desktop), npm (web)
-- **Hosting**: Vercel
-- **Testing**: JUnit 5
+### Business APIs
 
-## Firestore Collections
+- `GET|POST|PUT|DELETE /api/employees...`
+- `GET|POST|PUT|DELETE /api/projects...`
+- `GET|POST|PUT|DELETE /api/finance/invoices...` (MD only)
+- `GET|POST|PUT|DELETE /api/workspace/...`
+
+Workspace API resources currently include:
+
+- `timesheets`
+- `leave-requests`
+- `documents`
+- `tasks`
+- `comments`
+- `activity-logs`
+- `notifications`
+- `milestones`
+- `team-chat`
+
+## Security Model
+
+Implemented in request middleware and route handlers:
+
+- Security headers (`X-Frame-Options`, `X-Content-Type-Options`, CSP in `vercel.json`, etc.)
+- Same-origin checks for non-GET/HEAD mutations
+- Content-type enforcement for JSON requests
+- Rate limiting per client key
+- Input sanitization for body/query
+- Role and department authorization in API handlers
+
+## Prerequisites
+
+- Node.js 18+
+- npm
+- Vercel CLI (recommended for local and production workflows)
+- Firebase project with:
+  - Authentication enabled (Email/Password)
+  - Firestore database
+  - Service account credentials
+
+## Environment Variables
+
+Set these for local `vercel dev` and production Vercel project settings:
+
+- `FIREBASE_API_KEY`
+- `FIREBASE_SERVICE_ACCOUNT_JSON`
+
+`FIREBASE_SERVICE_ACCOUNT_JSON` must be the full service-account JSON string. Newline sequences in `private_key` can be escaped (`\\n`), and are normalized by the app.
+
+## Local Development
+
+1. Install dependencies:
+
+```bash
+cd vercel-web
+npm install
+```
+
+2. Configure environment variables (Vercel env or local setup).
+
+3. Run locally:
+
+```bash
+vercel dev
+```
+
+4. Open app:
+
+- Login page: `http://localhost:3000/`
+- Health check: `http://localhost:3000/api/health`
+
+## Deployment
+
+Deploy from `vercel-web/`:
+
+```bash
+vercel --prod
+```
+
+Routing, static pages, API mapping, and security headers are defined in `vercel-web/vercel.json`.
+
+## Data Model Snapshot
 
 ### `users`
-```json
-{
-  "uid": "string",
-  "email": "string",
-  "displayName": "string",
-  "role": "MANAGING_DIRECTOR | PROJECT_MANAGER | EMPLOYEE",
-  "mdApproved": "boolean",
-  "createdAt": "timestamp"
-}
-```
+
+- `uid`, `email`, `displayName`
+- `role`: `MANAGING_DIRECTOR | PROJECT_MANAGER | EMPLOYEE`
+- `department`
+- `mdApproved`, `pmApproved`
+- `createdAt`
 
 ### `employees`
-```json
-{
-  "firstName": "string",
-  "lastName": "string",
-  "email": "string",
-  "phone": "string",
-  "department": "string",
-  "position": "string",
-  "status": "ACTIVE | ON_LEAVE | TERMINATED",
-  "salary": "number",
-  "hireDate": "timestamp",
-  "mdApproved": "boolean",
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp"
-}
-```
+
+- Profile and HR fields (name, department, position, status, salary, hire date)
+- Timestamps and approval-related synchronization fields
 
 ### `projects`
-```json
+
+- Ownership, department, staffing, budget, schedule, and progress fields
+- Lifecycle fields:
+  - `approvalStatus`
+  - `status` (derived)
+  - `scheduleProgressPercentage`
+  - `overdue`
+- Approval metadata:
+  - `submissionSnapshot`, `submittedForApprovalAt`
+  - reviewer identity/timestamps/notes
+  - approval and rejection metadata
+
+### `invoices`
+
+- `client`, `amount`, `paid`, `projectId`, `department`, timestamps
+
+### Additional operational collections
+
+Used by workspace capabilities and sessioning, including:
+
+- `web_sessions`
+- task/comment/activity/milestone/notification/team chat related collections
+
+## API Examples
+
+The examples below are representative payloads for common workflows.
+
+### 1) Login
+
+Request:
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+
 {
-  "name": "string",
-  "description": "string",
-  "status": "PLANNING | IN_PROGRESS | COMPLETED | ON_HOLD | CANCELLED",
-  "priority": "LOW | MEDIUM | HIGH | CRITICAL",
-  "projectManager": "string",
-  "projectManagerId": "string",
-  "department": "string",
-  "budget": "number",
-  "spent": "number",
-  "completionPercentage": "number",
-  "startDate": "timestamp",
-  "endDate": "timestamp",
-  "teamMemberIds": ["string"],
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp"
+  "email": "pm@company.com",
+  "password": "StrongPass123!"
 }
 ```
 
-### `invoices`
+Success response (`200`):
+
 ```json
 {
-  "client": "string",
-  "amount": "number",
-  "paid": "boolean",
-  "projectId": "string",
-  "issuedAt": "timestamp"
+  "ok": true,
+  "data": {
+    "user": {
+      "uid": "abc123",
+      "email": "pm@company.com",
+      "displayName": "Pat Manager",
+      "role": "PROJECT_MANAGER",
+      "department": "Engineering",
+      "mdApproved": true,
+      "pmApproved": true
+    },
+    "redirect": "/pm-workspace"
+  }
 }
 ```
+
+Pending-approval response (`403`):
+
+```json
+{
+  "ok": false,
+  "error": "Your account is pending Managing Director approval."
+}
+```
+
+### 2) Project Approval (MD yes/no decision)
+
+Request:
+
+```http
+PUT /api/projects/{projectId}
+Content-Type: application/json
+
+{
+  "approvalDecision": "YES",
+  "approvalNote": "Approved for Q2 rollout."
+}
+```
+
+Success response (`200`):
+
+```json
+{
+  "ok": true,
+  "data": {
+    "id": "projectDocId"
+  }
+}
+```
+
+Reject example:
+
+```json
+{
+  "approvalDecision": "NO",
+  "approvalNote": "Budget details need clarification."
+}
+```
+
+### 3) Task Status Update (Workspace)
+
+Request:
+
+```http
+PUT /api/workspace/tasks/{taskId}
+Content-Type: application/json
+
+{
+  "status": "UNDER_REVIEW",
+  "submissionNotes": "Implementation complete, ready for review."
+}
+```
+
+Success response (`200`):
+
+```json
+{
+  "ok": true,
+  "data": {
+    "id": "taskDocId",
+    "projectId": "projectDocId",
+    "status": "UNDER_REVIEW",
+    "submissionNotes": "Implementation complete, ready for review.",
+    "updatedAt": 1760000000000
+  }
+}
+```
+
+### 4) Health Check
+
+Request:
+
+```http
+GET /api/health
+```
+
+Response (`200`):
+
+```json
+{
+  "ok": true,
+  "data": {
+    "status": "UP",
+    "platform": "vercel"
+  }
+}
+```
+
+## Notes
+
+- The repository contains legacy scaffolding under `src/`, but active runtime code is currently in `vercel-web/`.
+- For contributor updates, prioritize keeping this README aligned with API behavior and role workflows whenever lifecycle or approval logic changes.
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+1. Create a feature branch.
+2. Make focused changes with tests/checks where applicable.
+3. Validate impacted APIs and UI flows.
+4. Open a pull request.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- [JavaFX](https://openjfx.io/) - Desktop UI Framework
-- [Firebase](https://firebase.google.com/) - Backend Services
-- [Chart.js](https://www.chartjs.org/) - Web Charts
-- [Vercel](https://vercel.com/) - Web Hosting
-- [Maven](https://maven.apache.org/) - Build Automation
-
----
-
-<p align="center">
-  Made with JavaFX and Firebase
-</p>
+MIT License. See `LICENSE`.

@@ -1,53 +1,53 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Documents</title>
+    <link rel="stylesheet" href="/assets/styles.css?v=20" />
+  </head>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documents ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â Shenanigans</title>
-    <link rel="stylesheet" href="/assets/styles.css?v=20">
-</head>
-
-<body>
+  <body>
     <div class="app-shell" id="appShell">
-        <header class="app-header" id="appHeader"></header>
-        <aside class="app-sidebar" id="appSidebar"></aside>
+      <header class="app-header" id="appHeader"></header>
+      <aside class="app-sidebar" id="appSidebar"></aside>
 
-        <main class="app-content" id="appContent">
-            <section class="page-view" id="pageEmpDocuments">
-                <div class="page-header">
-                    <h2>Documents</h2>
-                    <p>Quick access to employee and project documents</p>
-                </div>
-                <div class="stats-row" id="empDocsStats"></div>
-                <div class="content-grid">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Company Documents</h3>
-                        </div>
-                        <div id="empCompanyDocs"></div>
-                    </div>
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Project Briefs</h3>
-                        </div>
-                        <div id="empProjectDocs"></div>
-                    </div>
-                </div>
-            </section>
-        </main>
+      <main class="app-content" id="appContent">
+        <section class="page-view" id="pageEmpDocuments">
+          <div class="page-header">
+            <h2>Documents</h2>
+            <p>Quick access to employee and project documents</p>
+          </div>
+          <div class="stats-row" id="empDocsStats"></div>
+          <div class="content-grid">
+            <div class="card">
+              <div class="card-header">
+                <h3>Company Documents</h3>
+              </div>
+              <div id="empCompanyDocs"></div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3>Project Briefs</h3>
+              </div>
+              <div id="empProjectDocs"></div>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
 
     <script src="/assets/shared.js?v=15"></script>
     <script src="/assets/employee.js?v=6"></script>
     <script>
-        ShenanigansApp.init({
-            sidebar: 'employee',
-            activePage: 'empDocuments',
-            subtitle: 'Employee Workspace',
-            onReady: function () { loadEmpDocuments(); }
-        });
+      ShenanigansApp.init({
+        sidebar: "employee",
+        activePage: "empDocuments",
+        subtitle: "Employee Workspace",
+        onReady: function () {
+          loadEmpDocuments();
+        },
+      });
     </script>
-</body>
-
+  </body>
 </html>

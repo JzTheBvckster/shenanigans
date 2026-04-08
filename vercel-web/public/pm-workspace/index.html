@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Managed Projects</title>
-    <link rel="stylesheet" href="/assets/styles.css?v=20" />
+    <link rel="stylesheet" href="/assets/styles.css?v=21" />
   </head>
 
   <body>
@@ -49,7 +49,7 @@
     <div class="modal-overlay hidden" id="pmCreateProjectModal">
       <div class="modal-card">
         <div class="modal-header">
-          <h3>Create Project</h3>
+          <h3 id="pmCreateProjectTitle">Create Project</h3>
           <button
             class="modal-close"
             onclick="closeModal('pmCreateProjectModal')"
@@ -58,6 +58,7 @@
           </button>
         </div>
         <div class="modal-body">
+          <p class="modal-helper hidden" id="pmCreateProjectHint"></p>
           <div class="modal-field">
             <label>Project Name *</label
             ><input type="text" id="pmProjName" placeholder="Project Alpha" />
@@ -208,7 +209,7 @@
       </div>
     </div>
 
-    <script src="/assets/shared.js?v=15"></script>
+    <script src="/assets/shared.js?v=16"></script>
     <script src="/assets/pm.js?v=18"></script>
     <script>
       ShenanigansApp.init({

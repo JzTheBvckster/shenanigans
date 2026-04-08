@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Projects</title>
-    <link rel="stylesheet" href="/assets/styles.css?v=20" />
+    <link rel="stylesheet" href="/assets/styles.css?v=21" />
   </head>
 
   <body>
@@ -40,7 +40,6 @@
                 <option value="IN_PROGRESS">In Progress</option>
                 <option value="COMPLETED">Completed</option>
                 <option value="ON_HOLD">On Hold</option>
-                <option value="CANCELLED">Cancelled</option>
               </select>
             </div>
             <div class="filter-item filter-item-wide">
@@ -93,6 +92,7 @@
         </div>
         <div class="modal-body">
           <input type="hidden" id="projId" />
+          <p class="modal-helper hidden" id="projModalHint"></p>
           <div class="modal-field">
             <label>Project Name *</label
             ><input type="text" id="projName" placeholder="Project Alpha" />
@@ -105,21 +105,13 @@
               placeholder="Project description..."
             ></textarea>
           </div>
-          <div class="modal-field">
+          <div class="modal-field" id="projDepartmentField">
             <label>Department</label
             ><select id="projDepartment"></select>
           </div>
-          <div class="modal-field">
-            <label>Status</label>
-            <select id="projStatus">
-              <option value="PENDING_APPROVAL">Pending Approval</option>
-              <option value="PLANNING">Planning</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="ARCHIVED">Archived</option>
-              <option value="ON_HOLD">On Hold</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
+          <div class="modal-field" id="projAutoStatusField">
+            <label>Automatic Status</label>
+            <input type="text" id="projAutoStatus" readonly />
           </div>
           <div class="modal-field">
             <label>Priority</label>
@@ -140,7 +132,7 @@
                 step="0.01"
               />
             </div>
-            <div class="modal-field">
+            <div class="modal-field" id="projSpentField">
               <label>Spent</label
               ><input
                 type="number"
@@ -150,7 +142,7 @@
               />
             </div>
           </div>
-          <div class="modal-field">
+          <div class="modal-field" id="projCompletionField">
             <label>Completion %</label
             ><input
               type="number"
@@ -167,6 +159,15 @@
             <div class="modal-field">
               <label>End Date</label><input type="date" id="projEndDate" />
             </div>
+          </div>
+          <p class="modal-helper hidden" id="projApprovalSummary"></p>
+          <div class="modal-field hidden" id="projApprovalReviewField">
+            <label>Approval Review Note (Optional)</label>
+            <textarea
+              id="projApprovalNote"
+              rows="3"
+              placeholder="Add context for approve/reject decision"
+            ></textarea>
           </div>
           <div class="modal-notice" id="projModalNotice"></div>
         </div>
@@ -185,6 +186,20 @@
           >
             Archive
           </button>
+          <button
+            class="btn-modal-delete hidden"
+            id="projRejectBtn"
+            onclick="reviewProjectApproval('NO')"
+          >
+            Reject
+          </button>
+          <button
+            class="btn-modal-save hidden"
+            id="projApproveBtn"
+            onclick="reviewProjectApproval('YES')"
+          >
+            Approve
+          </button>
           <div class="modal-footer-spacer"></div>
           <button class="btn-modal-cancel" onclick="closeModal('projectModal')">
             Cancel
@@ -200,7 +215,7 @@
       </div>
     </div>
 
-    <script src="/assets/shared.js?v=15"></script>
+    <script src="/assets/shared.js?v=16"></script>
     <script src="/assets/admin.js?v=8"></script>
     <script>
       ShenanigansApp.init({
@@ -213,11 +228,24 @@
           initProjectFilters();
           loadProjects();
           setupSearchFilter(filterProjectCards);
-          document
-            .getElementById("headerAddBtn")
-            .addEventListener("click", function () {
-              openProjectModal(null);
-            });
+          var addBtn = document.getElementById("headerAddBtn");
+          if (!addBtn) return;
+
+          var role = (ShenanigansApp.currentUser || {}).role || "";
+          var canCreate =
+            ShenanigansApp.isMD() || ShenanigansApp.isProjectManagerRole(role);
+
+          if (!canCreate) {
+            addBtn.classList.add("hidden");
+            return;
+          }
+
+          addBtn.textContent = ShenanigansApp.isMD()
+            ? "+ Add Project"
+            : "+ Request Project";
+          addBtn.addEventListener("click", function () {
+            openProjectModal(null);
+          });
         },
       });
     </script>

@@ -9,6 +9,10 @@ const {
   isProjectManager,
 } = require("../../lib/access");
 const { isValidDocId } = require("../../lib/sanitize");
+const {
+  deriveProjectLifecycle,
+  normalizeApprovalStatus,
+} = require("../../lib/project-lifecycle");
 
 const COLLECTION = "projects";
 const ALLOWED_PROJECT_STATUSES = new Set([
@@ -19,21 +23,6 @@ const ALLOWED_PROJECT_STATUSES = new Set([
   "COMPLETED",
   "ARCHIVED",
 ]);
-
-const STATUS_TRANSITIONS = {
-  PENDING_APPROVAL: new Set([
-    "PENDING_APPROVAL",
-    "PLANNING",
-    "IN_PROGRESS",
-    "ON_HOLD",
-    "ARCHIVED",
-  ]),
-  PLANNING: new Set(["PLANNING", "IN_PROGRESS", "ON_HOLD", "ARCHIVED"]),
-  IN_PROGRESS: new Set(["IN_PROGRESS", "ON_HOLD", "COMPLETED", "ARCHIVED"]),
-  ON_HOLD: new Set(["ON_HOLD", "PLANNING", "IN_PROGRESS", "ARCHIVED"]),
-  COMPLETED: new Set(["COMPLETED", "ARCHIVED"]),
-  ARCHIVED: new Set(["ARCHIVED"]),
-};
 
 function normalizeTeamMemberIds(ids) {
   if (!Array.isArray(ids)) return [];
@@ -129,6 +118,27 @@ function normalizeRole(value) {
     .replace(/\s+/g, "_");
 }
 
+function normalizeApprovalDecision(value) {
+  const raw = String(value === undefined ? "" : value)
+    .trim()
+    .toUpperCase();
+  if (!raw) return "";
+  if (["YES", "APPROVE", "APPROVED", "TRUE"].includes(raw)) return "YES";
+  if (["NO", "REJECT", "REJECTED", "FALSE"].includes(raw)) return "NO";
+  return "";
+}
+
+function applyLifecycleState(target, baseline) {
+  const lifecycle = deriveProjectLifecycle({
+    ...(baseline || {}),
+    ...(target || {}),
+  });
+  target.status = lifecycle.status;
+  target.approvalStatus = lifecycle.approvalStatus;
+  target.scheduleProgressPercentage = lifecycle.scheduleProgressPercentage;
+  target.overdue = lifecycle.overdue;
+}
+
 async function resolveProjectCreatorRole(project) {
   const directRole = normalizeRole(project && project.createdByRole);
   if (directRole) return directRole;
@@ -172,6 +182,10 @@ module.exports = withSecurity(
       case "GET": {
         const snapshot = await db.collection(COLLECTION).get();
         let projects = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+        projects = projects.map((project) => ({
+          ...project,
+          ...deriveProjectLifecycle(project),
+        }));
         if (!isManagingDirector(actor)) {
           projects = projects.filter((p) =>
             canAccessDepartment(actor, p.department),
@@ -240,26 +254,13 @@ module.exports = withSecurity(
             .json({ ok: false, error: "teamMemberIds contains invalid IDs." });
         }
 
-        const requestedStatus = String(body.status || "PLANNING").toUpperCase();
-        if (!ALLOWED_PROJECT_STATUSES.has(requestedStatus)) {
-          return res
-            .status(400)
-            .json({ ok: false, error: "Invalid project status." });
-        }
-        if (!isManagingDirector(actor) && requestedStatus === "ARCHIVED") {
-          return res.status(403).json({
-            ok: false,
-            error: "Only Managing Directors can archive projects.",
-          });
-        }
-
         body.teamMemberIds = normalizedTeamMemberIds;
         body.budget = budget;
         body.spent = spent;
         body.completionPercentage = completionPercentage;
         body.startDate = startDate || 0;
         body.endDate = endDate || 0;
-        body.status = requestedStatus;
+        delete body.status;
 
         if (!isManagingDirector(actor)) {
           if (!actor.department) {
@@ -289,11 +290,40 @@ module.exports = withSecurity(
         const now = Date.now();
         body.createdAt = now;
         body.updatedAt = now;
-        if (!body.status) body.status = "PLANNING";
         body.createdById = session.user.uid || "";
         body.createdByName =
           session.user.displayName || session.user.email || "";
         body.createdByRole = normalizeRole(actor.role || session.user.role);
+        body.approvalRequired = !isManagingDirector(actor);
+        body.approvalStatus = isManagingDirector(actor)
+          ? "APPROVED"
+          : "PENDING";
+        if (body.approvalStatus === "APPROVED") {
+          body.approvedAt = now;
+          body.approvedById = session.user.uid || "";
+          body.approvedByName =
+            session.user.displayName || session.user.email || "";
+        } else {
+          body.submittedForApprovalAt = now;
+          body.submissionSnapshot = {
+            name: body.name || "",
+            description: body.description || "",
+            department: body.department || "",
+            priority: body.priority || "MEDIUM",
+            budget: body.budget || 0,
+            spent: body.spent || 0,
+            completionPercentage: body.completionPercentage || 0,
+            startDate: body.startDate || 0,
+            endDate: body.endDate || 0,
+            teamMemberIds: Array.isArray(body.teamMemberIds)
+              ? body.teamMemberIds
+              : [],
+            submittedById: body.createdById,
+            submittedByName: body.createdByName,
+            submittedAt: now,
+          };
+        }
+        applyLifecycleState(body);
         if (!body.projectManagerId) body.projectManagerId = "";
         const docRef = await db.collection(COLLECTION).add(body);
         return res.status(201).json({ ok: true, data: { id: docRef.id } });
@@ -326,9 +356,106 @@ module.exports = withSecurity(
         if (!isManagingDirector(actor)) {
           delete body.department;
         }
-
-        const forceStatusTransition = !!body.forceStatusTransition;
         delete body.forceStatusTransition;
+
+        if (Object.prototype.hasOwnProperty.call(body, "name")) {
+          const name = String(body.name || "").trim();
+          if (!name) {
+            return res
+              .status(400)
+              .json({ ok: false, error: "Project name is required." });
+          }
+          body.name = name;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(body, "status")) {
+          const requestedStatus = String(body.status || "").toUpperCase();
+          if (!ALLOWED_PROJECT_STATUSES.has(requestedStatus)) {
+            return res
+              .status(400)
+              .json({ ok: false, error: "Invalid project status." });
+          }
+          if (requestedStatus !== "ARCHIVED") {
+            return res.status(400).json({
+              ok: false,
+              error:
+                "Project status is calculated automatically and cannot be set manually.",
+            });
+          }
+          if (!isManagingDirector(actor)) {
+            return res.status(403).json({
+              ok: false,
+              error: "Only Managing Directors can archive projects.",
+            });
+          }
+          body.status = "ARCHIVED";
+        }
+
+        const decisionInput =
+          body.approvalDecision !== undefined
+            ? body.approvalDecision
+            : body.approved;
+        const hasApprovalDecisionInput =
+          Object.prototype.hasOwnProperty.call(body, "approvalDecision") ||
+          Object.prototype.hasOwnProperty.call(body, "approved");
+        const approvalDecision = normalizeApprovalDecision(decisionInput);
+        if (hasApprovalDecisionInput && !approvalDecision) {
+          return res.status(400).json({
+            ok: false,
+            error: "approvalDecision must be YES or NO.",
+          });
+        }
+        const approvalNote = String(body.approvalNote || "")
+          .trim()
+          .slice(0, 1600);
+        delete body.approvalDecision;
+        delete body.approvalNote;
+        delete body.approved;
+
+        if (approvalDecision) {
+          if (!isManagingDirector(actor)) {
+            return res.status(403).json({
+              ok: false,
+              error: "Only Managing Directors can review project approvals.",
+            });
+          }
+          const now = Date.now();
+          body.approvalReviewedAt = now;
+          body.approvalReviewedById = session.user.uid || "";
+          body.approvalReviewedByName =
+            session.user.displayName || session.user.email || "";
+          body.approvalReviewNote = approvalNote;
+          if (approvalDecision === "YES") {
+            body.approvalStatus = "APPROVED";
+            body.approvedAt = now;
+            body.approvedById = session.user.uid || "";
+            body.approvedByName =
+              session.user.displayName || session.user.email || "";
+            body.rejectedAt = null;
+            body.rejectedById = "";
+            body.rejectedByName = "";
+          } else {
+            body.approvalStatus = "REJECTED";
+            body.rejectedAt = now;
+            body.rejectedById = session.user.uid || "";
+            body.rejectedByName =
+              session.user.displayName || session.user.email || "";
+          }
+        }
+
+        if (!isManagingDirector(actor)) {
+          delete body.approvedAt;
+          delete body.approvedById;
+          delete body.approvedByName;
+          delete body.rejectedAt;
+          delete body.rejectedById;
+          delete body.rejectedByName;
+          delete body.approvalReviewedAt;
+          delete body.approvalReviewedById;
+          delete body.approvalReviewedByName;
+          delete body.approvalReviewNote;
+          delete body.approvalStatus;
+        }
 
         let teamMemberIdsChanged = false;
         let normalizedTeamMemberIds = null;
@@ -393,45 +520,6 @@ module.exports = withSecurity(
             });
           }
           body.completionPercentage = completionPercentage;
-        }
-        if (Object.prototype.hasOwnProperty.call(body, "status")) {
-          const nextStatus = String(body.status || "").toUpperCase();
-          if (!ALLOWED_PROJECT_STATUSES.has(nextStatus)) {
-            return res
-              .status(400)
-              .json({ ok: false, error: "Invalid project status." });
-          }
-          const currentStatus = String(
-            existing.status || "PLANNING",
-          ).toUpperCase();
-          const allowed =
-            STATUS_TRANSITIONS[currentStatus] || new Set([currentStatus]);
-
-          if (
-            !isManagingDirector(actor) &&
-            currentStatus === "PENDING_APPROVAL" &&
-            nextStatus !== "PENDING_APPROVAL"
-          ) {
-            return res.status(403).json({
-              ok: false,
-              error: "Only Managing Directors can approve pending projects.",
-            });
-          }
-          if (!isManagingDirector(actor) && nextStatus === "ARCHIVED") {
-            return res.status(403).json({
-              ok: false,
-              error: "Only Managing Directors can archive projects.",
-            });
-          }
-          if (!allowed.has(nextStatus)) {
-            if (!(isManagingDirector(actor) && forceStatusTransition)) {
-              return res.status(400).json({
-                ok: false,
-                error: `Invalid status transition from ${currentStatus} to ${nextStatus}.`,
-              });
-            }
-          }
-          body.status = nextStatus;
         }
         if (Object.prototype.hasOwnProperty.call(body, "startDate")) {
           const startDate = parsePositiveTimestampOrZero(body.startDate);
@@ -520,6 +608,68 @@ module.exports = withSecurity(
               ok: false,
               error: departmentValidation.error,
               details: departmentValidation.details || {},
+            });
+          }
+        }
+
+        if (!isManagingDirector(actor)) {
+          const existingApproval = normalizeApprovalStatus(existing);
+          if (existingApproval !== "APPROVED") {
+            const now = Date.now();
+            body.approvalStatus = "PENDING";
+            body.submittedForApprovalAt = now;
+            body.submissionSnapshot = {
+              name: Object.prototype.hasOwnProperty.call(body, "name")
+                ? body.name
+                : existing.name || "",
+              description: Object.prototype.hasOwnProperty.call(
+                body,
+                "description",
+              )
+                ? body.description || ""
+                : existing.description || "",
+              department: Object.prototype.hasOwnProperty.call(
+                body,
+                "department",
+              )
+                ? body.department || ""
+                : existing.department || "",
+              priority: Object.prototype.hasOwnProperty.call(body, "priority")
+                ? body.priority || "MEDIUM"
+                : existing.priority || "MEDIUM",
+              budget: effectiveBudget,
+              spent: effectiveSpent,
+              completionPercentage: Object.prototype.hasOwnProperty.call(
+                body,
+                "completionPercentage",
+              )
+                ? body.completionPercentage
+                : Math.max(
+                    0,
+                    Math.min(100, Number(existing.completionPercentage) || 0),
+                  ),
+              startDate: effectiveStartDate,
+              endDate: effectiveEndDate,
+              teamMemberIds: teamMemberIdsChanged
+                ? normalizedTeamMemberIds || []
+                : normalizeTeamMemberIds(existing.teamMemberIds || []) || [],
+              submittedById: session.user.uid || "",
+              submittedByName:
+                session.user.displayName || session.user.email || "",
+              submittedAt: now,
+            };
+          }
+        }
+
+        if (body.status !== "ARCHIVED") {
+          applyLifecycleState(body, existing);
+        } else {
+          body.overdue = false;
+          body.archivedAt = Date.now();
+          if (!body.approvalStatus) {
+            body.approvalStatus = normalizeApprovalStatus({
+              ...existing,
+              ...body,
             });
           }
         }

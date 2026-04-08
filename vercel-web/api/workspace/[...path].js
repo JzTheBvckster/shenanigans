@@ -10,6 +10,7 @@ const {
   normalizeRole,
 } = require("../../lib/access");
 const { isValidDocId } = require("../../lib/sanitize");
+const { deriveProjectLifecycle } = require("../../lib/project-lifecycle");
 
 /**
  * Consolidated workspace API handler.
@@ -237,7 +238,8 @@ function normalizeAttachmentList(rawAttachments, options) {
     const claimedSize = Math.round(Number(item.size) || 0);
     const mimeType =
       normalizeText(item.mimeType || item.type || "", 120) ||
-      ((encoded && encoded.mimeType) || extractMimeTypeFromDataUrl(dataUrl)) ||
+      (encoded && encoded.mimeType) ||
+      extractMimeTypeFromDataUrl(dataUrl) ||
       "application/octet-stream";
 
     if (!encoded || !actualSize) {
@@ -460,11 +462,15 @@ async function ensureLeaveAllowance(employee, request, excludeRequestId) {
   if (overlapping) {
     return {
       ok: false,
-      error: "This leave request overlaps an existing pending or approved request.",
+      error:
+        "This leave request overlaps an existing pending or approved request.",
     };
   }
 
-  const years = getYearsCoveredByRange(request.startDateKey, request.endDateKey);
+  const years = getYearsCoveredByRange(
+    request.startDateKey,
+    request.endDateKey,
+  );
   for (const year of years) {
     const requestedDays = getLeaveDaysWithinYear(request, year);
     if (!requestedDays) continue;
@@ -556,55 +562,42 @@ async function syncProjectProgressFromTasks(projectId) {
     else if (status === "IN_PROGRESS") summary.inProgress += 1;
     else summary.todo += 1;
 
-    if (
-      task.dueDate &&
-      Number(task.dueDate) < now &&
-      status !== "COMPLETED"
-    ) {
+    if (task.dueDate && Number(task.dueDate) < now && status !== "COMPLETED") {
       summary.overdue += 1;
     }
   });
 
   const currentStatus = String(project.status || "PLANNING").toUpperCase();
-  const lockedStatuses = new Set(["PENDING_APPROVAL", "ON_HOLD", "ARCHIVED"]);
   let completionPercentage = 0;
-  let nextStatus = currentStatus;
 
   if (summary.total === 0) {
     completionPercentage = currentStatus === "COMPLETED" ? 100 : 0;
-    if (!lockedStatuses.has(currentStatus) && currentStatus !== "COMPLETED") {
-      nextStatus = "PLANNING";
-    }
   } else {
     completionPercentage = Math.round(
       (summary.completed / summary.total) * 100,
     );
-    if (!lockedStatuses.has(currentStatus)) {
-      if (summary.completed === summary.total) {
-        nextStatus = "COMPLETED";
-      } else if (
-        summary.inProgress > 0 ||
-        summary.underReview > 0 ||
-        summary.completed > 0
-      ) {
-        nextStatus = "IN_PROGRESS";
-      } else {
-        nextStatus = "PLANNING";
-      }
-    }
   }
+
+  const lifecycle = deriveProjectLifecycle({
+    ...project,
+    completionPercentage,
+    taskSummary: summary,
+  });
+  const nextStatus = String(lifecycle.status || currentStatus).toUpperCase();
 
   const update = {
     completionPercentage,
     taskSummary: summary,
+    status: nextStatus,
+    approvalStatus: lifecycle.approvalStatus,
+    scheduleProgressPercentage: lifecycle.scheduleProgressPercentage,
+    overdue: lifecycle.overdue,
     updatedAt: Date.now(),
   };
 
-  if (nextStatus !== currentStatus) {
-    update.status = nextStatus;
-  }
   if (nextStatus === "COMPLETED") {
-    update.completedAt = parsePositiveTimestamp(project.completedAt) || Date.now();
+    update.completedAt =
+      parsePositiveTimestamp(project.completedAt) || Date.now();
   } else if (currentStatus === "COMPLETED") {
     update.completedAt = null;
   }
@@ -745,9 +738,7 @@ function buildTeamChatNotificationLink(role, roomScope) {
     normalizeRole(role) === "PROJECT_MANAGER"
       ? "/pm-workspace/team"
       : "/workspace/team";
-  const query = roomScope
-    ? `?chatScope=${encodeURIComponent(roomScope)}`
-    : "";
+  const query = roomScope ? `?chatScope=${encodeURIComponent(roomScope)}` : "";
   return `${base}${query}#teamChatCard`;
 }
 
@@ -824,7 +815,9 @@ async function createTeamChatNotifications(session, options) {
     candidateIds = await Promise.all(
       []
         .concat(options.projectManagerId || "")
-        .concat(Array.isArray(options.teamMemberIds) ? options.teamMemberIds : [])
+        .concat(
+          Array.isArray(options.teamMemberIds) ? options.teamMemberIds : [],
+        )
         .map(resolveUserAccountId),
     );
   } else {
@@ -925,7 +918,8 @@ async function handleTimesheets(req, res, session, actor) {
         return res.status(400).json({ ok: false, error: "Invalid projectId." });
       }
       const dateTs = parsePositiveTimestamp(body.date);
-      const dateKey = normalizeDateKey(body.dateKey) || dateKeyFromTimestamp(dateTs);
+      const dateKey =
+        normalizeDateKey(body.dateKey) || dateKeyFromTimestamp(dateTs);
       if (!dateTs || !dateKey) {
         return res
           .status(400)
@@ -956,9 +950,7 @@ async function handleTimesheets(req, res, session, actor) {
       const taskId = String(body.taskId || "").trim();
       if (taskId) {
         if (!isValidDocId(taskId)) {
-          return res
-            .status(400)
-            .json({ ok: false, error: "Invalid taskId." });
+          return res.status(400).json({ ok: false, error: "Invalid taskId." });
         }
         const taskDoc = await db.collection("tasks").doc(taskId).get();
         if (!taskDoc.exists) {
@@ -1006,7 +998,9 @@ async function handleTimesheets(req, res, session, actor) {
         dateKey,
         hours: hours,
         taskId: taskId || "",
-        taskTitle: linkedTask ? linkedTask.title || "" : normalizeText(body.taskTitle, 180),
+        taskTitle: linkedTask
+          ? linkedTask.title || ""
+          : normalizeText(body.taskTitle, 180),
         description: normalizeText(body.description, MAX_DESCRIPTION_LENGTH),
         createdAt: now,
         updatedAt: now,
@@ -1128,13 +1122,11 @@ async function handleLeaveRequests(req, res, session, actor) {
         });
       }
       const todayKey = getTodayDateKey();
-      if (
-        leaveType !== "SICK" &&
-        startDateKey < todayKey
-      ) {
+      if (leaveType !== "SICK" && startDateKey < todayKey) {
         return res.status(400).json({
           ok: false,
-          error: "Annual and personal leave must be requested before the leave starts.",
+          error:
+            "Annual and personal leave must be requested before the leave starts.",
         });
       }
       const reason = normalizeText(body.reason, MAX_REASON_LENGTH);
@@ -1163,7 +1155,8 @@ async function handleLeaveRequests(req, res, session, actor) {
       if (policy.requiresDocument && supportingDocuments.length === 0) {
         return res.status(400).json({
           ok: false,
-          error: "Sick leave requests require a supporting medical certificate.",
+          error:
+            "Sick leave requests require a supporting medical certificate.",
         });
       }
 
@@ -1181,7 +1174,8 @@ async function handleLeaveRequests(req, res, session, actor) {
       ) {
         return res.status(400).json({
           ok: false,
-          error: "Your current employee status does not allow new leave requests.",
+          error:
+            "Your current employee status does not allow new leave requests.",
         });
       }
 
@@ -1235,9 +1229,7 @@ async function handleLeaveRequests(req, res, session, actor) {
     case "PUT": {
       const body = req.body || {};
       if (!body.id) {
-        return res
-          .status(400)
-          .json({ ok: false, error: "id is required." });
+        return res.status(400).json({ ok: false, error: "id is required." });
       }
       if (!isValidDocId(String(body.id))) {
         return res
@@ -1252,9 +1244,7 @@ async function handleLeaveRequests(req, res, session, actor) {
 
       if (isEmployee(actor)) {
         if (String(reqData.employeeId || "") !== String(uid)) {
-          return res
-            .status(403)
-            .json({ ok: false, error: "Access denied." });
+          return res.status(403).json({ ok: false, error: "Access denied." });
         }
         if (String(reqData.status || "").toUpperCase() !== "PENDING") {
           return res.status(400).json({
@@ -1263,12 +1253,15 @@ async function handleLeaveRequests(req, res, session, actor) {
           });
         }
         const now = Date.now();
-        await db.collection(COLLECTION).doc(body.id).update({
-          status: "CANCELLED",
-          cancelledAt: now,
-          cancelledBy: session.user.displayName || session.user.email || "",
-          updatedAt: now,
-        });
+        await db
+          .collection(COLLECTION)
+          .doc(body.id)
+          .update({
+            status: "CANCELLED",
+            cancelledAt: now,
+            cancelledBy: session.user.displayName || session.user.email || "",
+            updatedAt: now,
+          });
         await syncEmployeeLeaveStatus(reqData.employeeId);
         return res.status(200).json({
           ok: true,
@@ -1281,7 +1274,10 @@ async function handleLeaveRequests(req, res, session, actor) {
           .status(400)
           .json({ ok: false, error: "status is required." });
       }
-      if (!isManagingDirector(actor) && !canAccessDepartment(actor, reqData.department)) {
+      if (
+        !isManagingDirector(actor) &&
+        !canAccessDepartment(actor, reqData.department)
+      ) {
         return res
           .status(403)
           .json({ ok: false, error: "Access denied for this department." });
@@ -1307,9 +1303,10 @@ async function handleLeaveRequests(req, res, session, actor) {
           employeeId && isValidDocId(employeeId)
             ? await db.collection("employees").doc(employeeId).get()
             : null;
-        const employee = employeeDoc && employeeDoc.exists
-          ? { id: employeeDoc.id, ...employeeDoc.data() }
-          : null;
+        const employee =
+          employeeDoc && employeeDoc.exists
+            ? { id: employeeDoc.id, ...employeeDoc.data() }
+            : null;
         const allowanceCheck = await ensureLeaveAllowance(
           employee,
           {
@@ -1615,12 +1612,10 @@ async function handleTasks(req, res, session, actor) {
       };
       const docRef = await db.collection(COLLECTION).add(task);
       await syncProjectProgressFromTasks(task.projectId);
-      return res
-        .status(201)
-        .json({
-          ok: true,
-          data: serializeTask({ id: docRef.id, ...task }, true),
-        });
+      return res.status(201).json({
+        ok: true,
+        data: serializeTask({ id: docRef.id, ...task }, true),
+      });
     }
 
     case "PUT": {
@@ -1659,7 +1654,8 @@ async function handleTasks(req, res, session, actor) {
         if (!canEmployeeUpdateTaskStatus(existing.status, nextStatus)) {
           return res.status(400).json({
             ok: false,
-            error: "This task cannot move to that status from its current state.",
+            error:
+              "This task cannot move to that status from its current state.",
           });
         }
 
@@ -1722,12 +1718,10 @@ async function handleTasks(req, res, session, actor) {
             senderName: session.user.displayName || session.user.email || "",
           });
         }
-        return res
-          .status(200)
-          .json({
-            ok: true,
-            data: serializeTask({ id: taskId, ...existing, ...update }, true),
-          });
+        return res.status(200).json({
+          ok: true,
+          data: serializeTask({ id: taskId, ...existing, ...update }, true),
+        });
       }
 
       const body = req.body || {};
@@ -1748,7 +1742,10 @@ async function handleTasks(req, res, session, actor) {
         update.title = title;
       }
       if (body.description !== undefined) {
-        update.description = normalizeText(body.description, MAX_DESCRIPTION_LENGTH);
+        update.description = normalizeText(
+          body.description,
+          MAX_DESCRIPTION_LENGTH,
+        );
       }
       if (body.assignedTo !== undefined) {
         if (body.assignedTo && !isValidDocId(String(body.assignedTo))) {
@@ -1811,12 +1808,16 @@ async function handleTasks(req, res, session, actor) {
         );
       }
       if (body.reviewNotes !== undefined) {
-        update.reviewNotes = normalizeText(body.reviewNotes, MAX_TASK_NOTES_LENGTH);
+        update.reviewNotes = normalizeText(
+          body.reviewNotes,
+          MAX_TASK_NOTES_LENGTH,
+        );
       }
 
       if (body.assignedTo !== undefined && body.assignedTo) {
         const projectToValidate =
-          targetProject || (await getProjectById(update.projectId || existing.projectId));
+          targetProject ||
+          (await getProjectById(update.projectId || existing.projectId));
         if (!projectToValidate) {
           return res.status(400).json({
             ok: false,
@@ -1871,7 +1872,10 @@ async function handleTasks(req, res, session, actor) {
           if (body.reviewNotes === undefined) {
             update.reviewNotes = "Changes requested.";
           }
-        } else if (currentStatus === "COMPLETED" && nextStatus !== "COMPLETED") {
+        } else if (
+          currentStatus === "COMPLETED" &&
+          nextStatus !== "COMPLETED"
+        ) {
           update.reviewedAt = null;
           update.reviewedBy = "";
           update.reviewedByName = "";
@@ -1910,12 +1914,10 @@ async function handleTasks(req, res, session, actor) {
         });
       }
 
-      return res
-        .status(200)
-        .json({
-          ok: true,
-          data: serializeTask({ id: taskId, ...existing, ...update }, true),
-        });
+      return res.status(200).json({
+        ok: true,
+        data: serializeTask({ id: taskId, ...existing, ...update }, true),
+      });
     }
 
     case "DELETE": {
@@ -2066,10 +2068,7 @@ async function handleComments(req, res, session, actor) {
         return res.status(404).json({ ok: false, error: "Comment not found." });
       }
       // Only author or managers can delete
-      if (
-        isEmployee(actor) &&
-        doc.data().authorId !== session.user.uid
-      ) {
+      if (isEmployee(actor) && doc.data().authorId !== session.user.uid) {
         return res.status(403).json({ ok: false, error: "Access denied." });
       }
       if (
@@ -2163,12 +2162,10 @@ async function handleTeamChat(req, res, session, actor) {
 
       const targetDepartment = resolveTargetDepartment(query.department);
       if (!targetDepartment) {
-        return res
-          .status(400)
-          .json({
-            ok: false,
-            error: "A department is required for team chat.",
-          });
+        return res.status(400).json({
+          ok: false,
+          error: "A department is required for team chat.",
+        });
       }
       if (
         !isManagingDirector(actor) &&
@@ -2223,12 +2220,10 @@ async function handleTeamChat(req, res, session, actor) {
             .json({ ok: false, error: "Message text is required." });
         }
         if (text.length > 1000) {
-          return res
-            .status(400)
-            .json({
-              ok: false,
-              error: "Message must be under 1000 characters.",
-            });
+          return res.status(400).json({
+            ok: false,
+            error: "Message must be under 1000 characters.",
+          });
         }
 
         const now = Date.now();
@@ -2262,12 +2257,10 @@ async function handleTeamChat(req, res, session, actor) {
 
       const targetDepartment = resolveTargetDepartment(body.department);
       if (!targetDepartment) {
-        return res
-          .status(400)
-          .json({
-            ok: false,
-            error: "A department is required for team chat.",
-          });
+        return res.status(400).json({
+          ok: false,
+          error: "A department is required for team chat.",
+        });
       }
       if (
         !isManagingDirector(actor) &&
@@ -2428,9 +2421,7 @@ async function handleNotifications(req, res, session, actor) {
           : [];
       const uniqueRecipients = Array.from(
         new Set(
-          recipients
-            .map((rid) => String(rid || "").trim())
-            .filter(Boolean),
+          recipients.map((rid) => String(rid || "").trim()).filter(Boolean),
         ),
       );
       if (!body.message) {

@@ -1405,6 +1405,14 @@
         : (p.status || "").toUpperCase() === "IN_PROGRESS"
           ? "badge-blue"
           : "badge-muted";
+    var approvalStatus = normalizeProjectApprovalStatus(p);
+    var approvalBadgeHtml = "";
+    if (approvalStatus === "PENDING") {
+      approvalBadgeHtml =
+        '<span class="badge badge-orange">Awaiting Approval</span>';
+    } else if (approvalStatus === "REJECTED") {
+      approvalBadgeHtml = '<span class="badge badge-red">Rejected</span>';
+    }
 
     var dueHtml = "";
     if (p.endDate) {
@@ -1449,6 +1457,7 @@
       '">' +
       app.esc(status) +
       "</span> " +
+      approvalBadgeHtml +
       '<span class="card-priority ' +
       priorityClass +
       '">' +
@@ -1464,38 +1473,179 @@
     );
   }
 
+  function setProjectModalHint(message) {
+    var hint = document.getElementById("projModalHint");
+    if (!hint) return;
+    hint.textContent = message || "";
+    hint.classList.toggle("hidden", !message);
+  }
+
+  function setProjectApprovalSummary(message) {
+    var info = document.getElementById("projApprovalSummary");
+    if (!info) return;
+    info.textContent = message || "";
+    info.classList.toggle("hidden", !message);
+  }
+
+  function normalizeProjectApprovalStatus(project) {
+    var status = String((project && project.approvalStatus) || "")
+      .trim()
+      .toUpperCase();
+    if (
+      status === "APPROVED" ||
+      status === "PENDING" ||
+      status === "REJECTED"
+    ) {
+      return status;
+    }
+    if (project && project.isApproved === true) return "APPROVED";
+    if (
+      project &&
+      (project.rejectedAt ||
+        String(project.approvalDecision || "")
+          .trim()
+          .toUpperCase() === "NO")
+    ) {
+      return "REJECTED";
+    }
+    return "PENDING";
+  }
+
+  function buildProjectApprovalSummary(project) {
+    if (!project) return "";
+    var snapshot = project.submissionSnapshot || {};
+    var submittedBy =
+      snapshot.submittedByName ||
+      project.createdByName ||
+      project.projectManager ||
+      "Unknown";
+    var submittedAt =
+      snapshot.submittedAt ||
+      project.submittedForApprovalAt ||
+      project.createdAt ||
+      0;
+    var department = snapshot.department || project.department || "Unassigned";
+    var budget = Number(snapshot.budget || project.budget || 0);
+    var startDate = snapshot.startDate || project.startDate || 0;
+    var endDate = snapshot.endDate || project.endDate || 0;
+    var parts = [
+      "Submitted by " + submittedBy,
+      "Department: " + department,
+      "Budget: $" + app.formatMoney(budget),
+    ];
+    if (submittedAt)
+      parts.push("Submitted: " + app.formatTimestamp(submittedAt));
+    if (startDate || endDate) {
+      parts.push(
+        "Timeline: " +
+          (startDate ? app.formatTimestamp(startDate) : "TBD") +
+          " -> " +
+          (endDate ? app.formatTimestamp(endDate) : "TBD"),
+      );
+    }
+    return parts.join(" | ");
+  }
+
+  function showProjectApprovalControls(show) {
+    var rejectBtn = document.getElementById("projRejectBtn");
+    var approveBtn = document.getElementById("projApproveBtn");
+    var reviewField = document.getElementById("projApprovalReviewField");
+    if (rejectBtn) rejectBtn.classList.toggle("hidden", !show);
+    if (approveBtn) approveBtn.classList.toggle("hidden", !show);
+    if (reviewField) reviewField.classList.toggle("hidden", !show);
+  }
+
+  function canReviewProjectApproval(project, isManagingDirector) {
+    if (!project || !isManagingDirector) return false;
+    var approvalStatus = normalizeProjectApprovalStatus(project);
+    return approvalStatus === "PENDING";
+  }
+
   // ---- Project Modal ----
   window.openProjectModal = function (id) {
     app.clearModalNotice("projModalNotice");
+    setProjectModalHint("");
+    setProjectApprovalSummary("");
     var isEdit = !!id;
-    document.getElementById("projectModalTitle").textContent = isEdit
-      ? "Edit Project"
-      : "Add Project";
-    document
-      .getElementById("projDeleteBtn")
-      .classList.toggle("hidden", !isEdit);
-    // Archive button: show only for COMPLETED projects
-    var archiveBtn = document.getElementById("projArchiveBtn");
+    var isManagingDirector = app.isMD();
+    var canCreateProject =
+      isManagingDirector ||
+      app.isProjectManagerRole((app.currentUser || {}).role || "");
+    if (!isEdit && !canCreateProject) {
+      app.showToast("You are not allowed to create projects.", "error");
+      return;
+    }
 
-    // Populate department select
+    var titleEl = document.getElementById("projectModalTitle");
+    var saveBtn = document.getElementById("projSaveBtn");
     var deptSel = document.getElementById("projDepartment");
+    var autoStatusEl = document.getElementById("projAutoStatus");
+    var deleteBtn = document.getElementById("projDeleteBtn");
+    var archiveBtn = document.getElementById("projArchiveBtn");
+    var approvalNoteEl = document.getElementById("projApprovalNote");
+    if (approvalNoteEl) approvalNoteEl.value = "";
+    showProjectApprovalControls(false);
+
+    titleEl.textContent = isEdit
+      ? "Edit Project"
+      : isManagingDirector
+        ? "Create Project"
+        : "Request New Project";
+    if (saveBtn) {
+      saveBtn.textContent = isEdit
+        ? isManagingDirector
+          ? "Save Changes"
+          : "Save Update"
+        : isManagingDirector
+          ? "Create Project"
+          : "Submit for Approval";
+      saveBtn.disabled = false;
+    }
+
+    if (deleteBtn) {
+      deleteBtn.classList.toggle("hidden", !(isEdit && isManagingDirector));
+    }
+
+    var spentField = document.getElementById("projSpentField");
+    var completionField = document.getElementById("projCompletionField");
+    if (spentField) spentField.classList.toggle("hidden", !isEdit);
+    if (completionField) completionField.classList.toggle("hidden", !isEdit);
+
+    var hintMessage = "";
+    if (autoStatusEl) {
+      autoStatusEl.value = isManagingDirector
+        ? "Will be calculated automatically"
+        : "Pending approval until reviewed";
+    }
 
     if (isEdit) {
       var proj = findCached("projects", id);
       if (proj) {
-        if (archiveBtn)
+        var approvalStatus = normalizeProjectApprovalStatus(proj);
+        if (archiveBtn) {
           archiveBtn.classList.toggle(
             "hidden",
-            (proj.status || "").toUpperCase() !== "COMPLETED",
+            !isManagingDirector ||
+              (proj.status || "").toUpperCase() !== "COMPLETED",
           );
+        }
         document.getElementById("projId").value = proj.id || "";
         document.getElementById("projName").value = proj.name || "";
         document.getElementById("projDescription").value =
           proj.description || "";
-        deptSel.innerHTML = app.deptOptions(proj.department || "");
-        document.getElementById("projStatus").value = (
-          proj.status || "PLANNING"
-        ).toUpperCase();
+        if (isManagingDirector) {
+          deptSel.innerHTML = app.deptOptions(proj.department || "");
+          deptSel.disabled = false;
+        } else {
+          var pmDepartment = String(
+            (app.currentUser || {}).department || "",
+          ).trim();
+          deptSel.innerHTML = app.deptOptions(
+            pmDepartment || proj.department || "",
+          );
+          deptSel.value = pmDepartment || proj.department || "";
+          deptSel.disabled = true;
+        }
         document.getElementById("projPriority").value = (
           proj.priority || "MEDIUM"
         ).toUpperCase();
@@ -1509,6 +1659,33 @@
         document.getElementById("projEndDate").value = proj.endDate
           ? app.toDateInput(proj.endDate)
           : "";
+        if (autoStatusEl) {
+          autoStatusEl.value = app.formatStatus(proj.status || "PLANNING");
+        }
+        if (approvalNoteEl) {
+          approvalNoteEl.value = proj.approvalReviewNote || "";
+        }
+
+        var summaryText = buildProjectApprovalSummary(proj);
+        if (summaryText) setProjectApprovalSummary(summaryText);
+
+        var showApprovalActions = canReviewProjectApproval(
+          proj,
+          isManagingDirector,
+        );
+        showProjectApprovalControls(showApprovalActions);
+        if (showApprovalActions) {
+          hintMessage =
+            "Review the submitted details below, then approve or reject with an optional note.";
+        } else if (approvalStatus === "REJECTED") {
+          hintMessage =
+            "This project request was rejected. Update the details and save to resubmit for approval.";
+        }
+
+        if (!isManagingDirector) {
+          hintMessage =
+            "Project manager edits follow approval workflow; project status updates automatically from progress and timeline.";
+        }
       }
     } else {
       if (archiveBtn) archiveBtn.classList.add("hidden");
@@ -1523,18 +1700,51 @@
       ].forEach(function (fid) {
         document.getElementById(fid).value = "";
       });
-      deptSel.innerHTML = app.deptOptions("");
-      document.getElementById("projStatus").value = "PENDING_APPROVAL";
+
+      if (isManagingDirector) {
+        deptSel.innerHTML = app.deptOptions("");
+        deptSel.disabled = false;
+      } else {
+        var userDept = String((app.currentUser || {}).department || "").trim();
+        deptSel.innerHTML = app.deptOptions(userDept);
+        deptSel.value = userDept;
+        deptSel.disabled = true;
+        hintMessage =
+          "This request will be submitted as Pending Approval for Managing Director review.";
+      }
+
       document.getElementById("projPriority").value = "MEDIUM";
       document.getElementById("projCompletion").value = "0";
+      document.getElementById("projSpent").value = "0";
     }
+
+    if (!isManagingDirector) {
+      var department = String((app.currentUser || {}).department || "").trim();
+      if (!department) {
+        hintMessage =
+          "Your account is missing a department. Ask a Managing Director to assign your department before creating projects.";
+        if (saveBtn) saveBtn.disabled = true;
+      }
+    }
+
+    if (isManagingDirector && !isEdit) {
+      hintMessage =
+        "Create projects directly. Status will be calculated automatically from schedule and progress.";
+    }
+
+    setProjectModalHint(hintMessage);
     document.getElementById("projectModal").classList.remove("hidden");
   };
 
   window.saveProject = function () {
     app.clearModalNotice("projModalNotice");
+    setProjectModalHint("");
     var saveBtn = document.getElementById("projSaveBtn");
     if (saveBtn && saveBtn.disabled) return;
+    var isManagingDirector = app.isMD();
+    var id = document.getElementById("projId").value;
+    var isEdit = !!id;
+
     var name = document.getElementById("projName").value.trim();
     if (!name) {
       app.showModalNotice(
@@ -1545,17 +1755,24 @@
       return;
     }
 
-    var department = document.getElementById("projDepartment").value;
+    var department = isManagingDirector
+      ? document.getElementById("projDepartment").value
+      : String((app.currentUser || {}).department || "").trim();
     if (!department) {
       app.showModalNotice(
         "projModalNotice",
-        "Department is required.",
+        isManagingDirector
+          ? "Department is required."
+          : "Your account must have a department assigned before creating a project.",
         "error",
       );
       return;
     }
+
     var budget = parseFloat(document.getElementById("projBudget").value);
-    var spent = parseFloat(document.getElementById("projSpent").value);
+    var spent = isEdit
+      ? parseFloat(document.getElementById("projSpent").value)
+      : 0;
     var safeBudget = isNaN(budget) ? 0 : budget;
     var safeSpent = isNaN(spent) ? 0 : spent;
     if (safeBudget < 0 || safeSpent < 0) {
@@ -1574,10 +1791,9 @@
       );
       return;
     }
-    var completion = parseInt(
-      document.getElementById("projCompletion").value,
-      10,
-    );
+    var completion = isEdit
+      ? parseInt(document.getElementById("projCompletion").value, 10)
+      : 0;
     if (isNaN(completion) || completion < 0 || completion > 100) {
       app.showModalNotice(
         "projModalNotice",
@@ -1597,12 +1813,10 @@
       return;
     }
 
-    var id = document.getElementById("projId").value;
     var payload = {
       name: name,
       description: document.getElementById("projDescription").value.trim(),
       department: department,
-      status: document.getElementById("projStatus").value,
       priority: document.getElementById("projPriority").value,
       budget: safeBudget,
       spent: safeSpent,
@@ -1611,7 +1825,6 @@
       endDate: endDate,
     };
 
-    var isEdit = !!id;
     var url = isEdit
       ? "/api/projects/" + encodeURIComponent(id)
       : "/api/projects";
@@ -1645,6 +1858,73 @@
         app.showModalNotice(
           "projModalNotice",
           err || "Failed to save project.",
+          "error",
+        );
+      },
+    );
+  };
+
+  window.reviewProjectApproval = function (decision) {
+    var action = String(decision || "")
+      .trim()
+      .toUpperCase();
+    if (action !== "YES" && action !== "NO") return;
+    if (!app.isMD()) {
+      app.showModalNotice(
+        "projModalNotice",
+        "Only Managing Directors can review project approval.",
+        "error",
+      );
+      return;
+    }
+
+    var id = document.getElementById("projId").value;
+    if (!id) return;
+
+    var approveBtn = document.getElementById("projApproveBtn");
+    var rejectBtn = document.getElementById("projRejectBtn");
+    var saveBtn = document.getElementById("projSaveBtn");
+    if (
+      (approveBtn && approveBtn.disabled) ||
+      (rejectBtn && rejectBtn.disabled)
+    ) {
+      return;
+    }
+    if (approveBtn) approveBtn.disabled = true;
+    if (rejectBtn) rejectBtn.disabled = true;
+    if (saveBtn) saveBtn.disabled = true;
+
+    var note = String(
+      (document.getElementById("projApprovalNote") || {}).value || "",
+    )
+      .trim()
+      .slice(0, 1600);
+
+    app.fetchMutate(
+      "PUT",
+      "/api/projects/" + encodeURIComponent(id),
+      {
+        approvalDecision: action,
+        approvalNote: note,
+      },
+      function () {
+        if (approveBtn) approveBtn.disabled = false;
+        if (rejectBtn) rejectBtn.disabled = false;
+        if (saveBtn) saveBtn.disabled = false;
+        app.closeModal("projectModal");
+        app.showToast(
+          action === "YES" ? "Project approved" : "Project rejected",
+          action === "YES" ? "success" : "error",
+        );
+        loadProjects();
+      },
+      function (err) {
+        if (approveBtn) approveBtn.disabled = false;
+        if (rejectBtn) rejectBtn.disabled = false;
+        if (saveBtn) saveBtn.disabled = false;
+        app.showModalNotice(
+          "projModalNotice",
+          err || "Failed to review project approval.",
           "error",
         );
       },
@@ -2177,8 +2457,7 @@
     var darkCheck = document.getElementById("settingDarkMode");
     if (darkCheck) {
       darkCheck.checked =
-        typeof app.getThemeMode === "function" &&
-        app.getThemeMode() === "dark";
+        typeof app.getThemeMode === "function" && app.getThemeMode() === "dark";
     }
   };
 
@@ -2847,6 +3126,14 @@
        ARCHIVE
        ============================================================ */
   window.archiveProject = function () {
+    if (!app.isMD()) {
+      app.showModalNotice(
+        "projModalNotice",
+        "Only Managing Directors can archive projects.",
+        "error",
+      );
+      return;
+    }
     var id = document.getElementById("projId").value;
     if (!id) return;
     if (

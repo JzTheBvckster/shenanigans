@@ -621,7 +621,8 @@
             "</span>";
         }
         if (r.summary.overdue || isPMOverdue(p)) {
-          flags += '<span class="pm-gantt-flag pm-gantt-flag-risk">At risk</span>';
+          flags +=
+            '<span class="pm-gantt-flag pm-gantt-flag-risk">At risk</span>';
         }
         if (String(p.priority || "").toUpperCase() === "CRITICAL") {
           flags +=
@@ -661,7 +662,7 @@
           (r.summary.overdue || isPMOverdue(p) ? " pm-gantt-bar-overdue" : "") +
           '" style="left:' +
           left +
-          'px;width:' +
+          "px;width:" +
           safeWidth +
           'px" onclick="openPMProjectDetail(\'' +
           pid +
@@ -1301,7 +1302,14 @@
     var notesEl = document.getElementById("taskReviewNotes");
     var requestBtn = document.getElementById("taskRequestChangesBtn");
     var approveBtn = document.getElementById("taskApproveBtn");
-    if (!section || !stateEl || !infoEl || !notesEl || !requestBtn || !approveBtn) {
+    if (
+      !section ||
+      !stateEl ||
+      !infoEl ||
+      !notesEl ||
+      !requestBtn ||
+      !approveBtn
+    ) {
       return;
     }
 
@@ -1330,7 +1338,7 @@
     var files = task.submissionFiles || [];
     infoEl.innerHTML =
       '<div class="task-feedback-card">' +
-      '<strong>Latest Submission</strong>' +
+      "<strong>Latest Submission</strong>" +
       "<p>" +
       app.esc(task.submissionNotes || "No submission notes added yet.") +
       "</p>" +
@@ -1338,7 +1346,11 @@
       (task.submittedByName
         ? "Submitted by " + app.esc(task.submittedByName) + " · "
         : "") +
-      app.esc(task.submittedAt ? app.formatTimestamp(task.submittedAt) : "Awaiting submission") +
+      app.esc(
+        task.submittedAt
+          ? app.formatTimestamp(task.submittedAt)
+          : "Awaiting submission",
+      ) +
       "</div>" +
       '<div class="attachment-list-wrap">' +
       buildAttachmentList(files, "No submission files attached.") +
@@ -1353,7 +1365,11 @@
           (task.reviewedByName
             ? "By " + app.esc(task.reviewedByName) + " · "
             : "") +
-          app.esc(task.reviewedAt ? app.formatTimestamp(task.reviewedAt) : "No review timestamp") +
+          app.esc(
+            task.reviewedAt
+              ? app.formatTimestamp(task.reviewedAt)
+              : "No review timestamp",
+          ) +
           "</div></div>"
         : "");
 
@@ -1658,9 +1674,33 @@
     });
   };
 
+  function setPMCreateProjectHint(message) {
+    var hint = document.getElementById("pmCreateProjectHint");
+    if (!hint) return;
+    hint.textContent = message || "";
+    hint.classList.toggle("hidden", !message);
+  }
+
+  function getCurrentUserDepartment() {
+    return String((app.currentUser && app.currentUser.department) || "").trim();
+  }
+
   // ---- PM Create Project ----
   window.openPMCreateProject = function () {
     app.clearModalNotice("pmProjNotice");
+    setPMCreateProjectHint(
+      "New projects from this workspace are submitted as Pending Approval for Managing Director review.",
+    );
+
+    var titleEl = document.getElementById("pmCreateProjectTitle");
+    if (titleEl) titleEl.textContent = "Request New Project";
+
+    var saveBtn = document.getElementById("pmProjSaveBtn");
+    if (saveBtn) {
+      saveBtn.textContent = "Submit for Approval";
+      saveBtn.disabled = false;
+    }
+
     [
       "pmProjName",
       "pmProjDescription",
@@ -1672,13 +1712,47 @@
       document.getElementById(fid).value = "";
     });
     var deptSelect = document.getElementById("pmProjDepartment");
-    var pmDepartment =
-      app.currentUser && app.currentUser.department
-        ? app.currentUser.department
-        : "";
+    var pmDepartment = getCurrentUserDepartment();
     deptSelect.innerHTML = app.deptOptions(pmDepartment);
-    deptSelect.disabled = !!pmDepartment;
+    deptSelect.disabled = true;
     document.getElementById("pmProjPriority").value = "MEDIUM";
+
+    if (!pmDepartment) {
+      app.showModalNotice(
+        "pmProjNotice",
+        "Your profile has no department assigned. Ask a Managing Director to assign your department before creating projects.",
+        "error",
+      );
+      setPMCreateProjectHint(
+        "Your account needs an assigned department before you can submit project requests.",
+      );
+      if (saveBtn) saveBtn.disabled = true;
+
+      // Try a fresh session read in case the department was updated after login.
+      app.fetchJson(
+        "/api/auth/session",
+        function (sessionData) {
+          var refreshedDepartment = String(
+            ((sessionData || {}).user || {}).department || "",
+          ).trim();
+          if (!refreshedDepartment) return;
+
+          app.currentUser = Object.assign({}, app.currentUser || {}, {
+            department: refreshedDepartment,
+          });
+          deptSelect.innerHTML = app.deptOptions(refreshedDepartment);
+          deptSelect.value = refreshedDepartment;
+          app.clearModalNotice("pmProjNotice");
+          setPMCreateProjectHint(
+            "New projects from this workspace are submitted as Pending Approval for Managing Director review.",
+          );
+          if (saveBtn) saveBtn.disabled = false;
+        },
+        function () {
+          // Keep original notice if refresh fails.
+        },
+      );
+    }
 
     // Load employees from current PM's department for team selection
     var teamEl = document.getElementById("pmProjTeamCheckboxes");
@@ -1726,9 +1800,30 @@
       app.showModalNotice("pmProjNotice", "Project name is required.", "error");
       return;
     }
+
+    var currentUserDepartment = getCurrentUserDepartment();
+    if (!currentUserDepartment) {
+      var deptField = document.getElementById("pmProjDepartment");
+      var selectedDepartment = String(
+        (deptField && deptField.value) || "",
+      ).trim();
+      if (selectedDepartment) {
+        currentUserDepartment = selectedDepartment;
+        if (app.currentUser) app.currentUser.department = selectedDepartment;
+      }
+    }
+    if (!currentUserDepartment) {
+      app.showModalNotice(
+        "pmProjNotice",
+        "Your account has no department assigned. Refresh the page and try again, or contact a Managing Director.",
+        "error",
+      );
+      return;
+    }
+
     var btn = document.getElementById("pmProjSaveBtn");
     if (btn && btn.disabled) return;
-    var dept = document.getElementById("pmProjDepartment").value;
+    var dept = currentUserDepartment;
     if (!dept) {
       app.showModalNotice("pmProjNotice", "Department is required.", "error");
       return;
@@ -1785,7 +1880,6 @@
       projectManager: pmName,
       projectManagerId: pmId,
       priority: document.getElementById("pmProjPriority").value,
-      status: "PENDING_APPROVAL",
       budget: safeBudget,
       spent: safeSpent,
       completionPercentage: 0,
@@ -3125,7 +3219,12 @@
         "Team members active this week",
         "green",
       ) +
-      pmStatCard(flaggedMembers, "Attention", "Low or high hour totals", "orange") +
+      pmStatCard(
+        flaggedMembers,
+        "Attention",
+        "Low or high hour totals",
+        "orange",
+      ) +
       pmStatCard(entries.length, "Entries", "All captured records", "purple");
 
     var entryHtml = "";
@@ -3192,7 +3291,8 @@
     var projectBreakdown = {};
     weekEntries.forEach(function (entry) {
       var key = entry.projectName || "Unknown Project";
-      projectBreakdown[key] = (projectBreakdown[key] || 0) + Number(entry.hours || 0);
+      projectBreakdown[key] =
+        (projectBreakdown[key] || 0) + Number(entry.hours || 0);
     });
     var projectHtml = Object.keys(projectBreakdown)
       .sort(function (a, b) {
@@ -3200,7 +3300,9 @@
       })
       .map(function (name) {
         var hours = projectBreakdown[name];
-        var width = totalHours ? Math.max(8, Math.round((hours / totalHours) * 100)) : 0;
+        var width = totalHours
+          ? Math.max(8, Math.round((hours / totalHours) * 100))
+          : 0;
         return (
           '<div class="mini-progress-row">' +
           '<div class="mini-progress-label"><span>' +
@@ -3251,7 +3353,12 @@
     }).length;
 
     document.getElementById("pmRequestsStats").innerHTML =
-      pmStatCard(requests.length, "Total Requests", "All leave requests", "blue") +
+      pmStatCard(
+        requests.length,
+        "Total Requests",
+        "All leave requests",
+        "blue",
+      ) +
       pmStatCard(pending, "Pending", "Awaiting review", "orange") +
       pmStatCard(approved, "Approved", "Accepted requests", "green") +
       pmStatCard(rejected, "Rejected", "Declined requests", "purple");
@@ -3276,7 +3383,9 @@
           app.esc(r.type) +
           " Leave" +
           (r.employeeName ? " · " + app.esc(r.employeeName) : "") +
-          (r.businessDays ? " · " + app.esc(r.businessDays + " business day(s)") : "") +
+          (r.businessDays
+            ? " · " + app.esc(r.businessDays + " business day(s)")
+            : "") +
           '</div><div class="emp-info-desc">' +
           app.esc(app.formatTimestamp(r.startDate)) +
           " \u2013 " +
@@ -3297,7 +3406,7 @@
               rid +
               '" rows="2" placeholder="Add a decision note (optional)"></textarea>'
             : "") +
-          "</div><div class=\"request-actions\">";
+          '</div><div class="request-actions">';
         if (r.status === "PENDING") {
           html +=
             '<button class="btn-approve-sm" data-request-id="' +

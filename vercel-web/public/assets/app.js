@@ -8,10 +8,15 @@
     var filtersInitialized = false;
     var COMPACT_SIDEBAR_BREAKPOINT = 1024;
     var THEME_STORAGE_KEY = 'shenanigans.theme';
+    var toastTimer = null;
     var THEME_ICONS = {
         dark: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21 12.79A9 9 0 0 1 11.21 3c0-.34.02-.67.06-1A1 1 0 0 0 10 1a10 10 0 1 0 13 13 1 1 0 0 0-2-.21z"/></svg>',
         light: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.76 4.84 5.34 3.42 3.92 4.84l1.42 1.42 1.42-1.42zM1 13h3v-2H1v2zm10 10h2v-3h-2v3zm7.66-18.16-1.42-1.42-1.42 1.42 1.42 1.42 1.42-1.42zM17.24 19.16l1.42 1.42 1.42-1.42-1.42-1.42-1.42 1.42zM20 13h3v-2h-3v2zM11 4h2V1h-2v3zm1 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm-7.66 10.16-1.42 1.42 1.42 1.42 1.42-1.42-1.42-1.42z"/></svg>'
     };
+
+    function padDatePart(value) {
+        return value < 10 ? '0' + value : String(value);
+    }
 
     // ---- Bootstrap ----
     setTheme(getThemeMode(), false);
@@ -332,19 +337,30 @@
         var toast = document.getElementById('toast');
         toast.textContent = message;
         toast.className = 'toast visible ' + (type || 'success');
-        setTimeout(function () { toast.className = 'toast'; }, 3000);
+        if (toastTimer) {
+            clearTimeout(toastTimer);
+        }
+        toastTimer = setTimeout(function () {
+            toast.className = 'toast';
+            toastTimer = null;
+        }, 3200);
     };
 
     // ---- Settings ----
     window.saveSettings = function () {
+        var darkCheckbox = document.getElementById('settingDarkMode');
+        if (darkCheckbox) {
+            setTheme(darkCheckbox.checked ? 'dark' : 'light');
+        }
         var sidebarCheckbox = document.getElementById('settingSidebarExpanded');
+        var shell = document.getElementById('appShell');
         if (sidebarCheckbox) {
             if (sidebarCheckbox.checked) {
                 localStorage.removeItem('sidebarCollapsed');
-                document.querySelector('.sidebar').classList.remove('collapsed');
+                if (shell) shell.classList.remove('sidebar-collapsed');
             } else {
                 localStorage.setItem('sidebarCollapsed', 'true');
-                document.querySelector('.sidebar').classList.add('collapsed');
+                if (shell) shell.classList.add('sidebar-collapsed');
             }
         }
         document.getElementById('saveStatus').textContent = 'Settings saved.';
@@ -1510,13 +1526,20 @@
         if (!ts) return '';
         var d = ts > 1e12 ? new Date(ts) : new Date(ts * 1000);
         if (isNaN(d.getTime())) return '';
-        return d.toISOString().split('T')[0];
+        return d.getFullYear() + '-' + padDatePart(d.getMonth() + 1) + '-' + padDatePart(d.getDate());
     }
 
     function dateInputToMs(id) {
-        var val = document.getElementById(id).value;
+        var input = document.getElementById(id);
+        var val = input ? input.value : '';
         if (!val) return 0;
-        return new Date(val).getTime();
+        var parts = String(val).split('-');
+        if (parts.length !== 3) return 0;
+        var year = Number(parts[0]);
+        var month = Number(parts[1]) - 1;
+        var day = Number(parts[2]);
+        if (!isFinite(year) || !isFinite(month) || !isFinite(day)) return 0;
+        return new Date(year, month, day).getTime();
     }
 
     // ---- Toggle Invoice Paid ----

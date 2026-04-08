@@ -97,17 +97,36 @@
     }
 
     // Enter key support
+    document.getElementById('loginEmail').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
     document.getElementById('loginPassword').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+    document.getElementById('regName').addEventListener('keydown', function (e) { if (e.key === 'Enter') doRegister(); });
+    document.getElementById('regEmail').addEventListener('keydown', function (e) { if (e.key === 'Enter') doRegister(); });
+    document.getElementById('regPassword').addEventListener('keydown', function (e) { if (e.key === 'Enter') doRegister(); });
     var regRole = document.getElementById('regRole');
+    var regDepartment = document.getElementById('regDepartment');
+    var forgotEmail = document.getElementById('forgotEmail');
     if (regRole) regRole.addEventListener('keydown', function (e) { if (e.key === 'Enter') doRegister(); });
+    if (regDepartment) regDepartment.addEventListener('keydown', function (e) { if (e.key === 'Enter') doRegister(); });
+    if (forgotEmail) forgotEmail.addEventListener('keydown', function (e) { if (e.key === 'Enter') doForgotPassword(); });
     if (regRole) regRole.addEventListener('change', syncDepartmentRequirement);
     syncDepartmentRequirement();
+
+    function focusFormField(name) {
+        var targetId = {
+            login: 'loginEmail',
+            register: 'regName',
+            forgot: 'forgotEmail'
+        }[name];
+        var target = targetId ? document.getElementById(targetId) : null;
+        if (target) target.focus();
+    }
 
     function showForm(name) {
         document.getElementById('loginForm').classList.toggle('hidden', name !== 'login');
         document.getElementById('registerForm').classList.toggle('hidden', name !== 'register');
         document.getElementById('forgotForm').classList.toggle('hidden', name !== 'forgot');
         clearAllNotices();
+        focusFormField(name);
     }
 
     function clearAllNotices() {
@@ -258,16 +277,24 @@
     window.doForgotPassword = function () {
         clearAllNotices();
         var email = document.getElementById('forgotEmail').value.trim();
+        var forgotBtn = document.getElementById('forgotBtn');
+        if (forgotBtn && forgotBtn.disabled) return;
         if (!email) { showNotice('forgotNotice', 'Please enter your email address.', 'error'); return; }
         if (!EMAIL_RE.test(email)) { showNotice('forgotNotice', 'Please enter a valid email address.', 'error'); return; }
+
+        setSpinner('forgotSpinner', true);
+        setButtonDisabled('forgotBtn', true);
 
         fetch('/api/auth/forgot-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
             body: JSON.stringify({ email: email })
         })
             .then(function (r) { return r.json(); })
             .then(function (body) {
+                setSpinner('forgotSpinner', false);
+                setButtonDisabled('forgotBtn', false);
                 if (body.ok) {
                     showNotice('forgotNotice', 'If an account exists, a reset link was sent to your email.', 'success');
                 } else {
@@ -275,6 +302,8 @@
                 }
             })
             .catch(function () {
+                setSpinner('forgotSpinner', false);
+                setButtonDisabled('forgotBtn', false);
                 showNotice('forgotNotice', 'Network error. Please try again.', 'error');
             });
     };

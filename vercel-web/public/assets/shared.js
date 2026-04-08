@@ -6,10 +6,22 @@ var ShenanigansApp = (function () {
     app.currentUser = null;
     app.cachedData = {};
     app.THEME_STORAGE_KEY = 'shenanigans.theme';
+    var toastTimer = null;
     var THEME_ICONS = {
         dark: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21 12.79A9 9 0 0 1 11.21 3c0-.34.02-.67.06-1A1 1 0 0 0 10 1a10 10 0 1 0 13 13 1 1 0 0 0-2-.21z"/></svg>',
         light: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.76 4.84 5.34 3.42 3.92 4.84l1.42 1.42 1.42-1.42zM1 13h3v-2H1v2zm10 10h2v-3h-2v3zm7.66-18.16-1.42-1.42-1.42 1.42 1.42 1.42 1.42-1.42zM17.24 19.16l1.42 1.42 1.42-1.42-1.42-1.42-1.42 1.42zM20 13h3v-2h-3v2zM11 4h2V1h-2v3zm1 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm-7.66 10.16-1.42 1.42 1.42 1.42 1.42-1.42-1.42-1.42z"/></svg>'
     };
+
+    function padDatePart(value) {
+        return value < 10 ? '0' + value : String(value);
+    }
+
+    function toDateObject(ts) {
+        if (!ts) return null;
+        var d = ts > 1e12 ? new Date(ts) : new Date(ts * 1000);
+        if (isNaN(d.getTime())) return null;
+        return d;
+    }
 
     function readStoredTheme() {
         try {
@@ -108,7 +120,9 @@ var ShenanigansApp = (function () {
     };
 
     app.formatMoney = function (n) {
-        return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        var value = Number(n);
+        if (!isFinite(value)) value = 0;
+        return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
     app.formatStatus = function (s) {
@@ -149,16 +163,22 @@ var ShenanigansApp = (function () {
     };
 
     app.toDateInput = function (ts) {
-        if (!ts) return '';
-        var d = ts > 1e12 ? new Date(ts) : new Date(ts * 1000);
-        if (isNaN(d.getTime())) return '';
-        return d.toISOString().split('T')[0];
+        var d = toDateObject(ts);
+        if (!d) return '';
+        return d.getFullYear() + '-' + padDatePart(d.getMonth() + 1) + '-' + padDatePart(d.getDate());
     };
 
     app.dateInputToMs = function (id) {
-        var val = document.getElementById(id).value;
+        var input = document.getElementById(id);
+        var val = input ? input.value : '';
         if (!val) return 0;
-        return new Date(val).getTime();
+        var parts = String(val).split('-');
+        if (parts.length !== 3) return 0;
+        var year = Number(parts[0]);
+        var month = Number(parts[1]) - 1;
+        var day = Number(parts[2]);
+        if (!isFinite(year) || !isFinite(month) || !isFinite(day)) return 0;
+        return new Date(year, month, day).getTime();
     };
 
     /* ============================================================
@@ -270,7 +290,13 @@ var ShenanigansApp = (function () {
         if (!toast) return;
         toast.textContent = message;
         toast.className = 'toast visible ' + (type || 'success');
-        setTimeout(function () { toast.className = 'toast'; }, 3000);
+        if (toastTimer) {
+            clearTimeout(toastTimer);
+        }
+        toastTimer = setTimeout(function () {
+            toast.className = 'toast';
+            toastTimer = null;
+        }, 3200);
     };
     window.showToast = app.showToast;
 
@@ -446,6 +472,7 @@ var ShenanigansApp = (function () {
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') {
             closeSidebarOverlay();
+            setNotifDropdownOpen(false);
         }
     });
 
@@ -544,9 +571,16 @@ var ShenanigansApp = (function () {
 
     app.refreshNotifications = loadNotifications;
 
+    function setNotifDropdownOpen(isOpen) {
+        var dd = document.getElementById('notifDropdown');
+        var btn = document.getElementById('headerNotifBtn');
+        if (dd) dd.classList.toggle('hidden', !isOpen);
+        if (btn) btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+
     window.toggleNotifDropdown = function () {
         var dd = document.getElementById('notifDropdown');
-        if (dd) dd.classList.toggle('hidden');
+        setNotifDropdownOpen(dd ? dd.classList.contains('hidden') : false);
     };
 
     window.handleNotifClick = function (notifId) {
@@ -567,8 +601,7 @@ var ShenanigansApp = (function () {
         if (link) {
             setTimeout(goToLink, 250);
         }
-        var dd = document.getElementById('notifDropdown');
-        if (dd) dd.classList.add('hidden');
+        setNotifDropdownOpen(false);
     };
 
     window.markAllNotifsRead = function () {
@@ -588,9 +621,22 @@ var ShenanigansApp = (function () {
         var wrap = document.getElementById('headerNotifWrap');
         var dd = document.getElementById('notifDropdown');
         if (wrap && dd && !wrap.contains(e.target)) {
-            dd.classList.add('hidden');
+            setNotifDropdownOpen(false);
         }
     });
+
+    function ensureSkipLink() {
+        if (document.getElementById('skipToContentLink')) return;
+        var content = document.getElementById('appContent');
+        if (!content) return;
+        content.setAttribute('tabindex', '-1');
+        var link = document.createElement('a');
+        link.id = 'skipToContentLink';
+        link.className = 'skip-link';
+        link.href = '#appContent';
+        link.textContent = 'Skip to content';
+        document.body.insertBefore(link, document.body.firstChild);
+    }
 
     /* ============================================================
        LAYOUT BUILDERS
@@ -641,7 +687,7 @@ var ShenanigansApp = (function () {
 
         // Notification bell
         html += '<div class="header-notif-wrap" id="headerNotifWrap">'
-            + '<button class="header-notif-btn" id="headerNotifBtn" onclick="toggleNotifDropdown()">'
+            + '<button class="header-notif-btn" id="headerNotifBtn" type="button" onclick="toggleNotifDropdown()" aria-label="Open notifications" aria-controls="notifDropdown" aria-expanded="false" aria-haspopup="true">'
             + '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>'
             + '<span class="notif-badge hidden" id="notifBadge">0</span>'
             + '</button>'
@@ -957,6 +1003,7 @@ var ShenanigansApp = (function () {
         }
 
         ensureSidebarBackdrop();
+        ensureSkipLink();
         app.syncThemeControls();
 
         restoreSidebar();
