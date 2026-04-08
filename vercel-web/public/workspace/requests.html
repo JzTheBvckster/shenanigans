@@ -1,87 +1,140 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Leave Requests</title>
+    <link rel="stylesheet" href="/assets/styles.css?v=20" />
+  </head>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Leave Requests ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â Shenanigans</title>
-    <link rel="stylesheet" href="/assets/styles.css?v=20">
-</head>
-
-<body>
+  <body>
     <div class="app-shell" id="appShell">
-        <header class="app-header" id="appHeader"></header>
-        <aside class="app-sidebar" id="appSidebar"></aside>
+      <header class="app-header" id="appHeader"></header>
+      <aside class="app-sidebar" id="appSidebar"></aside>
 
-        <main class="app-content" id="appContent">
-            <section class="page-view" id="pageEmpRequests">
-                <div class="page-header">
-                    <h2>Leave Requests</h2>
-                    <p>Submit and track your leave requests</p>
-                </div>
-                <div class="stats-row" id="empRequestsStats"></div>
+      <main class="app-content" id="appContent">
+        <section class="page-view" id="pageEmpRequests">
+          <div class="page-header">
+            <h2>Leave Requests</h2>
+            <p>Submit and track your leave requests</p>
+          </div>
+          <div class="stats-row" id="empRequestsStats"></div>
 
-                <!-- Leave Request Form -->
-                <div class="card" id="empLeaveForm" style="display:none;margin-bottom:20px">
-                    <div class="card-header">
-                        <h3>New Leave Request</h3>
-                    </div>
-                    <form id="empLeaveRequestForm" style="display:flex;flex-wrap:wrap;gap:12px;padding:4px 0">
-                        <select id="lrType" required class="form-input" style="width:160px">
-                            <option value="">Leave typeÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦</option>
-                            <option value="ANNUAL">Annual Leave</option>
-                            <option value="SICK">Sick Leave</option>
-                            <option value="PERSONAL">Personal Leave</option>
-                        </select>
-                        <input id="lrStart" type="date" required class="form-input" style="width:150px">
-                        <input id="lrEnd" type="date" required class="form-input" style="width:150px">
-                        <textarea id="lrReason" placeholder="Reason or context" class="form-input"
-                            style="flex:2;min-width:220px;min-height:42px"></textarea>
-                        <input id="lrFiles" type="file" multiple class="form-input" style="flex:1;min-width:220px">
-                        <button type="submit" class="btn btn-primary">Submit</button>
-                        <button type="button" class="btn btn-outline"
-                            onclick="document.getElementById('empLeaveForm').style.display='none'">Cancel</button>
-                    </form>
-                    <div class="comment-empty" id="empLeaveFileHint">Supporting documents are optional unless your policy requires them.</div>
-                    <div class="task-attachment-list" id="empLeaveDraftFiles"></div>
-                    <div id="empLeaveFormNotice"></div>
-                </div>
+          <!-- Leave Request Form -->
+          <div
+            class="card"
+            id="empLeaveForm"
+            style="display: none; margin-bottom: 20px"
+          >
+            <div class="card-header">
+              <h3>New Leave Request</h3>
+            </div>
+            <form
+              id="empLeaveRequestForm"
+              style="display: flex; flex-wrap: wrap; gap: 12px; padding: 4px 0"
+            >
+              <select
+                id="lrType"
+                required
+                class="form-input"
+                style="width: 160px"
+              >
+                <option value="">
+                  Leave
+                  typeÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦
+                </option>
+                <option value="ANNUAL">Annual Leave</option>
+                <option value="SICK">Sick Leave</option>
+                <option value="PERSONAL">Personal Leave</option>
+              </select>
+              <input
+                id="lrStart"
+                type="date"
+                required
+                class="form-input"
+                style="width: 150px"
+              />
+              <input
+                id="lrEnd"
+                type="date"
+                required
+                class="form-input"
+                style="width: 150px"
+              />
+              <textarea
+                id="lrReason"
+                placeholder="Reason or context"
+                class="form-input"
+                style="flex: 2; min-width: 220px; min-height: 42px"
+              ></textarea>
+              <input
+                id="lrFiles"
+                type="file"
+                multiple
+                class="form-input"
+                style="flex: 1; min-width: 220px"
+              />
+              <button type="submit" class="btn btn-primary">Submit</button>
+              <button
+                type="button"
+                class="btn btn-outline"
+                onclick="
+                  document.getElementById('empLeaveForm').style.display = 'none'
+                "
+              >
+                Cancel
+              </button>
+            </form>
+            <div class="comment-empty" id="empLeaveFileHint">
+              Supporting documents are optional unless your policy requires
+              them.
+            </div>
+            <div class="task-attachment-list" id="empLeaveDraftFiles"></div>
+            <div id="empLeaveFormNotice"></div>
+          </div>
 
-                <div class="content-grid">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>My Requests</h3>
-                            <button class="btn btn-sm btn-primary"
-                                onclick="document.getElementById('empLeaveForm').style.display='block'">+ Request
-                                Leave</button>
-                        </div>
-                        <div id="empLeaveInfo"></div>
-                    </div>
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Balances & Policy</h3>
-                        </div>
-                        <div id="empLeaveBalances"></div>
-                        <div class="card-header" style="margin-top:16px">
-                            <h3>Leave Policy</h3>
-                        </div>
-                        <div id="empLeavePolicy"></div>
-                    </div>
-                </div>
-            </section>
-        </main>
+          <div class="content-grid">
+            <div class="card">
+              <div class="card-header">
+                <h3>My Requests</h3>
+                <button
+                  class="btn btn-sm btn-primary"
+                  onclick="
+                    document.getElementById('empLeaveForm').style.display =
+                      'block'
+                  "
+                >
+                  + Request Leave
+                </button>
+              </div>
+              <div id="empLeaveInfo"></div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3>Balances & Policy</h3>
+              </div>
+              <div id="empLeaveBalances"></div>
+              <div class="card-header" style="margin-top: 16px">
+                <h3>Leave Policy</h3>
+              </div>
+              <div id="empLeavePolicy"></div>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
 
     <script src="/assets/shared.js?v=15"></script>
     <script src="/assets/employee.js?v=8"></script>
     <script>
-        ShenanigansApp.init({
-            sidebar: 'employee',
-            activePage: 'empRequests',
-            subtitle: 'Employee Workspace',
-            onReady: function () { loadEmpRequests(); }
-        });
+      ShenanigansApp.init({
+        sidebar: "employee",
+        activePage: "empRequests",
+        subtitle: "Employee Workspace",
+        onReady: function () {
+          loadEmpRequests();
+        },
+      });
     </script>
-</body>
-
+  </body>
 </html>

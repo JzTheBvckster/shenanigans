@@ -1,91 +1,124 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Tasks</title>
+    <link rel="stylesheet" href="/assets/styles.css?v=20" />
+  </head>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Tasks ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â Shenanigans</title>
-    <link rel="stylesheet" href="/assets/styles.css?v=20">
-</head>
-
-<body>
+  <body>
     <div class="app-shell" id="appShell">
-        <header class="app-header" id="appHeader"></header>
-        <aside class="app-sidebar" id="appSidebar"></aside>
+      <header class="app-header" id="appHeader"></header>
+      <aside class="app-sidebar" id="appSidebar"></aside>
 
-        <main class="app-content" id="appContent">
-            <section class="page-view" id="pageEmpTasks">
-                <div class="page-header">
-                    <h2>My Tasks</h2>
-                    <p>Track your active and upcoming work items</p>
-                </div>
-                <div class="stats-row" id="empTasksStats"></div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Task List</h3>
-                    </div>
-                    <div id="empTasksList">
-                        <div class="loading-spinner visible"></div>
-                    </div>
-                </div>
-            </section>
-        </main>
+      <main class="app-content" id="appContent">
+        <section class="page-view" id="pageEmpTasks">
+          <div class="page-header">
+            <h2>My Tasks</h2>
+            <p>Track your active and upcoming work items</p>
+          </div>
+          <div class="stats-row" id="empTasksStats"></div>
+          <div class="card">
+            <div class="card-header">
+              <h3>Task List</h3>
+            </div>
+            <div id="empTasksList">
+              <div class="loading-spinner visible"></div>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
 
     <!-- Task Detail Modal (Employee) -->
     <div class="modal-overlay hidden" id="empTaskModal">
-        <div class="modal-card modal-wide">
-            <div class="modal-header">
-                <h3 id="empTaskModalTitle">Task Details</h3>
-                <button class="modal-close" onclick="closeModal('empTaskModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="empTaskDetail"></div>
-                <div class="task-submission-section" id="empTaskSubmissionSection">
-                    <div class="task-section-header">
-                        <h4>Submission</h4>
-                        <span class="badge badge-muted" id="empTaskSubmissionState">Draft</span>
-                    </div>
-                    <div class="comment-empty" id="empTaskSubmissionHelper">Attach your latest work before sending this task for review.</div>
-                    <div id="empTaskReviewFeedback"></div>
-                    <div id="empTaskSubmissionInfo"></div>
-                    <label for="empTaskSubmissionNotes">Submission Notes</label>
-                    <textarea id="empTaskSubmissionNotes" rows="3" placeholder="Summarize what is done, what changed, and anything the reviewer should check."></textarea>
-                    <div class="task-upload-row">
-                        <input id="empTaskSubmissionFiles" type="file" multiple onchange="handleEmpTaskFileSelection()">
-                        <span class="comment-empty">Any relevant file type is supported. Keep each file under 250 KB.</span>
-                    </div>
-                    <div class="task-attachment-list" id="empTaskSubmissionDraft"></div>
-                    <div class="task-actions-row">
-                        <button class="btn-comment-send hidden" id="empTaskSubmitBtn" onclick="submitEmpTaskForReview()">Submit for Review</button>
-                    </div>
-                </div>
-                <!-- Task Comments -->
-                <div class="task-comments-section" id="empTaskCommentsSection">
-                    <label>Comments</label>
-                    <div class="task-comments-list" id="empTaskCommentsList"></div>
-                    <div class="task-comment-input">
-                        <textarea id="empTaskCommentText" rows="2" placeholder="Add a comment..." maxlength="2000"></textarea>
-                        <button class="btn-comment-send" onclick="postEmpTaskComment()">Send</button>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-modal-cancel" onclick="closeModal('empTaskModal')">Close</button>
-            </div>
+      <div class="modal-card modal-wide">
+        <div class="modal-header">
+          <h3 id="empTaskModalTitle">Task Details</h3>
+          <button class="modal-close" onclick="closeModal('empTaskModal')">
+            &times;
+          </button>
         </div>
+        <div class="modal-body">
+          <div id="empTaskDetail"></div>
+          <div class="task-submission-section" id="empTaskSubmissionSection">
+            <div class="task-section-header">
+              <h4>Submission</h4>
+              <span class="badge badge-muted" id="empTaskSubmissionState"
+                >Draft</span
+              >
+            </div>
+            <div class="comment-empty" id="empTaskSubmissionHelper">
+              Attach your latest work before sending this task for review.
+            </div>
+            <div id="empTaskReviewFeedback"></div>
+            <div id="empTaskSubmissionInfo"></div>
+            <label for="empTaskSubmissionNotes">Submission Notes</label>
+            <textarea
+              id="empTaskSubmissionNotes"
+              rows="3"
+              placeholder="Summarize what is done, what changed, and anything the reviewer should check."
+            ></textarea>
+            <div class="task-upload-row">
+              <input
+                id="empTaskSubmissionFiles"
+                type="file"
+                multiple
+                onchange="handleEmpTaskFileSelection()"
+              />
+              <span class="comment-empty"
+                >Any relevant file type is supported. Keep each file under 250
+                KB.</span
+              >
+            </div>
+            <div class="task-attachment-list" id="empTaskSubmissionDraft"></div>
+            <div class="task-actions-row">
+              <button
+                class="btn-comment-send hidden"
+                id="empTaskSubmitBtn"
+                onclick="submitEmpTaskForReview()"
+              >
+                Submit for Review
+              </button>
+            </div>
+          </div>
+          <!-- Task Comments -->
+          <div class="task-comments-section" id="empTaskCommentsSection">
+            <label>Comments</label>
+            <div class="task-comments-list" id="empTaskCommentsList"></div>
+            <div class="task-comment-input">
+              <textarea
+                id="empTaskCommentText"
+                rows="2"
+                placeholder="Add a comment..."
+                maxlength="2000"
+              ></textarea>
+              <button class="btn-comment-send" onclick="postEmpTaskComment()">
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-modal-cancel" onclick="closeModal('empTaskModal')">
+            Close
+          </button>
+        </div>
+      </div>
     </div>
 
     <script src="/assets/shared.js?v=15"></script>
     <script src="/assets/employee.js?v=8"></script>
     <script>
-        ShenanigansApp.init({
-            sidebar: 'employee',
-            activePage: 'empTasks',
-            subtitle: 'Employee Workspace',
-            onReady: function () { loadEmpTasks(); }
-        });
+      ShenanigansApp.init({
+        sidebar: "employee",
+        activePage: "empTasks",
+        subtitle: "Employee Workspace",
+        onReady: function () {
+          loadEmpTasks();
+        },
+      });
     </script>
-</body>
-
+  </body>
 </html>

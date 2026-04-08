@@ -1,44 +1,44 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Profile</title>
+    <link rel="stylesheet" href="/assets/styles.css?v=20" />
+  </head>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Profile ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â Shenanigans</title>
-    <link rel="stylesheet" href="/assets/styles.css?v=20">
-</head>
-
-<body>
+  <body>
     <div class="app-shell" id="appShell">
-        <header class="app-header" id="appHeader"></header>
-        <aside class="app-sidebar" id="appSidebar"></aside>
+      <header class="app-header" id="appHeader"></header>
+      <aside class="app-sidebar" id="appSidebar"></aside>
 
-        <main class="app-content" id="appContent">
-            <section class="page-view" id="pageEmpProfile">
-                <div class="page-header">
-                    <h2>My Profile</h2>
-                    <p>Your employee profile overview</p>
-                </div>
-                <div class="stats-row" id="empProfileStats"></div>
-                <div class="card">
-                    <div id="empProfileContent">
-                        <div class="loading-spinner visible"></div>
-                    </div>
-                </div>
-            </section>
-        </main>
+      <main class="app-content" id="appContent">
+        <section class="page-view" id="pageEmpProfile">
+          <div class="page-header">
+            <h2>My Profile</h2>
+            <p>Your employee profile overview</p>
+          </div>
+          <div class="stats-row" id="empProfileStats"></div>
+          <div class="card">
+            <div id="empProfileContent">
+              <div class="loading-spinner visible"></div>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
 
     <script src="/assets/shared.js?v=15"></script>
     <script src="/assets/employee.js?v=6"></script>
     <script>
-        ShenanigansApp.init({
-            sidebar: 'employee',
-            activePage: 'empProfile',
-            subtitle: 'Employee Workspace',
-            onReady: function () { loadEmpProfile(); }
-        });
+      ShenanigansApp.init({
+        sidebar: "employee",
+        activePage: "empProfile",
+        subtitle: "Employee Workspace",
+        onReady: function () {
+          loadEmpProfile();
+        },
+      });
     </script>
-</body>
-
+  </body>
 </html>

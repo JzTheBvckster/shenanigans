@@ -1,124 +1,154 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Management</title>
+    <link rel="stylesheet" href="/assets/styles.css?v=20" />
+  </head>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Management ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â Shenanigans</title>
-    <link rel="stylesheet" href="/assets/styles.css?v=20">
-</head>
-
-<body>
+  <body>
     <div class="app-shell" id="appShell">
-        <header class="app-header" id="appHeader"></header>
-        <aside class="app-sidebar" id="appSidebar"></aside>
+      <header class="app-header" id="appHeader"></header>
+      <aside class="app-sidebar" id="appSidebar"></aside>
 
-        <main class="app-content" id="appContent">
-            <section class="page-view" id="pageUsers">
-                <div class="page-header">
-                    <h2>User Management</h2>
-                    <p>Manage system users, roles, and access</p>
-                </div>
-                <div class="stats-row" id="userStats"></div>
-                <div class="notice" id="usersNotice"></div>
-                <div class="page-filters" id="userFilters" style="margin-bottom:12px;">
-                    <div class="filter-item">
-                        <label for="userRoleFilter">Role</label>
-                        <select id="userRoleFilter">
-                            <option value="">All Roles</option>
-                            <option value="EMPLOYEE">Employee</option>
-                            <option value="PROJECT_MANAGER">Project Manager</option>
-                            <option value="MANAGING_DIRECTOR">Managing Director</option>
-                        </select>
-                    </div>
-                    <div class="filter-item">
-                        <label for="userApprovalFilter">Approval</label>
-                        <select id="userApprovalFilter">
-                            <option value="">All</option>
-                            <option value="md_pending">Awaiting MD</option>
-                            <option value="pm_pending">Awaiting PM</option>
-                            <option value="approved">Fully Approved</option>
-                        </select>
-                    </div>
-                    <div class="filter-item filter-item-wide">
-                        <label for="userSearchFilter">Search</label>
-                        <input type="text" id="userSearchFilter" placeholder="Search by name or email...">
-                    </div>
-                    <div class="filter-actions">
-                        <button class="btn-secondary btn-small" type="button" onclick="clearUserFilters()">Clear Filters</button>
-                    </div>
-                </div>
+      <main class="app-content" id="appContent">
+        <section class="page-view" id="pageUsers">
+          <div class="page-header">
+            <h2>User Management</h2>
+            <p>Manage system users, roles, and access</p>
+          </div>
+          <div class="stats-row" id="userStats"></div>
+          <div class="notice" id="usersNotice"></div>
+          <div
+            class="page-filters"
+            id="userFilters"
+            style="margin-bottom: 12px"
+          >
+            <div class="filter-item">
+              <label for="userRoleFilter">Role</label>
+              <select id="userRoleFilter">
+                <option value="">All Roles</option>
+                <option value="EMPLOYEE">Employee</option>
+                <option value="PROJECT_MANAGER">Project Manager</option>
+                <option value="MANAGING_DIRECTOR">Managing Director</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label for="userApprovalFilter">Approval</label>
+              <select id="userApprovalFilter">
+                <option value="">All</option>
+                <option value="md_pending">Awaiting MD</option>
+                <option value="pm_pending">Awaiting PM</option>
+                <option value="approved">Fully Approved</option>
+              </select>
+            </div>
+            <div class="filter-item filter-item-wide">
+              <label for="userSearchFilter">Search</label>
+              <input
+                type="text"
+                id="userSearchFilter"
+                placeholder="Search by name or email..."
+              />
+            </div>
+            <div class="filter-actions">
+              <button
+                class="btn-secondary btn-small"
+                type="button"
+                onclick="clearUserFilters()"
+              >
+                Clear Filters
+              </button>
+            </div>
+          </div>
 
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Pending Approvals</h3>
-                        <button class="btn-secondary" onclick="bulkApproveUsersFromManagement()">Approve All Pending</button>
-                    </div>
-                    <div id="pendingUsersList">
-                        <div class="loading-spinner visible"></div>
-                    </div>
-                </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>Pending Approvals</h3>
+              <button
+                class="btn-secondary"
+                onclick="bulkApproveUsersFromManagement()"
+              >
+                Approve All Pending
+              </button>
+            </div>
+            <div id="pendingUsersList">
+              <div class="loading-spinner visible"></div>
+            </div>
+          </div>
 
-                <div class="card" style="margin-top:16px">
-                    <div class="card-header">
-                        <h3>All Users</h3>
-                    </div>
-                    <div id="allUsersList">
-                        <div class="loading-spinner visible"></div>
-                    </div>
-                </div>
-            </section>
-        </main>
+          <div class="card" style="margin-top: 16px">
+            <div class="card-header">
+              <h3>All Users</h3>
+            </div>
+            <div id="allUsersList">
+              <div class="loading-spinner visible"></div>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
 
     <!-- Edit User Role Modal -->
     <div class="modal-overlay hidden" id="userRoleModal">
-        <div class="modal-card modal-card-sm">
-            <div class="modal-header">
-                <h3 id="userRoleModalTitle">Edit User</h3>
-                <button class="modal-close" onclick="closeModal('userRoleModal')">&times;</button>
-            </div>
-            <div id="userRoleModalNotice"></div>
-            <div class="modal-body">
-                <input type="hidden" id="editUserId">
-                <div class="modal-field">
-                    <label>Name</label>
-                    <input type="text" id="editUserName" disabled>
-                </div>
-                <div class="modal-field">
-                    <label>Email</label>
-                    <input type="text" id="editUserEmail" disabled>
-                </div>
-                <div class="modal-field">
-                    <label>Role</label>
-                    <select id="editUserRole">
-                        <option value="EMPLOYEE">Employee</option>
-                        <option value="PROJECT_MANAGER">Project Manager</option>
-                        <option value="MANAGING_DIRECTOR">Managing Director</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-modal-cancel" onclick="closeModal('userRoleModal')">Cancel</button>
-                <button class="btn-modal-save" id="userRoleSaveBtn" onclick="saveUserRole()">Save Role</button>
-            </div>
+      <div class="modal-card modal-card-sm">
+        <div class="modal-header">
+          <h3 id="userRoleModalTitle">Edit User</h3>
+          <button class="modal-close" onclick="closeModal('userRoleModal')">
+            &times;
+          </button>
         </div>
+        <div id="userRoleModalNotice"></div>
+        <div class="modal-body">
+          <input type="hidden" id="editUserId" />
+          <div class="modal-field">
+            <label>Name</label>
+            <input type="text" id="editUserName" disabled />
+          </div>
+          <div class="modal-field">
+            <label>Email</label>
+            <input type="text" id="editUserEmail" disabled />
+          </div>
+          <div class="modal-field">
+            <label>Role</label>
+            <select id="editUserRole">
+              <option value="EMPLOYEE">Employee</option>
+              <option value="PROJECT_MANAGER">Project Manager</option>
+              <option value="MANAGING_DIRECTOR">Managing Director</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn-modal-cancel"
+            onclick="closeModal('userRoleModal')"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn-modal-save"
+            id="userRoleSaveBtn"
+            onclick="saveUserRole()"
+          >
+            Save Role
+          </button>
+        </div>
+      </div>
     </div>
 
     <script src="/assets/shared.js?v=15"></script>
     <script src="/assets/admin.js?v=8"></script>
     <script>
-        ShenanigansApp.init({
-            sidebar: 'admin',
-            activePage: 'users',
-            subtitle: 'User Management',
-            onReady: function () {
-                initUserFilters();
-                loadUserManagement();
-                setupSearchFilter(filterUserCards);
-            }
-        });
+      ShenanigansApp.init({
+        sidebar: "admin",
+        activePage: "users",
+        subtitle: "User Management",
+        onReady: function () {
+          initUserFilters();
+          loadUserManagement();
+          setupSearchFilter(filterUserCards);
+        },
+      });
     </script>
-</body>
-
+  </body>
 </html>

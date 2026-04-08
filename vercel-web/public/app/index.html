@@ -1,151 +1,184 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â Shenanigans</title>
-    <link rel="stylesheet" href="/assets/styles.css?v=20">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/assets/styles.css?v=20" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-</head>
+  </head>
 
-<body>
+  <body>
     <div class="app-shell" id="appShell">
-        <header class="app-header" id="appHeader"></header>
-        <aside class="app-sidebar" id="appSidebar"></aside>
+      <header class="app-header" id="appHeader"></header>
+      <aside class="app-sidebar" id="appSidebar"></aside>
 
-        <main class="app-content" id="appContent">
-            <section class="page-view" id="pageDashboard">
-                <div class="page-header">
-                    <h2>Dashboard</h2>
-                    <p>Overview of company operations and key metrics</p>
-                </div>
+      <main class="app-content" id="appContent">
+        <section class="page-view" id="pageDashboard">
+          <div class="page-header">
+            <h2>Dashboard</h2>
+            <p>Overview of company operations and key metrics</p>
+          </div>
 
-                <div class="stats-row" id="statsRow">
-                    <div class="stat-card stat-card-blue">
-                        <div class="stat-icon"><svg viewBox="0 0 24 24" width="28" height="28">
-                                <path fill="currentColor"
-                                    d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z" />
-                            </svg></div>
-                        <div class="stat-label">Total Employees</div>
-                        <div class="stat-number" id="statEmployees">&mdash;</div>
-                    </div>
-                    <div class="stat-card stat-card-green">
-                        <div class="stat-icon"><svg viewBox="0 0 24 24" width="28" height="28">
-                                <path fill="currentColor"
-                                    d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1z" />
-                            </svg></div>
-                        <div class="stat-label">Active Projects</div>
-                        <div class="stat-number" id="statProjects">&mdash;</div>
-                    </div>
-                    <div class="stat-card stat-card-orange">
-                        <div class="stat-icon"><svg viewBox="0 0 24 24" width="28" height="28">
-                                <path fill="currentColor"
-                                    d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z" />
-                            </svg></div>
-                        <div class="stat-label">Open Invoices</div>
-                        <div class="stat-number" id="statInvoices">&mdash;</div>
-                    </div>
-                    <div class="stat-card stat-card-purple">
-                        <div class="stat-icon"><svg viewBox="0 0 24 24" width="28" height="28">
-                                <path fill="currentColor"
-                                    d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z" />
-                            </svg></div>
-                        <div class="stat-label">Revenue</div>
-                        <div class="stat-number" id="statRevenue">&mdash;</div>
-                    </div>
-                </div>
+          <div class="stats-row" id="statsRow">
+            <div class="stat-card stat-card-blue">
+              <div class="stat-icon">
+                <svg viewBox="0 0 24 24" width="28" height="28">
+                  <path
+                    fill="currentColor"
+                    d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"
+                  />
+                </svg>
+              </div>
+              <div class="stat-label">Total Employees</div>
+              <div class="stat-number" id="statEmployees">&mdash;</div>
+            </div>
+            <div class="stat-card stat-card-green">
+              <div class="stat-icon">
+                <svg viewBox="0 0 24 24" width="28" height="28">
+                  <path
+                    fill="currentColor"
+                    d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1z"
+                  />
+                </svg>
+              </div>
+              <div class="stat-label">Active Projects</div>
+              <div class="stat-number" id="statProjects">&mdash;</div>
+            </div>
+            <div class="stat-card stat-card-orange">
+              <div class="stat-icon">
+                <svg viewBox="0 0 24 24" width="28" height="28">
+                  <path
+                    fill="currentColor"
+                    d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"
+                  />
+                </svg>
+              </div>
+              <div class="stat-label">Open Invoices</div>
+              <div class="stat-number" id="statInvoices">&mdash;</div>
+            </div>
+            <div class="stat-card stat-card-purple">
+              <div class="stat-icon">
+                <svg viewBox="0 0 24 24" width="28" height="28">
+                  <path
+                    fill="currentColor"
+                    d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"
+                  />
+                </svg>
+              </div>
+              <div class="stat-label">Revenue</div>
+              <div class="stat-number" id="statRevenue">&mdash;</div>
+            </div>
+          </div>
 
-                <div class="card insights-card">
-                    <div class="card-header">
-                        <h3>Performance Snapshot</h3>
-                    </div>
-                    <div class="insights-row">
-                        <div class="insight-item">
-                            <div class="label">Total Projects</div>
-                            <div class="value" id="insightTotal">&mdash;</div>
-                        </div>
-                        <div class="insight-item">
-                            <div class="label">Overdue</div>
-                            <div class="value risk" id="insightOverdue">&mdash;</div>
-                        </div>
-                        <div class="insight-item">
-                            <div class="label">Paid Revenue</div>
-                            <div class="value" id="insightRevenue">&mdash;</div>
-                        </div>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar-label"><span>Budget Utilization</span><span class="value"
-                                id="budgetPct">0%</span></div>
-                        <div class="progress-bar-track">
-                            <div class="progress-bar-fill" id="budgetFill" style="width:0%"></div>
-                        </div>
-                    </div>
-                </div>
+          <div class="card insights-card">
+            <div class="card-header">
+              <h3>Performance Snapshot</h3>
+            </div>
+            <div class="insights-row">
+              <div class="insight-item">
+                <div class="label">Total Projects</div>
+                <div class="value" id="insightTotal">&mdash;</div>
+              </div>
+              <div class="insight-item">
+                <div class="label">Overdue</div>
+                <div class="value risk" id="insightOverdue">&mdash;</div>
+              </div>
+              <div class="insight-item">
+                <div class="label">Paid Revenue</div>
+                <div class="value" id="insightRevenue">&mdash;</div>
+              </div>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-label">
+                <span>Budget Utilization</span
+                ><span class="value" id="budgetPct">0%</span>
+              </div>
+              <div class="progress-bar-track">
+                <div
+                  class="progress-bar-fill"
+                  id="budgetFill"
+                  style="width: 0%"
+                ></div>
+              </div>
+            </div>
+          </div>
 
-                <div class="content-grid charts-grid">
-                    <div class="card chart-card">
-                        <div class="card-header">
-                            <h3>Revenue Trend</h3>
-                            <div class="spacer"></div>
-                            <select id="chartRangeFilter" class="chart-filter" onchange="updateRevenueTrendChart()">
-                                <option value="3">3 Months</option>
-                                <option value="6" selected>6 Months</option>
-                                <option value="12">12 Months</option>
-                            </select>
-                        </div>
-                        <div class="chart-container"><canvas id="revenueTrendChart"></canvas></div>
-                    </div>
-                    <div class="card chart-card">
-                        <div class="card-header">
-                            <h3>Project Status</h3>
-                        </div>
-                        <div class="chart-container"><canvas id="projectStatusChart"></canvas></div>
-                    </div>
-                </div>
+          <div class="content-grid charts-grid">
+            <div class="card chart-card">
+              <div class="card-header">
+                <h3>Revenue Trend</h3>
+                <div class="spacer"></div>
+                <select
+                  id="chartRangeFilter"
+                  class="chart-filter"
+                  onchange="updateRevenueTrendChart()"
+                >
+                  <option value="3">3 Months</option>
+                  <option value="6" selected>6 Months</option>
+                  <option value="12">12 Months</option>
+                </select>
+              </div>
+              <div class="chart-container">
+                <canvas id="revenueTrendChart"></canvas>
+              </div>
+            </div>
+            <div class="card chart-card">
+              <div class="card-header">
+                <h3>Project Status</h3>
+              </div>
+              <div class="chart-container">
+                <canvas id="projectStatusChart"></canvas>
+              </div>
+            </div>
+          </div>
 
-                <div class="approval-card" id="approvalQueueCard">
-                    <div class="card-header">
-                        <h3>Approval Queue (<span id="approvalQueueCount">0</span>)</h3>
-                    </div>
-                    <div id="approvalQueueList">
-                        <p style="color:var(--ink-faint);padding:8px 0">No pending approvals</p>
-                    </div>
-                </div>
+          <div class="approval-card" id="approvalQueueCard">
+            <div class="card-header">
+              <h3>Approval Queue (<span id="approvalQueueCount">0</span>)</h3>
+            </div>
+            <div id="approvalQueueList">
+              <p style="color: var(--ink-faint); padding: 8px 0">
+                No pending approvals
+              </p>
+            </div>
+          </div>
 
-                <div class="content-grid">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Project Overview</h3>
-                            <div class="spacer"></div><a href="/app/projects" class="link-btn">View All</a>
-                        </div>
-                        <div id="projectOverviewList">
-                            <div class="loading-spinner visible"></div>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-header">
-                            <h3>Recent Activity</h3>
-                        </div>
-                        <div id="activityList">
-                            <div class="loading-spinner visible"></div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </main>
+          <div class="content-grid">
+            <div class="card">
+              <div class="card-header">
+                <h3>Project Overview</h3>
+                <div class="spacer"></div>
+                <a href="/app/projects" class="link-btn">View All</a>
+              </div>
+              <div id="projectOverviewList">
+                <div class="loading-spinner visible"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3>Recent Activity</h3>
+              </div>
+              <div id="activityList">
+                <div class="loading-spinner visible"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
 
     <script src="/assets/shared.js?v=15"></script>
     <script src="/assets/admin.js?v=8"></script>
     <script>
-        ShenanigansApp.init({
-            sidebar: 'admin',
-            activePage: 'dashboard',
-            subtitle: 'Management Portal',
-            onReady: function () { loadDashboard(); }
-        });
+      ShenanigansApp.init({
+        sidebar: "admin",
+        activePage: "dashboard",
+        subtitle: "Management Portal",
+        onReady: function () {
+          loadDashboard();
+        },
+      });
     </script>
-</body>
-
+  </body>
 </html>

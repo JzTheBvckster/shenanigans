@@ -1,104 +1,157 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Finance</title>
+    <link rel="stylesheet" href="/assets/styles.css?v=20" />
+  </head>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â Shenanigans</title>
-    <link rel="stylesheet" href="/assets/styles.css?v=20">
-</head>
-
-<body>
+  <body>
     <div class="app-shell" id="appShell">
-        <header class="app-header" id="appHeader"></header>
-        <aside class="app-sidebar" id="appSidebar"></aside>
+      <header class="app-header" id="appHeader"></header>
+      <aside class="app-sidebar" id="appSidebar"></aside>
 
-        <main class="app-content" id="appContent">
-            <section class="page-view" id="pageFinance">
-                <div class="page-header">
-                    <h2>Invoices</h2>
-                    <p>Financial overview and invoice management</p>
-                    <div style="display:flex;gap:8px;margin-top:8px">
-                        <button class="header-primary-btn" id="financeAddBtn" onclick="openInvoiceModal(null)">+ Add
-                            Invoice</button>
-                        <button class="header-export-btn" id="financeExportBtn" onclick="exportInvoicesCSV()">Export
-                            CSV</button>
-                    </div>
-                </div>
-                <div class="notice" id="financeNotice"></div>
-                <div class="page-filters" id="financeFilters" style="margin-bottom:12px;">
-                    <div class="filter-item">
-                        <label for="financeDeptFilter">Department</label>
-                        <select id="financeDeptFilter">
-                            <option value="">All Departments</option>
-                        </select>
-                    </div>
-                    <div class="filter-item">
-                        <label for="financePaidFilter">Payment Status</label>
-                        <select id="financePaidFilter">
-                            <option value="">All</option>
-                            <option value="outstanding">Outstanding</option>
-                            <option value="paid">Paid</option>
-                        </select>
-                    </div>
-                    <div class="filter-item filter-item-wide">
-                        <label for="financeClientFilter">Search</label>
-                        <input type="text" id="financeClientFilter" placeholder="Search by client, ID, or project...">
-                    </div>
-                    <div class="filter-actions">
-                        <button class="btn-secondary btn-small" type="button" onclick="clearFinanceFilters()">Clear Filters</button>
-                    </div>
-                </div>
-                <div class="dept-stats-row" id="financeDeptStats"></div>
-                <div class="dept-groups" id="financeDeptGroups">
-                    <div class="loading-spinner visible"></div>
-                </div>
-            </section>
-        </main>
+      <main class="app-content" id="appContent">
+        <section class="page-view" id="pageFinance">
+          <div class="page-header">
+            <h2>Invoices</h2>
+            <p>Financial overview and invoice management</p>
+            <div style="display: flex; gap: 8px; margin-top: 8px">
+              <button
+                class="header-primary-btn"
+                id="financeAddBtn"
+                onclick="openInvoiceModal(null)"
+              >
+                + Add Invoice
+              </button>
+              <button
+                class="header-export-btn"
+                id="financeExportBtn"
+                onclick="exportInvoicesCSV()"
+              >
+                Export CSV
+              </button>
+            </div>
+          </div>
+          <div class="notice" id="financeNotice"></div>
+          <div
+            class="page-filters"
+            id="financeFilters"
+            style="margin-bottom: 12px"
+          >
+            <div class="filter-item">
+              <label for="financeDeptFilter">Department</label>
+              <select id="financeDeptFilter">
+                <option value="">All Departments</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label for="financePaidFilter">Payment Status</label>
+              <select id="financePaidFilter">
+                <option value="">All</option>
+                <option value="outstanding">Outstanding</option>
+                <option value="paid">Paid</option>
+              </select>
+            </div>
+            <div class="filter-item filter-item-wide">
+              <label for="financeClientFilter">Search</label>
+              <input
+                type="text"
+                id="financeClientFilter"
+                placeholder="Search by client, ID, or project..."
+              />
+            </div>
+            <div class="filter-actions">
+              <button
+                class="btn-secondary btn-small"
+                type="button"
+                onclick="clearFinanceFilters()"
+              >
+                Clear Filters
+              </button>
+            </div>
+          </div>
+          <div class="dept-stats-row" id="financeDeptStats"></div>
+          <div class="dept-groups" id="financeDeptGroups">
+            <div class="loading-spinner visible"></div>
+          </div>
+        </section>
+      </main>
     </div>
 
     <!-- Invoice Modal -->
     <div class="modal-overlay hidden" id="invoiceModal">
-        <div class="modal-card">
-            <div class="modal-header">
-                <h3 id="invoiceModalTitle">Add Invoice</h3>
-                <button class="modal-close" onclick="closeModal('invoiceModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="invId">
-                <div class="modal-field"><label>Client *</label><input type="text" id="invClient"
-                        placeholder="Acme Corp"></div>
-                <div class="modal-field"><label>Amount *</label><input type="number" id="invAmount" placeholder="5000"
-                        step="0.01"></div>
-                <div class="modal-field"><label>Paid</label>
-                    <select id="invPaid">
-                        <option value="false">Outstanding</option>
-                        <option value="true">Paid</option>
-                    </select>
-                </div>
-                <div class="modal-field"><label>Project ID (optional)</label><input type="text" id="invProjectId"
-                        placeholder="project-id"></div>
-                <div class="modal-notice" id="invModalNotice"></div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-modal-delete hidden" id="invDeleteBtn" onclick="deleteInvoice()">Delete</button>
-                <div class="modal-footer-spacer"></div>
-                <button class="btn-modal-cancel" onclick="closeModal('invoiceModal')">Cancel</button>
-                <button class="btn-modal-save" id="invSaveBtn" onclick="saveInvoice()">Save</button>
-            </div>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 id="invoiceModalTitle">Add Invoice</h3>
+          <button class="modal-close" onclick="closeModal('invoiceModal')">
+            &times;
+          </button>
         </div>
+        <div class="modal-body">
+          <input type="hidden" id="invId" />
+          <div class="modal-field">
+            <label>Client *</label
+            ><input type="text" id="invClient" placeholder="Acme Corp" />
+          </div>
+          <div class="modal-field">
+            <label>Amount *</label
+            ><input
+              type="number"
+              id="invAmount"
+              placeholder="5000"
+              step="0.01"
+            />
+          </div>
+          <div class="modal-field">
+            <label>Paid</label>
+            <select id="invPaid">
+              <option value="false">Outstanding</option>
+              <option value="true">Paid</option>
+            </select>
+          </div>
+          <div class="modal-field">
+            <label>Project ID (optional)</label
+            ><input type="text" id="invProjectId" placeholder="project-id" />
+          </div>
+          <div class="modal-notice" id="invModalNotice"></div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn-modal-delete hidden"
+            id="invDeleteBtn"
+            onclick="deleteInvoice()"
+          >
+            Delete
+          </button>
+          <div class="modal-footer-spacer"></div>
+          <button class="btn-modal-cancel" onclick="closeModal('invoiceModal')">
+            Cancel
+          </button>
+          <button
+            class="btn-modal-save"
+            id="invSaveBtn"
+            onclick="saveInvoice()"
+          >
+            Save
+          </button>
+        </div>
+      </div>
     </div>
 
     <script src="/assets/shared.js?v=15"></script>
     <script src="/assets/admin.js?v=8"></script>
     <script>
-        ShenanigansApp.init({
-            sidebar: 'admin',
-            activePage: 'finance',
-            subtitle: 'Financial Management',
-            onReady: function () { initFinanceFilters(); loadFinance(); }
-        });
+      ShenanigansApp.init({
+        sidebar: "admin",
+        activePage: "finance",
+        subtitle: "Financial Management",
+        onReady: function () {
+          initFinanceFilters();
+          loadFinance();
+        },
+      });
     </script>
-</body>
-
+  </body>
 </html>
