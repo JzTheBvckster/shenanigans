@@ -33,14 +33,26 @@ module.exports = withSecurity(async function handler(req, res) {
     });
   }
 
+  function toAmount(value) {
+    if (typeof value === "string") {
+      value = value.replace(/,/g, "").trim();
+    }
+    const amount = Number(value);
+    return Number.isFinite(amount) ? amount : 0;
+  }
+
   const activeProjects = projects.filter(
     (p) => p.status === "IN_PROGRESS" || p.status === "PLANNING"
   ).length;
   const overdueProjects = projects.filter((p) => p.overdue === true).length;
   const openInvoices = invoices.filter((inv) => !inv.paid).length;
+  const totalRevenue = invoices.reduce(
+    (sum, inv) => sum + toAmount(inv.amount),
+    0
+  );
   const paidRevenue = invoices
     .filter((inv) => inv.paid)
-    .reduce((sum, inv) => sum + (inv.amount || 0), 0);
+    .reduce((sum, inv) => sum + toAmount(inv.amount), 0);
 
   return res.status(200).json({
     ok: true,
@@ -50,6 +62,7 @@ module.exports = withSecurity(async function handler(req, res) {
       totalEmployees: employees.length,
       openInvoices,
       overdueProjects,
+      totalRevenue,
       paidRevenue,
     },
   });

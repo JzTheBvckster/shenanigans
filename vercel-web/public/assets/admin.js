@@ -50,7 +50,7 @@
       document.getElementById("statInvoices").textContent =
         data.openInvoices || 0;
       document.getElementById("statRevenue").textContent =
-        "$" + app.formatMoney(data.paidRevenue || 0);
+        "$" + app.formatMoney(data.totalRevenue || 0);
 
       document.getElementById("insightTotal").textContent =
         data.totalProjects || 0;
@@ -288,6 +288,14 @@
   var revenueTrendChartInstance = null;
   var projectStatusChartInstance = null;
 
+  function toAmount(value) {
+    if (typeof value === "string") {
+      value = value.replace(/,/g, "").trim();
+    }
+    var amount = Number(value);
+    return isNaN(amount) ? 0 : amount;
+  }
+
   function renderRevenueTrendChart(invoices) {
     var canvas = document.getElementById("revenueTrendChart");
     if (!canvas || typeof Chart === "undefined") return;
@@ -318,7 +326,7 @@
         );
         var nextRef = new Date(ref.getFullYear(), ref.getMonth() + 1, 1);
         if (id >= ref && id < nextRef) {
-          values[i] += inv.amount || 0;
+          values[i] += toAmount(inv.amount);
           break;
         }
       }

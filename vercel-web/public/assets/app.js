@@ -6,11 +6,77 @@
     var currentUser = null;
     var cachedData = {};
     var filtersInitialized = false;
+    var COMPACT_SIDEBAR_BREAKPOINT = 1024;
+    var THEME_STORAGE_KEY = 'shenanigans.theme';
+    var THEME_ICONS = {
+        dark: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21 12.79A9 9 0 0 1 11.21 3c0-.34.02-.67.06-1A1 1 0 0 0 10 1a10 10 0 1 0 13 13 1 1 0 0 0-2-.21z"/></svg>',
+        light: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.76 4.84 5.34 3.42 3.92 4.84l1.42 1.42 1.42-1.42zM1 13h3v-2H1v2zm10 10h2v-3h-2v3zm7.66-18.16-1.42-1.42-1.42 1.42 1.42 1.42 1.42-1.42zM17.24 19.16l1.42 1.42 1.42-1.42-1.42-1.42-1.42 1.42zM20 13h3v-2h-3v2zM11 4h2V1h-2v3zm1 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm-7.66 10.16-1.42 1.42 1.42 1.42 1.42-1.42-1.42-1.42z"/></svg>'
+    };
 
     // ---- Bootstrap ----
+    setTheme(getThemeMode(), false);
+    ensureSidebarBackdrop();
+    restoreResponsiveSidebar();
     checkAuth();
     checkSystemHealth();
     initPageFilters();
+
+    function readStoredTheme() {
+        try {
+            var stored = localStorage.getItem(THEME_STORAGE_KEY);
+            return stored === 'dark' || stored === 'light' ? stored : '';
+        } catch (_err) {
+            return '';
+        }
+    }
+
+    function getSystemTheme() {
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+        }
+        return 'light';
+    }
+
+    function getThemeMode() {
+        var active = document.documentElement.getAttribute('data-theme');
+        if (active === 'dark' || active === 'light') return active;
+        return readStoredTheme() || getSystemTheme();
+    }
+
+    function syncThemeControls() {
+        var isDark = getThemeMode() === 'dark';
+        var sidebarBtn = document.getElementById('sidebarThemeBtn');
+        if (!sidebarBtn) return;
+        sidebarBtn.innerHTML = '<span class="theme-toggle-icon">' + (isDark ? THEME_ICONS.light : THEME_ICONS.dark) + '</span>'
+            + '<span class="theme-toggle-label">' + (isDark ? 'Light Mode' : 'Dark Mode') + '</span>';
+        sidebarBtn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+        sidebarBtn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+        sidebarBtn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+    }
+
+    function setTheme(mode, persist) {
+        var nextMode = mode === 'dark' || mode === 'light' ? mode : getSystemTheme();
+        document.documentElement.setAttribute('data-theme', nextMode);
+        if (document.body) {
+            document.body.classList.toggle('dark-mode', nextMode === 'dark');
+        }
+        if (persist !== false) {
+            try {
+                localStorage.setItem(THEME_STORAGE_KEY, nextMode);
+            } catch (_err) {
+                /* ignore storage failures */
+            }
+        }
+        syncThemeControls();
+        return nextMode;
+    }
+
+    window.toggleThemeMode = function () {
+        var nextMode = getThemeMode() === 'dark' ? 'light' : 'dark';
+        setTheme(nextMode);
+        showToast('Switched to ' + (nextMode === 'dark' ? 'dark' : 'light') + ' mode', 'success');
+        closeSidebarOverlay();
+    };
 
     // ---- Auth guard ----
     function checkAuth() {
@@ -31,7 +97,7 @@
     function applyUserInfo() {
         if (!currentUser) return;
         var name = currentUser.displayName || currentUser.email || 'User';
-        document.getElementById('headerWelcome').textContent = 'Welcome, ' + name;
+        document.getElementById('headerWelcome').textContent = name;
         document.getElementById('headerEmail').textContent = currentUser.email || '';
         document.getElementById('headerAvatar').textContent = initials(name);
         document.getElementById('headerRole').textContent = formatRole(currentUser.role);
@@ -70,7 +136,10 @@
 
     // ---- Navigation ----
     window.navigateTo = function (page) {
-        if (page === currentPage) return;
+        if (page === currentPage) {
+            closeSidebarOverlay();
+            return;
+        }
         currentPage = page;
 
         // Update sidebar active state
@@ -109,6 +178,7 @@
             document.getElementById('headerAddBtn').textContent = page === 'employees' ? '+ Add Employee' : '+ Add Project';
         }
 
+        closeSidebarOverlay();
         loadPage(page);
     };
 
@@ -131,23 +201,99 @@
         }
     }
 
-    // ---- Sidebar toggle ----
-    (function restoreSidebar() {
-        var collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-        if (collapsed) {
-            document.getElementById('appShell').classList.add('sidebar-collapsed');
-            document.getElementById('sidebarToggle').innerHTML = '\u2039'; // <
+    function isCompactSidebarLayout() {
+        return window.innerWidth <= COMPACT_SIDEBAR_BREAKPOINT;
+    }
+
+    function getSidebarPreference() {
+        return localStorage.getItem('sidebarCollapsed') === 'true';
+    }
+
+    function ensureSidebarBackdrop() {
+        if (document.getElementById('appSidebarBackdrop')) return;
+        var backdrop = document.createElement('button');
+        backdrop.type = 'button';
+        backdrop.id = 'appSidebarBackdrop';
+        backdrop.className = 'app-sidebar-backdrop';
+        backdrop.setAttribute('aria-label', 'Close navigation');
+        backdrop.addEventListener('click', function () {
+            closeSidebarOverlay();
+        });
+        document.body.appendChild(backdrop);
+    }
+
+    function updateSidebarToggleButton() {
+        var btn = document.getElementById('sidebarToggle');
+        var shell = document.getElementById('appShell');
+        if (!btn || !shell) return;
+        if (isCompactSidebarLayout()) {
+            btn.innerHTML = '&times;';
+            btn.setAttribute('aria-label', 'Close navigation');
+            btn.title = 'Close navigation';
+            return;
         }
-    })();
+        var collapsed = shell.classList.contains('sidebar-collapsed');
+        btn.innerHTML = collapsed ? '\u203A' : '\u2039';
+        btn.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+        btn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+    }
+
+    function closeSidebarOverlay() {
+        var shell = document.getElementById('appShell');
+        if (!shell) return;
+        shell.classList.remove('sidebar-open');
+        document.body.classList.remove('sidebar-overlay-active');
+        updateSidebarToggleButton();
+    }
+
+    window.closeSidebarOverlay = closeSidebarOverlay;
+
+    function restoreResponsiveSidebar() {
+        var shell = document.getElementById('appShell');
+        if (!shell) return;
+        var compact = isCompactSidebarLayout();
+        shell.classList.toggle('sidebar-compact', compact);
+        shell.classList.remove('sidebar-open');
+        document.body.classList.remove('sidebar-overlay-active');
+        if (compact) {
+            shell.classList.remove('sidebar-collapsed');
+        } else {
+            shell.classList.toggle('sidebar-collapsed', getSidebarPreference());
+        }
+        updateSidebarToggleButton();
+    }
 
     window.toggleSidebar = function () {
         var shell = document.getElementById('appShell');
+        if (!shell) return;
+        if (isCompactSidebarLayout()) {
+            var open = !shell.classList.contains('sidebar-open');
+            shell.classList.toggle('sidebar-open', open);
+            document.body.classList.toggle('sidebar-overlay-active', open);
+            updateSidebarToggleButton();
+            return;
+        }
         shell.classList.toggle('sidebar-collapsed');
-        var collapsed = shell.classList.contains('sidebar-collapsed');
-        var btn = document.getElementById('sidebarToggle');
-        btn.innerHTML = collapsed ? '\u203A' : '\u2039'; // > or <
-        localStorage.setItem('sidebarCollapsed', collapsed);
+        localStorage.setItem('sidebarCollapsed', shell.classList.contains('sidebar-collapsed'));
+        updateSidebarToggleButton();
     };
+
+    window.addEventListener('resize', function () {
+        restoreResponsiveSidebar();
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            closeSidebarOverlay();
+        }
+    });
+
+    document.addEventListener('click', function (event) {
+        if (!isCompactSidebarLayout()) return;
+        if (event.target.closest('.app-sidebar .menu-btn')) {
+            closeSidebarOverlay();
+        }
+    });
 
     // ---- Logout ----
     window.doLogout = function () {
@@ -1943,6 +2089,26 @@
     function empProfileRow(label, value) {
         return '<div class="emp-profile-row"><span class="emp-profile-label">' + esc(label) + '</span>'
             + '<span class="emp-profile-value">' + esc(value) + '</span></div>';
+    }
+
+    window.addEventListener('storage', function (event) {
+        if (event.key === THEME_STORAGE_KEY) {
+            setTheme(getThemeMode(), false);
+        }
+    });
+
+    if (window.matchMedia) {
+        var themeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+        var onThemeMediaChange = function () {
+            if (!readStoredTheme()) {
+                setTheme(getSystemTheme(), false);
+            }
+        };
+        if (typeof themeMedia.addEventListener === 'function') {
+            themeMedia.addEventListener('change', onThemeMediaChange);
+        } else if (typeof themeMedia.addListener === 'function') {
+            themeMedia.addListener(onThemeMediaChange);
+        }
     }
 
 })();

@@ -36,14 +36,17 @@ var ShenanigansApp = (function () {
     app.syncThemeControls = function () {
         var mode = app.getThemeMode();
         var isDark = mode === 'dark';
-        var headerBtn = document.getElementById('headerThemeBtn');
-        if (headerBtn) {
-            headerBtn.innerHTML = '<span class="theme-toggle-icon">' + (isDark ? THEME_ICONS.light : THEME_ICONS.dark) + '</span>'
+        function syncThemeButton(button) {
+            if (!button) return;
+            button.innerHTML = '<span class="theme-toggle-icon">' + (isDark ? THEME_ICONS.light : THEME_ICONS.dark) + '</span>'
                 + '<span class="theme-toggle-label">' + (isDark ? 'Light Mode' : 'Dark Mode') + '</span>';
-            headerBtn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
-            headerBtn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
-            headerBtn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+            button.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+            button.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+            button.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
         }
+        var headerBtn = document.getElementById('headerThemeBtn');
+        syncThemeButton(headerBtn);
+        syncThemeButton(document.getElementById('sidebarThemeBtn'));
         var darkCheckbox = document.getElementById('settingDarkMode');
         if (darkCheckbox) {
             darkCheckbox.checked = isDark;
@@ -71,6 +74,7 @@ var ShenanigansApp = (function () {
         var nextMode = app.getThemeMode() === 'dark' ? 'light' : 'dark';
         app.setTheme(nextMode);
         app.showToast('Switched to ' + (nextMode === 'dark' ? 'dark' : 'light') + ' mode', 'success');
+        if (window.closeSidebarOverlay) window.closeSidebarOverlay();
     };
 
     app.setTheme(app.getThemeMode(), false);
@@ -344,30 +348,113 @@ var ShenanigansApp = (function () {
        SIDEBAR TOGGLE
        ============================================================ */
     function restoreSidebar() {
-        var collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-        if (collapsed) {
-            document.getElementById('appShell').classList.add('sidebar-collapsed');
-            var btn = document.getElementById('sidebarToggle');
-            if (btn) btn.innerHTML = '\u203A';
+        applyResponsiveSidebarState();
+    }
+
+    var COMPACT_SIDEBAR_BREAKPOINT = 1024;
+
+    function isCompactSidebarLayout() {
+        return window.innerWidth <= COMPACT_SIDEBAR_BREAKPOINT;
+    }
+
+    function getSidebarPreference() {
+        return localStorage.getItem('sidebarCollapsed') === 'true';
+    }
+
+    function ensureSidebarBackdrop() {
+        if (document.getElementById('appSidebarBackdrop')) return;
+        var backdrop = document.createElement('button');
+        backdrop.type = 'button';
+        backdrop.id = 'appSidebarBackdrop';
+        backdrop.className = 'app-sidebar-backdrop';
+        backdrop.setAttribute('aria-label', 'Close navigation');
+        backdrop.addEventListener('click', function () {
+            closeSidebarOverlay();
+        });
+        document.body.appendChild(backdrop);
+    }
+
+    function updateSidebarToggleButton() {
+        var btn = document.getElementById('sidebarToggle');
+        var shell = document.getElementById('appShell');
+        if (!btn || !shell) return;
+        if (isCompactSidebarLayout()) {
+            btn.innerHTML = '&times;';
+            btn.setAttribute('aria-label', 'Close navigation');
+            btn.title = 'Close navigation';
+            return;
         }
+        var collapsed = shell.classList.contains('sidebar-collapsed');
+        btn.innerHTML = collapsed ? '\u203A' : '\u2039';
+        btn.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+        btn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+    }
+
+    function closeSidebarOverlay() {
+        var shell = document.getElementById('appShell');
+        if (!shell) return;
+        shell.classList.remove('sidebar-open');
+        document.body.classList.remove('sidebar-overlay-active');
+        updateSidebarToggleButton();
+    }
+
+    window.closeSidebarOverlay = closeSidebarOverlay;
+
+    function applyResponsiveSidebarState() {
+        var shell = document.getElementById('appShell');
+        if (!shell) return;
+
+        var compact = isCompactSidebarLayout();
+        shell.classList.toggle('sidebar-compact', compact);
+        shell.classList.remove('sidebar-open');
+        document.body.classList.remove('sidebar-overlay-active');
+
+        if (compact) {
+            shell.classList.remove('sidebar-collapsed');
+        } else {
+            shell.classList.toggle('sidebar-collapsed', getSidebarPreference());
+        }
+
+        updateSidebarToggleButton();
     }
 
     window.toggleSidebar = function () {
         var shell = document.getElementById('appShell');
+        if (!shell) return;
+        if (isCompactSidebarLayout()) {
+            var open = !shell.classList.contains('sidebar-open');
+            shell.classList.toggle('sidebar-open', open);
+            document.body.classList.toggle('sidebar-overlay-active', open);
+            updateSidebarToggleButton();
+            return;
+        }
         shell.classList.toggle('sidebar-collapsed');
-        var collapsed = shell.classList.contains('sidebar-collapsed');
-        var btn = document.getElementById('sidebarToggle');
-        if (btn) btn.innerHTML = collapsed ? '\u203A' : '\u2039';
-        localStorage.setItem('sidebarCollapsed', collapsed);
+        localStorage.setItem('sidebarCollapsed', shell.classList.contains('sidebar-collapsed'));
+        updateSidebarToggleButton();
     };
 
     window.resetSidebarState = function () {
         localStorage.removeItem('sidebarCollapsed');
-        document.getElementById('appShell').classList.remove('sidebar-collapsed');
-        var btn = document.getElementById('sidebarToggle');
-        if (btn) btn.innerHTML = '\u2039';
+        applyResponsiveSidebarState();
         app.showToast('Sidebar layout reset', 'success');
     };
+
+    window.addEventListener('resize', function () {
+        applyResponsiveSidebarState();
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            closeSidebarOverlay();
+        }
+    });
+
+    document.addEventListener('click', function (event) {
+        if (!isCompactSidebarLayout()) return;
+        if (event.target.closest('.app-sidebar a.menu-btn')) {
+            closeSidebarOverlay();
+        }
+    });
 
     /* ============================================================
        LOGOUT
@@ -527,8 +614,10 @@ var ShenanigansApp = (function () {
     }
 
     function buildHeaderHTML(config) {
-        var html = '<div class="header-brand">'
-            + '<div class="logo-circle">S</div>'
+        var html = '<button class="header-menu-btn" id="headerMenuBtn" type="button" onclick="toggleSidebar()" aria-label="Open navigation">'
+            + '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 7h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>'
+            + '</button>'
+            + '<div class="header-brand">'
             + '<div class="header-brand-text">'
             + '<h1>Shenanigans</h1>'
             + '<p id="headerSubtitle">' + (config.subtitle || 'Management Portal') + '</p>'
@@ -541,6 +630,8 @@ var ShenanigansApp = (function () {
                 + '<input type="text" id="headerSearchInput" placeholder="' + (config.searchPlaceholder || 'Search...') + '">'
                 + '</div>';
         }
+
+        html += '<div class="header-actions"><div class="header-toolbar">';
 
         if (config.showAddBtn) {
             html += '<button class="header-primary-btn" id="headerAddBtn">' + (config.addBtnText || '+ Add') + '</button>';
@@ -557,7 +648,7 @@ var ShenanigansApp = (function () {
             + '<div class="notif-dropdown hidden" id="notifDropdown">'
             + '<div class="notif-dropdown-header"><span>Notifications</span><button class="btn-tiny" onclick="markAllNotifsRead()">Mark all read</button></div>'
             + '<div class="notif-dropdown-list" id="notifDropdownList"><div class="notif-empty">No notifications</div></div>'
-            + '</div></div>';
+            + '</div></div></div>';
 
         html += '<div class="header-user">'
             + '<div class="header-user-info">'
@@ -568,7 +659,11 @@ var ShenanigansApp = (function () {
             + '<div class="header-avatar" id="headerAvatar">?</div>'
             + '<div class="role-badge-small" id="headerRole">User</div>'
             + '</div>'
-            + '<button class="btn-logout" onclick="doLogout()">Logout</button>'
+            + '<button class="btn-logout" onclick="doLogout()" aria-label="Logout">'
+            + '<span class="btn-logout-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M10 17v-3H3v-4h7V7l5 5-5 5zm7-12h-5v2h5v10h-5v2h5c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2z"/></svg></span>'
+            + '<span class="btn-logout-label">Logout</span>'
+            + '</button>'
+            + '</div>'
             + '</div>';
 
         return html;
@@ -645,6 +740,7 @@ var ShenanigansApp = (function () {
             + '<div class="title">System Status</div>'
             + '<div class="status-row"><div class="status-dot" id="systemStatusDot"></div>'
             + '<span class="status-text" id="systemStatusText">Checking...</span></div>'
+            + '<button class="sidebar-theme-btn" id="sidebarThemeBtn" type="button" onclick="toggleThemeMode()"></button>'
             + '</div>';
     }
 
@@ -811,7 +907,7 @@ var ShenanigansApp = (function () {
 
         var el;
         el = document.getElementById('headerWelcome');
-        if (el) el.textContent = 'Welcome, ' + name;
+        if (el) el.textContent = name;
         el = document.getElementById('headerEmail');
         if (el) el.textContent = app.currentUser.email || '';
         el = document.getElementById('headerAvatar');
@@ -860,6 +956,7 @@ var ShenanigansApp = (function () {
             document.body.insertAdjacentHTML('beforeend', '<div class="toast" id="toast"></div>');
         }
 
+        ensureSidebarBackdrop();
         app.syncThemeControls();
 
         restoreSidebar();
